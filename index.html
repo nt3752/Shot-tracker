@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a3009">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Shot Tracker">
+    <meta name="theme-color" content="#1a3009">
+    <!-- Optional: if you add an icon file next to this HTML, uncomment:
+    <link rel="apple-touch-icon" href="icon-180.png">
+    -->
+
+    <title>Golf Shot Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --green-primary: #2d5016;
+            --green-light: #4a7c2c;
+            --green-dark: #1a3009;
+            --grass: #7cb342;
+            --sand: #d4a574;
+            --sky: #87ceeb;
+            --white: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-primary) 100%);
+            min-height: 100vh;
+            color: var(--white);
+            overflow-x: hidden;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, transparent 1px, transparent 40px),
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, transparent 1px, transparent 40px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: slideDown 0.6s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Righteous', sans-serif;
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            opacity: 0.85;
+            font-weight: 500;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+            animation: fadeIn 0.8s ease 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .club-selector {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            animation: fadeIn 0.8s ease 0.3s both;
+        }
+
+        .club-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .clubs-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .club-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: var(--white);
+            padding: 14px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .club-btn:active { transform: scale(0.95); }
+
+        .club-btn.selected {
+            background: var(--grass);
+            border-color: var(--grass);
+            box-shadow: 0 4px 12px rgba(124, 179, 66, 0.4);
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 20px;
+            border: none;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+
+        .mark-shot-btn {
+            background: linear-gradient(135deg, var(--grass) 0%, var(--green-light) 100%);
+            color: var(--white);
+            margin-bottom: 15px;
+            animation: fadeIn 0.8s ease 0.4s both;
+        }
+
+        .mark-shot-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .mark-shot-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .next-hole-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            color: var(--white);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            animation: fadeIn 0.8s ease 0.5s both;
+        }
+
+        .next-hole-btn:active { transform: translateY(2px); }
+
+        .shots-list {
+            margin-top: 25px;
+            animation: fadeIn 0.8s ease 0.6s both;
+        }
+
+        .shots-header {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .shot-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideUp 0.4s ease;
+            gap: 10px;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shot-info { flex: 1; }
+
+        .shot-number {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .shot-club {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .shot-distance {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--grass);
+            text-shadow: 0 2px 8px rgba(124, 179, 66, 0.3);
+            white-space: nowrap;
+        }
+
+        .gps-status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            color: var(--white);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            z-index: 1000;
+            display: none;
+            animation: slideDown 0.4s ease;
+        }
+
+        .gps-status.show { display: block; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            opacity: 0.6;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .delete-btn {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid rgba(220, 53, 69, 0.4);
+            color: var(--white);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .delete-btn:active { transform: scale(0.95); }
+
+        .mini-btn {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--white);
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+
+        .mini-btn:active { transform: translateY(2px); }
+
+        .stats-panel {
+            margin-top: 18px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .stats-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .club-stats-row {
+            display: grid;
+            grid-template-columns: 70px 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 8px 0;
+            border-top: 1px solid rgba(255,255,255,0.12);
+            align-items: center;
+        }
+
+        .club-stats-row:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .club-pill {
+            font-weight: 800;
+            background: rgba(124, 179, 66, 0.18);
+            border: 1px solid rgba(124, 179, 66, 0.35);
+            padding: 6px 10px;
+            border-radius: 999px;
+            text-align: center;
+        }
+
+        .muted { opacity: 0.85; }
+        .right { text-align: right; }
+        .small { font-size: 0.9rem; }
+    </style>
+
+</head>
+<body>
+    <div class="gps-status" id="gpsStatus"></div>
+
+    <div class="container">
+        <header>
+            <h1>⛳ Shot Tracker</h1>
+            <div class="subtitle">GPS Shot Recording</div>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-label">Hole</div>
+                <div class="stat-value" id="currentHole">1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Shots</div>
+                <div class="stat-value" id="shotCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total</div>
+                <div class="stat-value" id="totalShots">0</div>
+            </div>
+        </div>
+
+        <div class="club-selector">
+            <div class="club-label">Select Club</div>
+            <div class="clubs-grid" id="clubsGrid">
+                <button class="club-btn" data-club="DR">DR</button>
+                <button class="club-btn" data-club="3W">3W</button>
+                <button class="club-btn" data-club="5W">5W</button>
+                <button class="club-btn" data-club="3H">3H</button>
+                <button class="club-btn" data-club="4H">4H</button>
+                <button class="club-btn" data-club="5H">5H</button>
+                <button class="club-btn" data-club="3I">3I</button>
+                <button class="club-btn" data-club="4I">4I</button>
+                <button class="club-btn" data-club="5I">5I</button>
+                <button class="club-btn" data-club="6I">6I</button>
+                <button class="club-btn" data-club="7I">7I</button>
+                <button class="club-btn" data-club="8I">8I</button>
+                <button class="club-btn" data-club="9I">9I</button>
+                <button class="club-btn" data-club="PW">PW</button>
+                <button class="club-btn" data-club="GW">GW</button>
+                <button class="club-btn" data-club="SW">SW</button>
+                <button class="club-btn" data-club="LW">LW</button>
+                <button class="club-btn" data-club="PT">PT</button>
+            </div>
+        </div>
+
+        <button class="action-btn mark-shot-btn" id="markTeeBtn" style="background: linear-gradient(135deg, #d4a574 0%, #c49563 100%);">
+            🏁 Mark Tee Box
+        </button>
+
+        <button class="action-btn mark-shot-btn" id="markShotBtn">
+            📍 Mark Shot
+        </button>
+
+        <button class="action-btn mark-shot-btn" id="penaltyBtn" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+            ⚠️ Penalty
+        </button>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <button class="action-btn next-hole-btn" id="prevHoleBtn">
+                ← Previous
+            </button>
+            <button class="action-btn next-hole-btn" id="nextHoleBtn">
+                Next →
+            </button>
+        </div>
+
+        <!-- Export -->
+        <button class="mini-btn" id="exportBtn">⬇️ Export Round (CSV)</button>
+
+        <div class="shots-list" id="shotsList">
+            <div class="shots-header">This Hole</div>
+            <div class="empty-state">
+                <div class="empty-state-icon">🏌️</div>
+                <div>No shots recorded yet</div>
+            </div>
+        </div>
+
+        <!-- Club stats panel -->
+        <div class="stats-panel" id="clubStatsPanel" style="display:none;">
+            <div class="stats-title">Round Club Stats</div>
+            <div class="muted small" style="margin-bottom: 10px;">
+                Uses shot-to-shot GPS distances (penalties excluded).
+            </div>
+            <div class="club-stats-row muted small" style="font-weight:800;">
+                <div>Club</div>
+                <div class="right">Count</div>
+                <div class="right">Avg</div>
+                <div class="right">Max</div>
+            </div>
+            <div id="clubStatsRows"></div>
+        </div>
+    </div>
+
+<script>
+    // App State
+    let currentHole = 1;
+    let selectedClub = null;
+    let holes = {};
+    let lastPosition = null;
+
+    // Track whether a round is "active" to prevent accidental refresh loss
+    let roundActive = false;
+
+    // DOM Elements
+    const clubButtons = document.querySelectorAll('.club-btn');
+    const markTeeBtn = document.getElementById('markTeeBtn');
+    const markShotBtn = document.getElementById('markShotBtn');
+    const penaltyBtn = document.getElementById('penaltyBtn');
+    const prevHoleBtn = document.getElementById('prevHoleBtn');
+    const nextHoleBtn = document.getElementById('nextHoleBtn');
+    const shotsList = document.getElementById('shotsList');
+    const gpsStatus = document.getElementById('gpsStatus');
+    const exportBtn = document.getElementById('exportBtn');
+    const clubStatsPanel = document.getElementById('clubStatsPanel');
+    const clubStatsRows = document.getElementById('clubStatsRows');
+
+    // Prevent accidental close/refresh (when roundActive)
+    window.addEventListener('beforeunload', (e) => {
+        if (!roundActive) return;
+        e.preventDefault();
+        e.returnValue = '';
+    });
+
+    // Initialize hole
+    function initHole(holeNumber) {
+        if (!holes[holeNumber]) {
+            holes[holeNumber] = {
+                shots: [],
+                holeNumber: holeNumber,
+                teeBox: null
+            };
+        }
+    }
+
+    initHole(currentHole);
+
+    // Club Selection
+    clubButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            clubButtons.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedClub = btn.dataset.club;
+            updateMarkButton();
+        });
+    });
+
+    // Update Mark Button State
+    function updateMarkButton() {
+        if (selectedClub) {
+            markShotBtn.disabled = false;
+            markShotBtn.textContent = `📍 Mark Shot (${selectedClub})`;
+        } else {
+            markShotBtn.disabled = true;
+            markShotBtn.textContent = '📍 Mark Shot';
+        }
+    }
+
+    // Calculate Distance between two GPS points (Haversine formula)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000; // meters
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        const meters = R * c;
+        const yards = meters * 1.09361;
+        return Math.round(yards);
+    }
+
+    // Show GPS Status
+    function showGPSStatus(message, duration = 2000) {
+        gpsStatus.textContent = message;
+        gpsStatus.classList.add('show');
+        setTimeout(() => gpsStatus.classList.remove('show'), duration);
+    }
+
+    function setRoundActive() {
+        roundActive = true;
+        localStorage.setItem('roundActive', '1');
+    }
+
+    function clearRoundActive() {
+        roundActive = false;
+        localStorage.removeItem('roundActive');
+    }
+
+    // Mark Tee Box
+    markTeeBtn.addEventListener('click', () => {
+        showGPSStatus('📡 Marking tee box...');
+
+        if (!navigator.geolocation) {
+            showGPSStatus('❌ GPS not supported on this device');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                holes[currentHole].teeBox = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    timestamp: new Date().toISOString(),
+                    accuracy: Math.round(position.coords.accuracy)
+                };
+
+                lastPosition = holes[currentHole].teeBox;
+
+                setRoundActive();
+
+                showGPSStatus(`✅ Tee box marked (±${holes[currentHole].teeBox.accuracy}m)`);
+                renderHole();
+                updateStats();
+                saveData();
+            },
+            (error) => {
+                let message = '❌ Could not get GPS location';
+                if (error.code === error.PERMISSION_DENIED) {
+                    message = '❌ GPS permission denied. Go to Settings → Safari → Location';
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    message = '❌ GPS unavailable';
+                } else if (error.code === error.TIMEOUT) {
+                    message = '❌ GPS timeout';
+                }
+                showGPSStatus(message, 4000);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    });
+
+    // Mark Shot
+    markShotBtn.addEventListener('click', () => {
+        if (!selectedClub) {
+            showGPSStatus('⚠️ Please select a club first');
+            return;
+        }
+
+        showGPSStatus('📡 Getting GPS location...');
+
+        if (!navigator.geolocation) {
+            showGPSStatus('❌ GPS not supported on this device');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const shot = {
+                    club: selectedClub,
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    timestamp: new Date().toISOString(),
+                    accuracy: Math.round(position.coords.accuracy)
+                };
+
+                if (lastPosition) {
+                    shot.distance = calculateDistance(
+                        lastPosition.latitude,
+                        lastPosition.longitude,
+                        shot.latitude,
+                        shot.longitude
+                    );
+                }
+
+                holes[currentHole].shots.push(shot);
+                lastPosition = shot;
+
+                setRoundActive();
+
+                const distanceMsg = shot.distance
+                    ? `✅ Shot marked: ${shot.distance} yards (±${shot.accuracy}m accuracy)`
+                    : `✅ Shot marked (±${shot.accuracy}m accuracy)`;
+
+                showGPSStatus(distanceMsg, 3000);
+                renderHole();
+                updateStats();
+                saveData();
+
+                // Keep current behavior: clear selection after each shot
+                clubButtons.forEach(b => b.classList.remove('selected'));
+                selectedClub = null;
+                updateMarkButton();
+            },
+            (error) => {
+                let message = '❌ Could not get GPS location';
+                if (error.code === error.PERMISSION_DENIED) message = '❌ GPS permission denied';
+                else if (error.code === error.POSITION_UNAVAILABLE) message = '❌ GPS unavailable';
+                else if (error.code === error.TIMEOUT) message = '❌ GPS timeout';
+                showGPSStatus(message, 3000);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    });
+
+    // Penalty Shot
+    penaltyBtn.addEventListener('click', () => {
+        showGPSStatus('📡 Marking penalty...');
+
+        if (!navigator.geolocation) {
+            showGPSStatus('❌ GPS not supported on this device');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const shot = {
+                    club: 'PENALTY',
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    timestamp: new Date().toISOString(),
+                    accuracy: Math.round(position.coords.accuracy),
+                    isPenalty: true
+                };
+
+                if (lastPosition) {
+                    shot.distance = calculateDistance(
+                        lastPosition.latitude,
+                        lastPosition.longitude,
+                        shot.latitude,
+                        shot.longitude
+                    );
+                }
+
+                holes[currentHole].shots.push(shot);
+                lastPosition = shot;
+
+                setRoundActive();
+
+                showGPSStatus('⚠️ Penalty stroke marked', 3000);
+                renderHole();
+                updateStats();
+                saveData();
+            },
+            (error) => {
+                let message = '❌ Could not get GPS location';
+                if (error.code === error.PERMISSION_DENIED) message = '❌ GPS permission denied';
+                else if (error.code === error.POSITION_UNAVAILABLE) message = '❌ GPS unavailable';
+                else if (error.code === error.TIMEOUT) message = '❌ GPS timeout';
+                showGPSStatus(message, 3000);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    });
+
+    // Previous Hole
+    prevHoleBtn.addEventListener('click', () => {
+        if (currentHole > 1) {
+            currentHole--;
+            if (holes[currentHole] && holes[currentHole].shots.length > 0) {
+                lastPosition = holes[currentHole].shots[holes[currentHole].shots.length - 1];
+            } else if (holes[currentHole] && holes[currentHole].teeBox) {
+                lastPosition = holes[currentHole].teeBox;
+            } else {
+                lastPosition = null;
+            }
+            renderHole();
+            updateStats();
+            updateNavigationButtons();
+            showGPSStatus(`⛳ Viewing Hole ${currentHole}`);
+        }
+    });
+
+    // Next Hole
+    nextHoleBtn.addEventListener('click', () => {
+        currentHole++;
+        initHole(currentHole);
+
+        if (holes[currentHole].teeBox) lastPosition = holes[currentHole].teeBox;
+        else lastPosition = null;
+
+        renderHole();
+        updateStats();
+        updateNavigationButtons();
+        saveData();
+        showGPSStatus(`⛳ Starting Hole ${currentHole}`);
+    });
+
+    // Update Navigation Buttons
+    function updateNavigationButtons() {
+        prevHoleBtn.disabled = currentHole === 1;
+        prevHoleBtn.style.opacity = currentHole === 1 ? '0.5' : '1';
+    }
+
+    // Render Current Hole
+    function renderHole() {
+        const shots = holes[currentHole].shots;
+        const teeBox = holes[currentHole].teeBox;
+
+        const maxHole = Math.max(...Object.keys(holes).map(Number));
+        const isCurrentPlayingHole = currentHole === maxHole;
+        const headerText = isCurrentPlayingHole ? 'This Hole' : `Hole ${currentHole} (Review)`;
+
+        let html = `<div class="shots-header">${headerText}</div>`;
+
+        if (teeBox) {
+            html += `
+                <div class="shot-card" style="border-color: rgba(212, 165, 116, 0.5);">
+                    <div class="shot-info">
+                        <div class="shot-number">Tee Box</div>
+                        <div class="shot-club">🏁 Starting Point</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (shots.length === 0 && !teeBox) {
+            html += `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏌️</div>
+                    <div>${isCurrentPlayingHole ? 'Mark tee box to start' : 'No shots recorded'}</div>
+                </div>
+            `;
+            shotsList.innerHTML = html;
+            return;
+        }
+
+        shots.forEach((shot, index) => {
+            const distanceHTML = shot.distance
+                ? `<div class="shot-distance">${shot.distance} yds</div>`
+                : '';
+
+            const cardStyle = shot.isPenalty
+                ? 'style="border-color: rgba(220, 53, 69, 0.6); background: rgba(220, 53, 69, 0.15);"'
+                : '';
+
+            html += `
+                <div class="shot-card" ${cardStyle}>
+                    <div class="shot-info">
+                        <div class="shot-number">Shot ${index + 1}</div>
+                        <div class="shot-club">${shot.club}</div>
+                    </div>
+                    ${distanceHTML}
+                    <button class="delete-btn" onclick="deleteShot(${index})">✕</button>
+                </div>
+            `;
+        });
+
+        shotsList.innerHTML = html;
+    }
+
+    // Delete Shot
+    window.deleteShot = function(index) {
+        if (confirm('Delete this shot?')) {
+            holes[currentHole].shots.splice(index, 1);
+
+            if (holes[currentHole].shots.length > 0) {
+                holes[currentHole].shots[0].distance = null;
+                for (let i = 1; i < holes[currentHole].shots.length; i++) {
+                    const prev = holes[currentHole].shots[i - 1];
+                    const curr = holes[currentHole].shots[i];
+                    curr.distance = calculateDistance(prev.latitude, prev.longitude, curr.latitude, curr.longitude);
+                }
+                lastPosition = holes[currentHole].shots[holes[currentHole].shots.length - 1];
+            } else {
+                lastPosition = holes[currentHole].teeBox ? holes[currentHole].teeBox : null;
+            }
+
+            renderHole();
+            updateStats();
+            saveData();
+        }
+    };
+
+    // Club stats
+    function computeClubStats() {
+        const stats = {};
+
+        Object.values(holes).forEach(h => {
+            h.shots.forEach(s => {
+                if (s.isPenalty) return;
+                if (!s.distance || typeof s.distance !== 'number') return;
+                if (!stats[s.club]) stats[s.club] = { count: 0, sum: 0, max: 0 };
+                stats[s.club].count += 1;
+                stats[s.club].sum += s.distance;
+                stats[s.club].max = Math.max(stats[s.club].max, s.distance);
+            });
+        });
+
+        return stats;
+    }
+
+    function renderClubStats() {
+        const stats = computeClubStats();
+        const clubs = Object.keys(stats);
+
+        if (clubs.length === 0) {
+            clubStatsPanel.style.display = 'none';
+            clubStatsRows.innerHTML = '';
+            return;
+        }
+
+        clubs.sort((a, b) => stats[b].count - stats[a].count);
+
+        clubStatsRows.innerHTML = clubs.map(club => {
+            const s = stats[club];
+            const avg = Math.round(s.sum / s.count);
+            return `
+                <div class="club-stats-row">
+                    <div class="club-pill">${club}</div>
+                    <div class="right">${s.count}</div>
+                    <div class="right">${avg} yds</div>
+                    <div class="right">${s.max} yds</div>
+                </div>
+            `;
+        }).join('');
+
+        clubStatsPanel.style.display = 'block';
+    }
+
+    // Update Stats
+    function updateStats() {
+        document.getElementById('currentHole').textContent = currentHole;
+        document.getElementById('shotCount').textContent = holes[currentHole].shots.length;
+
+        let total = 0;
+        Object.values(holes).forEach(hole => total += hole.shots.length);
+        document.getElementById('totalShots').textContent = total;
+
+        renderClubStats();
+    }
+
+    // Save to LocalStorage
+    function saveData() {
+        localStorage.setItem('golfTrackerData', JSON.stringify({
+            currentHole,
+            holes,
+            lastSaved: new Date().toISOString()
+        }));
+    }
+
+    // Load from LocalStorage
+    function loadData() {
+        const saved = localStorage.getItem('golfTrackerData');
+        if (saved) {
+            const data = JSON.parse(saved);
+            currentHole = data.currentHole;
+            holes = data.holes;
+
+            if (holes[currentHole] && holes[currentHole].shots.length > 0) {
+                lastPosition = holes[currentHole].shots[holes[currentHole].shots.length - 1];
+            } else if (holes[currentHole] && holes[currentHole].teeBox) {
+                lastPosition = holes[currentHole].teeBox;
+            } else {
+                lastPosition = null;
+            }
+
+            const anyShots = Object.values(holes).some(h => (h.shots && h.shots.length > 0) || h.teeBox);
+            if (anyShots) setRoundActive();
+
+            renderHole();
+            updateStats();
+            updateNavigationButtons();
+        }
+    }
+
+    // Export to CSV
+    function exportCSV() {
+        const rows = ["Hole,ShotIndex,Club,DistanceYds,IsPenalty,Timestamp,AccuracyM,Latitude,Longitude"];
+
+        Object.values(holes)
+            .sort((a,b) => a.holeNumber - b.holeNumber)
+            .forEach(h => {
+                h.shots.forEach((s, i) => {
+                    const distance = (typeof s.distance === 'number') ? s.distance : "";
+                    const isPenalty = s.isPenalty ? "1" : "0";
+                    rows.push([
+                        h.holeNumber,
+                        i + 1,
+                        s.club,
+                        distance,
+                        isPenalty,
+                        s.timestamp || "",
+                        (typeof s.accuracy === 'number') ? s.accuracy : "",
+                        s.latitude,
+                        s.longitude
+                    ].join(","));
+                });
+            });
+
+        const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `round_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showGPSStatus("✅ Exported CSV", 2000);
+    }
+
+    exportBtn.addEventListener('click', () => {
+        const anyShots = Object.values(holes).some(h => h.shots && h.shots.length > 0);
+        if (!anyShots) {
+            showGPSStatus("⚠️ No shots to export yet", 2500);
+            return;
+        }
+        exportCSV();
+    });
+
+    // New Round / Continue
+    window.addEventListener('load', () => {
+        const wasActive = localStorage.getItem('roundActive') === '1';
+        const promptMsg = wasActive ? 'Continue previous round?' : 'Start a new round? (Cancel = keep current data)';
+
+        if (confirm(promptMsg)) {
+            loadData();
+        } else {
+            localStorage.removeItem('golfTrackerData');
+            clearRoundActive();
+            currentHole = 1;
+            holes = {};
+            lastPosition = null;
+            initHole(currentHole);
+            renderHole();
+            updateStats();
+            updateNavigationButtons();
+        }
+    });
+
+    // Initial render
+    updateStats();
+    updateNavigationButtons();
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js");
+    });
+  }
+</script>
+
+</body>
+</html>
