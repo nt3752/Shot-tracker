@@ -642,7 +642,7 @@
                 <div class="meta-label">Manual distance</div>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <input id="manualDistanceInput" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 12" />
-                    <div class="unit">yds</div>
+                    <div class="unit" id="manualDistanceUnit">yds</div>
                 </div>
             </div>
             <div class="meta-hint">Tip: For PITCH/CHIP/PUTT, enter distance from your rangefinder. FULL uses GPS distance automatically.</div>
@@ -731,6 +731,9 @@
             });
         }
         const needsManual = (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt');
+        const unitEl = document.getElementById('manualDistanceUnit');
+        if (unitEl) unitEl.textContent = (selectedShotType === 'putt') ? 'ft' : 'yds';
+        if (manualDistanceInput) manualDistanceInput.placeholder = (selectedShotType === 'putt') ? 'e.g. 12' : 'e.g. 25';
         if (manualDistanceWrap) manualDistanceWrap.style.display = needsManual ? 'flex' : 'none';
         if (!needsManual) {
             manualDistanceYards = null;
@@ -756,6 +759,7 @@
     refreshShotTypeUI();
 
     let holes = {};
+    let holeSummaries = [];
     let lastPosition = null;
     let lastNonPenaltyPosition = null;
                 lastNonPenaltyPosition = null;
@@ -906,6 +910,9 @@ const markTeeBtn = document.getElementById('markTeeBtn');
         }
 
         const needsManual = (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt');
+        const unitEl = document.getElementById('manualDistanceUnit');
+        if (unitEl) unitEl.textContent = (selectedShotType === 'putt') ? 'ft' : 'yds';
+        if (manualDistanceInput) manualDistanceInput.placeholder = (selectedShotType === 'putt') ? 'e.g. 12' : 'e.g. 25';
         if (needsManual) {
             const v = (manualDistanceYards !== null && manualDistanceYards !== undefined) ? manualDistanceYards : null;
             if (v === null || !Number.isFinite(v) || v < 0) {
@@ -949,6 +956,12 @@ const markTeeBtn = document.getElementById('markTeeBtn');
                 }
 
                 holes[currentHole].shots.push(shot);
+
+                // Reset selectors after recording
+                selectedClub = null;
+                selectedShotType = 'full';
+                manualDistanceYards = null;
+
 
                 // Update last positions
                 lastPosition = { latitude: shot.latitude, longitude: shot.longitude };
@@ -1052,6 +1065,8 @@ const markTeeBtn = document.getElementById('markTeeBtn');
 
     // Next Hole
     nextHoleBtn.addEventListener('click', () => {
+        finalizeHoleSummary(currentHole);
+        saveData();
         currentHole++;
         initHole(currentHole);
 
@@ -1368,6 +1383,8 @@ const markTeeBtn = document.getElementById('markTeeBtn');
     }
 
     exportBtn.addEventListener('click', () => {
+        finalizeHoleSummary(currentHole);
+        saveData();
         const anyShots = Object.values(holes).some(h => h.shots && h.shots.length > 0);
         if (!anyShots) {
             showGPSStatus("⚠️ No shots to export yet", 2500);
