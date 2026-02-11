@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Shot Tracker">
     <meta name="theme-color" content="#1a3009">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <!-- Optional: if you add an icon file next to this HTML, uncomment:
     <link rel="apple-touch-icon" href="icon-180.png">
     -->
@@ -1057,6 +1060,16 @@
     // Initial render
     updateStats();
     updateNavigationButtons();
+</script>
+
+
+<script>
+  // PWA: offline caching
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js');
+    });
+  }
 </script>
 
 </body>
