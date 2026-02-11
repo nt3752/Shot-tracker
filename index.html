@@ -1087,21 +1087,18 @@ const markTeeBtn = document.getElementById('markTeeBtn');
         const girClass = gir === true ? 'yes' : (gir === false ? 'no' : '');
         html += `
           <div class="meta-card">
-            <div class="meta-row" style="justify-content:space-between;">
+            <div class="meta-row" style="justify-content:space-between; gap:12px;">
               <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <div class="meta-label">Par</div>
-                <div class="meta-buttons">
-                  <button class="meta-btn ${parVal===3?'selected':''}" id="par3Btn">3</button>
-                  <button class="meta-btn ${parVal===4?'selected':''}" id="par4Btn">4</button>
-                  <button class="meta-btn ${parVal===5?'selected':''}" id="par5Btn">5</button>
-                </div>
+                <div class="meta-label" style="margin-right:4px;">Par</div>
+                <button class="meta-btn ${parVal===3?'selected':''}" id="par3Btn">3</button>
+                <button class="meta-btn ${parVal===4?'selected':''}" id="par4Btn">4</button>
+                <button class="meta-btn ${parVal===5?'selected':''}" id="par5Btn">5</button>
               </div>
-              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:10px;">
                 <button class="meta-btn ${fw?'selected':''}" id="fairwayBtn">Fairway</button>
                 <button class="meta-btn ${gir?'selected':''}" id="girBtn">GIR</button>
               </div>
             </div>
-            <div class="meta-hint">Tap to toggle (highlight = YES)</div>
           </div>`;
 
         if (teeBox) {
@@ -1124,7 +1121,7 @@ const markTeeBtn = document.getElementById('markTeeBtn');
             `;
             shotsList.innerHTML = html;
         
-        // Wire up hole meta controls
+        // Wire up hole meta controls (robust)
         const par3Btn = document.getElementById('par3Btn');
         const par4Btn = document.getElementById('par4Btn');
         const par5Btn = document.getElementById('par5Btn');
@@ -1136,12 +1133,14 @@ const markTeeBtn = document.getElementById('markTeeBtn');
             saveData();
             renderHole();
             updateStats();
+            updateNavigationButtons();
         }
         function toggleBool(key) {
             holes[currentHole][key] = !holes[currentHole][key];
             saveData();
             renderHole();
             updateStats();
+            updateNavigationButtons();
         }
 
         if (par3Btn) par3Btn.addEventListener('click', () => setPar(3));
@@ -1149,8 +1148,7 @@ const markTeeBtn = document.getElementById('markTeeBtn');
         if (par5Btn) par5Btn.addEventListener('click', () => setPar(5));
         if (fairwayBtn) fairwayBtn.addEventListener('click', () => toggleBool('fairway'));
         if (girBtn) girBtn.addEventListener('click', () => toggleBool('gir'));
-
-            return;
+return;
         }
 
         shots.forEach((shot, index) => {
