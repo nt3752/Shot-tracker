@@ -701,6 +701,58 @@
     let selectedClub = null;
     let selectedShotType = 'full';
     let manualDistanceYards = null;
+
+    // --- UI Selection (robust event delegation) ---
+    const clubGridEl = document.getElementById('clubGrid');
+    if (clubGridEl) {
+        clubGridEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button.club-btn[data-club]');
+            if (!btn) return;
+            selectedClub = btn.getAttribute('data-club');
+            // Highlight club selection
+            clubGridEl.querySelectorAll('button.club-btn[data-club]').forEach(b => {
+                if (b.getAttribute('data-club') === selectedClub) b.classList.add('selected');
+                else b.classList.remove('selected');
+            });
+        });
+    }
+
+    const shotTypeGridEl = document.getElementById('shotTypeGrid');
+    const manualDistanceWrap = document.getElementById('manualDistanceWrap');
+    const manualDistanceInput = document.getElementById('manualDistanceInput');
+
+    function refreshShotTypeUI() {
+        if (shotTypeGridEl) {
+            shotTypeGridEl.querySelectorAll('button.club-btn[data-shot-type]').forEach(b => {
+                if (b.getAttribute('data-shot-type') === selectedShotType) b.classList.add('selected');
+                else b.classList.remove('selected');
+            });
+        }
+        const needsManual = (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt');
+        if (manualDistanceWrap) manualDistanceWrap.style.display = needsManual ? 'flex' : 'none';
+        if (!needsManual) {
+            manualDistanceYards = null;
+            if (manualDistanceInput) manualDistanceInput.value = '';
+        }
+    }
+
+    if (shotTypeGridEl) {
+        shotTypeGridEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button.club-btn[data-shot-type]');
+            if (!btn) return;
+            selectedShotType = btn.getAttribute('data-shot-type');
+            refreshShotTypeUI();
+        });
+    }
+
+    if (manualDistanceInput) {
+        manualDistanceInput.addEventListener('input', () => {
+            const v = parseFloat(manualDistanceInput.value);
+            manualDistanceYards = Number.isFinite(v) ? v : null;
+        });
+    }
+    refreshShotTypeUI();
+
     let holes = {};
     let lastPosition = null;
     let lastNonPenaltyPosition = null;
@@ -1039,18 +1091,16 @@ const markTeeBtn = document.getElementById('markTeeBtn');
               </div>
             </div>
             <div class="meta-row">
-              <div class="meta-label">Fairway</div>
               <div class="meta-buttons">
                 <button class="meta-btn ${fw?'selected':''}" id="fairwayBtn">Fairway</button>
               </div>
             </div>
             <div class="meta-row">
-              <div class="meta-label">GIR</div>
               <div class="meta-buttons">
                 <button class="meta-btn ${gir?'selected':''}" id="girBtn">GIR</button>
               </div>
             </div>
-            <div class="meta-hint">Tap to toggle (highlight = YES)</div>
+            <div class="meta-hint">Tap buttons to toggle</div>
           </div>`;
 
         if (teeBox) {
@@ -1393,71 +1443,3 @@ const markTeeBtn = document.getElementById('markTeeBtn');
 
 </body>
 </html>
-
-
-    // Shot Type Selection
-    const shotTypeGridEl = document.getElementById('shotTypeGrid');
-    const manualDistanceWrap = document.getElementById('manualDistanceWrap');
-    const manualDistanceInput = document.getElementById('manualDistanceInput');
-
-    function refreshShotTypeUI() {
-        if (shotTypeGridEl) {
-            const btns = shotTypeGridEl.querySelectorAll('button.club-btn[data-shot-type]');
-            btns.forEach(b => {
-                if (b.getAttribute('data-shot-type') === selectedShotType) b.classList.add('selected');
-                else b.classList.remove('selected');
-            });
-        }
-        const needsManual = (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt');
-        if (manualDistanceWrap) manualDistanceWrap.style.display = needsManual ? 'flex' : 'none';
-        if (!needsManual) {
-            manualDistanceYards = null;
-            if (manualDistanceInput) manualDistanceInput.value = '';
-        }
-    }
-
-    if (shotTypeGridEl) {
-        shotTypeGridEl.addEventListener('click', (e) => {
-            const btn = e.target.closest('button.club-btn[data-shot-type]');
-            if (!btn) return;
-            selectedShotType = btn.getAttribute('data-shot-type');
-            refreshShotTypeUI();
-        });
-    }
-
-    if (manualDistanceInput) {
-        manualDistanceInput.addEventListener('input', () => {
-            const v = parseFloat(manualDistanceInput.value);
-            manualDistanceYards = Number.isFinite(v) ? v : null;
-        });
-    }
-
-    refreshShotTypeUI();
-
-            const needsManual = (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt');
-            if (manualDistanceWrap) manualDistanceWrap.style.display = needsManual ? 'flex' : 'none';
-
-            if (!needsManual) {
-                manualDistanceYards = null;
-                if (manualDistanceInput) manualDistanceInput.value = '';
-            }
-        }
-
-        if (shotTypeGrid) {
-            shotTypeGrid.addEventListener('click', (e) => {
-                const btn = e.target.closest('button[data-shot-type]');
-                if (!btn) return;
-                selectedShotType = btn.getAttribute('data-shot-type');
-                refreshShotTypeUI();
-            });
-        }
-
-        if (manualDistanceInput) {
-            manualDistanceInput.addEventListener('input', () => {
-                const v = parseFloat(manualDistanceInput.value);
-                manualDistanceYards = Number.isFinite(v) ? v : null;
-            });
-        }
-
-        refreshShotTypeUI();
-    });
