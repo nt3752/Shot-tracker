@@ -889,11 +889,13 @@
         currentHole++;
         initHole(currentHole);
 
-        if (holes[currentHole].teeBox) lastPosition = holes[currentHole].teeBox;
-                lastNonPenaltyPosition = holes[currentHole].teeBox;
-                lastNonPenaltyPosition = holes[currentHole].teeBox;
-        else lastPosition = null;
-                lastNonPenaltyPosition = null;
+        if (holes[currentHole].teeBox) {
+            lastPosition = holes[currentHole].teeBox;
+            lastNonPenaltyPosition = holes[currentHole].teeBox;
+        } else {
+            lastPosition = null;
+            lastNonPenaltyPosition = null;
+        }
 
         renderHole();
         updateStats();
