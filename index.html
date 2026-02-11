@@ -942,9 +942,9 @@ const markTeeBtn = document.getElementById('markTeeBtn');
 
                 if (needsManual) {
                     shot.distance = Math.round(manualDistanceYards * 10) / 10;
-                    shot.isManualDistance = true;
+                    shot.isManualUnit,ManualValue = true;
                 } else {
-                    shot.isManualDistance = false;
+                    shot.isManualUnit,ManualValue = false;
                     shot.distance = lastNonPenaltyPosition
                         ? calculateDistance(
                             lastNonPenaltyPosition.latitude,
@@ -956,6 +956,29 @@ const markTeeBtn = document.getElementById('markTeeBtn');
                 }
 
                 holes[currentHole].shots.push(shot);
+
+                // Reset selectors after recording (clear highlights too)
+                selectedClub = null;
+                selectedShotType = 'full';
+                manualDistanceYards = null;
+
+                // Clear club highlight
+                const cg = document.getElementById('clubGrid');
+                if (cg) cg.querySelectorAll('button.club-btn[data-club]').forEach(b => b.classList.remove('selected'));
+
+                // Reset shot type highlight + hide manual input
+                const stg = document.getElementById('shotTypeGrid');
+                if (stg) stg.querySelectorAll('button.club-btn[data-shot-type]').forEach(b => {
+                    if (b.getAttribute('data-shot-type') === 'full') b.classList.add('selected');
+                    else b.classList.remove('selected');
+                });
+                const mdw = document.getElementById('manualDistanceWrap');
+                if (mdw) mdw.style.display = 'none';
+                const mdi = document.getElementById('manualDistanceInput');
+                if (mdi) mdi.value = '';
+                const unitEl = document.getElementById('manualDistanceUnit');
+                if (unitEl) unitEl.textContent = 'yds';
+
 
                 // Reset selectors after recording
                 selectedClub = null;
@@ -1009,7 +1032,7 @@ const markTeeBtn = document.getElementById('markTeeBtn');
                     isPenalty: true
                 };
 
-                if (!shot.isManualDistance && lastNonPenaltyPosition) {
+                if (!shot.isManualUnit,ManualValue && lastNonPenaltyPosition) {
                     shot.distance = calculateDistance(
                         lastNonPenaltyPosition.latitude,
                         lastNonPenaltyPosition.longitude,
