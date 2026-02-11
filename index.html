@@ -449,7 +449,84 @@
             border-color: rgba(220,53,69,0.55);
             background: linear-gradient(135deg, rgba(220,53,69,0.95), rgba(200,35,51,0.95));
         }
-        </style>
+        
+        /* Hole meta + shot type */
+        .meta-card{
+            margin: 12px 0 16px 0;
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .meta-row{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            margin-top:10px;
+            flex-wrap:wrap;
+        }
+        .meta-label{
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 700;
+        }
+        .meta-buttons{
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+        }
+        .meta-btn{
+            padding: 10px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            border: 2px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.08);
+            color: var(--white);
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .meta-btn.selected{
+            border-color: rgba(124,179,66,0.65);
+            background: rgba(124,179,66,0.20);
+        }
+        .meta-btn.yes{
+            border-color: rgba(124,179,66,0.65);
+            background: rgba(124,179,66,0.20);
+        }
+        .meta-btn.no{
+            border-color: rgba(220,53,69,0.65);
+            background: rgba(220,53,69,0.18);
+        }
+        .meta-hint{
+            font-size: 0.78rem;
+            opacity: 0.75;
+            margin-top: 6px;
+            line-height: 1.3;
+        }
+        .manual-distance{
+            margin-top:10px;
+            display:none;
+            gap:10px;
+            align-items:center;
+            justify-content:space-between;
+        }
+        .manual-distance input{
+            width: 140px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.25);
+            background: rgba(0,0,0,0.25);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 800;
+        }
+        .manual-distance .unit{
+            opacity:0.85;
+            font-weight:800;
+        }
+
+    </style>
         
 
 </head>
@@ -551,6 +628,25 @@
             </div>
         </div>
 
+        <div class="club-selector" style="margin-top: 14px;">
+            <div class="club-label">Shot Type</div>
+            <div class="clubs-grid" id="shotTypeGrid">
+                <button class="club-btn selected" data-shot-type="full">FULL</button>
+                <button class="club-btn" data-shot-type="pitch">PITCH</button>
+                <button class="club-btn" data-shot-type="chip">CHIP</button>
+                <button class="club-btn" data-shot-type="putt">PUTT</button>
+            </div>
+            <div class="manual-distance" id="manualDistanceWrap">
+                <div class="meta-label">Manual distance</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <input id="manualDistanceInput" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 12" />
+                    <div class="unit">yds</div>
+                </div>
+            </div>
+            <div class="meta-hint">Tip: For PITCH/CHIP/PUTT, enter distance from your rangefinder. FULL uses GPS distance automatically.</div>
+        </div>
+
+
         <button class="action-btn mark-shot-btn" id="markTeeBtn" style="background: linear-gradient(135deg, #d4a574 0%, #c49563 100%);">
             🏁 Mark Tee Box
         </button>
@@ -603,6 +699,8 @@
     // App State
     let currentHole = 1;
     let selectedClub = null;
+    let selectedShotType = 'full';
+    let manualDistanceYards = null;
     let holes = {};
     let lastPosition = null;
     let lastNonPenaltyPosition = null;
@@ -636,7 +734,10 @@
             holes[holeNumber] = {
                 shots: [],
                 holeNumber: holeNumber,
-                teeBox: null
+                teeBox: null,
+                par: 4,
+                fairway: null,
+                gir: null
             };
         }
     }
@@ -767,7 +868,7 @@
                     accuracy: Math.round(position.coords.accuracy)
                 };
 
-                if (lastNonPenaltyPosition) {
+                if (!shot.isManualDistance && lastNonPenaltyPosition) {
                     shot.distance = calculateDistance(
                         lastNonPenaltyPosition.latitude,
                         lastNonPenaltyPosition.longitude,
@@ -829,7 +930,7 @@
                     isPenalty: true
                 };
 
-                if (lastNonPenaltyPosition) {
+                if (!shot.isManualDistance && lastNonPenaltyPosition) {
                     shot.distance = calculateDistance(
                         lastNonPenaltyPosition.latitude,
                         lastNonPenaltyPosition.longitude,
@@ -920,6 +1021,38 @@
 
         let html = `<div class="shots-header">${headerText}</div>`;
 
+        // Hole meta controls
+        const holeMeta = holes[currentHole];
+        const parVal = holeMeta.par || 4;
+        const fw = holeMeta.fairway; // null/true/false
+        const gir = holeMeta.gir;   // null/true/false
+        const fwClass = fw === true ? 'yes' : (fw === false ? 'no' : '');
+        const girClass = gir === true ? 'yes' : (gir === false ? 'no' : '');
+        html += `
+          <div class="meta-card">
+            <div class="meta-row">
+              <div class="meta-label">Par</div>
+              <div class="meta-buttons">
+                <button class="meta-btn ${parVal===3?'selected':''}" id="par3Btn">3</button>
+                <button class="meta-btn ${parVal===4?'selected':''}" id="par4Btn">4</button>
+                <button class="meta-btn ${parVal===5?'selected':''}" id="par5Btn">5</button>
+              </div>
+            </div>
+            <div class="meta-row">
+              <div class="meta-label">Fairway</div>
+              <div class="meta-buttons">
+                <button class="meta-btn ${fwClass}" id="fairwayBtn">${fw===true?'YES':(fw===false?'NO':'—')}</button>
+              </div>
+            </div>
+            <div class="meta-row">
+              <div class="meta-label">GIR</div>
+              <div class="meta-buttons">
+                <button class="meta-btn ${girClass}" id="girBtn">${gir===true?'YES':(gir===false?'NO':'—')}</button>
+              </div>
+            </div>
+            <div class="meta-hint">Tap Fairway/GIR to cycle: — → YES → NO → —</div>
+          </div>`;
+
         if (teeBox) {
             html += `
                 <div class="shot-card" style="border-color: rgba(212, 165, 116, 0.5);">
@@ -939,6 +1072,35 @@
                 </div>
             `;
             shotsList.innerHTML = html;
+        
+        // Wire up hole meta controls
+        const par3Btn = document.getElementById('par3Btn');
+        const par4Btn = document.getElementById('par4Btn');
+        const par5Btn = document.getElementById('par5Btn');
+        const fairwayBtn = document.getElementById('fairwayBtn');
+        const girBtn = document.getElementById('girBtn');
+
+        function setPar(p) {
+            holes[currentHole].par = p;
+            saveData();
+            renderHole();
+            updateStats();
+        }
+        function cycleTriState(key) {
+            const cur = holes[currentHole][key]; // null/true/false
+            const next = (cur === null) ? true : (cur === true ? false : null);
+            holes[currentHole][key] = next;
+            saveData();
+            renderHole();
+            updateStats();
+        }
+
+        if (par3Btn) par3Btn.addEventListener('click', () => setPar(3));
+        if (par4Btn) par4Btn.addEventListener('click', () => setPar(4));
+        if (par5Btn) par5Btn.addEventListener('click', () => setPar(5));
+        if (fairwayBtn) fairwayBtn.addEventListener('click', () => cycleTriState('fairway'));
+        if (girBtn) girBtn.addEventListener('click', () => cycleTriState('gir'));
+
             return;
         }
 
@@ -1111,6 +1273,9 @@
                 if (h.teeBox) {
                     rows.push([
                         h.holeNumber,
+                        (h.par ?? 4),
+                        (h.fairway === null ? "" : (h.fairway ? "YES" : "NO")),
+                        (h.gir === null ? "" : (h.gir ? "YES" : "NO")),
                         0,
                         "TEE",
                         "",
