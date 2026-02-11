@@ -1041,16 +1041,16 @@ const markTeeBtn = document.getElementById('markTeeBtn');
             <div class="meta-row">
               <div class="meta-label">Fairway</div>
               <div class="meta-buttons">
-                <button class="meta-btn ${fw?'selected':''}" id="fairwayBtn">${fw?'ON':'OFF'}</button>
+                <button class="meta-btn ${fw?'selected':''}" id="fairwayBtn">Fairway</button>
               </div>
             </div>
             <div class="meta-row">
               <div class="meta-label">GIR</div>
               <div class="meta-buttons">
-                <button class="meta-btn ${gir?'selected':''}" id="girBtn">${gir?'ON':'OFF'}</button>
+                <button class="meta-btn ${gir?'selected':''}" id="girBtn">GIR</button>
               </div>
             </div>
-            <div class="meta-hint">Tap Fairway/GIR to toggle ON/OFF</div>
+            <div class="meta-hint">Tap to toggle (highlight = YES)</div>
           </div>`;
 
         if (teeBox) {
@@ -1395,19 +1395,44 @@ const markTeeBtn = document.getElementById('markTeeBtn');
 </html>
 
 
-    // Shot Type Selection (safe init)
-    document.addEventListener('DOMContentLoaded', () => {
-        const shotTypeGrid = document.getElementById('shotTypeGrid');
-        const manualDistanceWrap = document.getElementById('manualDistanceWrap');
-        const manualDistanceInput = document.getElementById('manualDistanceInput');
+    // Shot Type Selection
+    const shotTypeGridEl = document.getElementById('shotTypeGrid');
+    const manualDistanceWrap = document.getElementById('manualDistanceWrap');
+    const manualDistanceInput = document.getElementById('manualDistanceInput');
 
-        function refreshShotTypeUI() {
-            if (!shotTypeGrid) return;
-            const buttons = shotTypeGrid.querySelectorAll('button[data-shot-type]');
-            buttons.forEach(b => {
+    function refreshShotTypeUI() {
+        if (shotTypeGridEl) {
+            const btns = shotTypeGridEl.querySelectorAll('button.club-btn[data-shot-type]');
+            btns.forEach(b => {
                 if (b.getAttribute('data-shot-type') === selectedShotType) b.classList.add('selected');
                 else b.classList.remove('selected');
             });
+        }
+        const needsManual = (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt');
+        if (manualDistanceWrap) manualDistanceWrap.style.display = needsManual ? 'flex' : 'none';
+        if (!needsManual) {
+            manualDistanceYards = null;
+            if (manualDistanceInput) manualDistanceInput.value = '';
+        }
+    }
+
+    if (shotTypeGridEl) {
+        shotTypeGridEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('button.club-btn[data-shot-type]');
+            if (!btn) return;
+            selectedShotType = btn.getAttribute('data-shot-type');
+            refreshShotTypeUI();
+        });
+    }
+
+    if (manualDistanceInput) {
+        manualDistanceInput.addEventListener('input', () => {
+            const v = parseFloat(manualDistanceInput.value);
+            manualDistanceYards = Number.isFinite(v) ? v : null;
+        });
+    }
+
+    refreshShotTypeUI();
 
             const needsManual = (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt');
             if (manualDistanceWrap) manualDistanceWrap.style.display = needsManual ? 'flex' : 'none';
