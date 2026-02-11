@@ -456,6 +456,41 @@
 <body>
     <div class="gps-status" id="gpsStatus"></div>
     <div id="jsBadge" class="off">JS: OFF</div>
+    <div id="jsErrorPanel" style="display:none; position:fixed; left:12px; right:12px; top:calc(52px + env(safe-area-inset-top)); z-index:2600; padding:12px 14px; border-radius:14px; border:1px solid rgba(220,53,69,0.55); background:rgba(220,53,69,0.18); backdrop-filter: blur(10px); text-align:left; font-size:13px; line-height:1.35;">
+      <div style="font-weight:900; margin-bottom:6px;">JavaScript Error</div>
+      <div id="jsErrorText" style="opacity:0.95; word-break:break-word;"></div>
+    </div>
+    <script>
+      // If JS is enabled at all, this should run.
+      try {
+        document.addEventListener('DOMContentLoaded', () => {
+          const b = document.getElementById('jsBadge');
+          if (b && b.textContent.trim() === 'JS: OFF') {
+            b.textContent = 'JS: ON';
+            b.classList.remove('off');
+            b.classList.add('ok');
+          }
+        });
+      } catch (e) {}
+
+      // Show runtime errors on-screen (iPhone has no easy console)
+      window.addEventListener('error', (ev) => {
+        try {
+          const b = document.getElementById('jsBadge');
+          if (b) {
+            b.textContent = 'JS: ERROR';
+            b.classList.remove('ok');
+            b.classList.add('off');
+          }
+          const p = document.getElementById('jsErrorPanel');
+          const t = document.getElementById('jsErrorText');
+          if (p && t) {
+            t.textContent = (ev && ev.message) ? ev.message : 'Unknown error';
+            p.style.display = 'block';
+          }
+        } catch (e) {}
+      });
+    </script>
 
     <div id="roundModalBackdrop">
       <div id="roundModal">
@@ -1148,7 +1183,7 @@
         // JS badge (proves scripts are running)
         const badge = document.getElementById('jsBadge');
         if (badge) {
-            badge.textContent = 'JS: ON';
+            if (badge.textContent !== 'JS: ERROR') badge.textContent = 'JS: ON';
             badge.classList.remove('off');
             badge.classList.add('ok');
         }
