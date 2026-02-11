@@ -477,18 +477,20 @@
             flex-wrap:wrap;
         }
         .meta-btn{
-            padding: 10px 10px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            border: 2px solid rgba(255,255,255,0.25);
-            background: rgba(255,255,255,0.08);
+            padding: 14px 14px;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            border: 2px solid rgba(255,255,255,0.55);
+            background: rgba(0,0,0,0.28);
             color: var(--white);
-            font-weight: 800;
+            font-weight: 950;
             cursor: pointer;
         }
         .meta-btn.selected{
-            border-color: rgba(124,179,66,0.65);
-            background: rgba(124,179,66,0.20);
+            border-color: rgba(255,255,255,0.95);
+            background: rgba(124,179,66,0.98);
+            color: #041904;
+            box-shadow: 0 10px 22px rgba(0,0,0,0.45);
         }
         .meta-btn.yes{
             border-color: rgba(124,179,66,0.65);
@@ -899,65 +901,70 @@ const markTeeBtn = document.getElementById('markTeeBtn');
     // Mark Shot
     markShotBtn.addEventListener('click', () => {
         if (!selectedClub) {
-                    // For short game shots, allow recording without a club selection.
-                    if (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt') {
-                        selectedClub = selectedShotType.toUpperCase();
-                    } else {
-                        showGPSStatus("⚠️ Select a club", 2000);
-                        return;
-                    }
-                }
-
-        showGPSStatus('📡 Getting GPS location...');
-
-        if (!navigator.geolocation) {
-            showGPSStatus('❌ GPS not supported on this device');
+            showGPSStatus("⚠️ Select a club", 2000);
             return;
         }
 
+        const needsManual = (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt');
+        if (needsManual) {
+            const v = (manualDistanceYards !== null && manualDistanceYards !== undefined) ? manualDistanceYards : null;
+            if (v === null || !Number.isFinite(v) || v < 0) {
+                showGPSStatus("⚠️ Enter manual distance (yds)", 2500);
+                return;
+            }
+        }
+
+        showGPSStatus('📡 Getting GPS...', 1500);
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
+                if (!holes[currentHole].teeBox) {
+                    showGPSStatus("⚠️ Mark tee box first", 2000);
+                    return;
+                }
+
                 const shot = {
                     club: selectedClub,
+                    shotType: selectedShotType,
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                     timestamp: new Date().toISOString(),
-                    accuracy: Math.round(position.coords.accuracy)
+                    accuracy: Math.round(position.coords.accuracy),
+                    isPenalty: false
                 };
 
-                if (!shot.isManualDistance && lastNonPenaltyPosition) {
-                    shot.distance = calculateDistance(
-                        lastNonPenaltyPosition.latitude,
-                        lastNonPenaltyPosition.longitude,
-                        shot.latitude,
-                        shot.longitude
-                    );
+                if (needsManual) {
+                    shot.distance = Math.round(manualDistanceYards * 10) / 10;
+                    shot.isManualDistance = true;
+                } else {
+                    shot.isManualDistance = false;
+                    shot.distance = lastNonPenaltyPosition
+                        ? calculateDistance(
+                            lastNonPenaltyPosition.latitude,
+                            lastNonPenaltyPosition.longitude,
+                            shot.latitude,
+                            shot.longitude
+                          )
+                        : 0;
                 }
 
                 holes[currentHole].shots.push(shot);
-                lastPosition = shot;
-                lastNonPenaltyPosition = shot;
+
+                // Update last positions
+                lastPosition = { latitude: shot.latitude, longitude: shot.longitude };
+                lastNonPenaltyPosition = { latitude: shot.latitude, longitude: shot.longitude };
 
                 setRoundActive();
 
-                const hasDistance = (shot.distance !== null && shot.distance !== undefined);
-
-                const distanceMsg = hasDistance
-                    ? `✅ Shot marked: ${shot.distance} yards (±${shot.accuracy}m accuracy)`
-                    : `✅ Shot marked (±${shot.accuracy}m accuracy)`;
-
-                showGPSStatus(distanceMsg, 3000);
+                saveData();
                 renderHole();
                 updateStats();
-                saveData();
+                updateNavigationButtons();
 
-                // Keep current behavior: clear selection after each shot
-                clubButtons.forEach(b => b.classList.remove('selected'));
-                selectedClub = null;
-                updateMarkButton();
+                showGPSStatus(`✅ Shot marked: ${shot.distance} yds (±${shot.accuracy}m)`, 2200);
             },
             (error) => {
-                let message = '❌ Could not get GPS location';
+                let message = '❌ GPS error';
                 if (error.code === error.PERMISSION_DENIED) message = '❌ GPS permission denied';
                 else if (error.code === error.POSITION_UNAVAILABLE) message = '❌ GPS unavailable';
                 else if (error.code === error.TIMEOUT) message = '❌ GPS timeout';
@@ -966,6 +973,8 @@ const markTeeBtn = document.getElementById('markTeeBtn');
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     });
+
+
 
     // Penalty Shot
     penaltyBtn.addEventListener('click', () => {
@@ -998,7 +1007,7 @@ const markTeeBtn = document.getElementById('markTeeBtn');
 
                 holes[currentHole].shots.push(shot);
                 lastPosition = shot;
-                lastNonPenaltyPosition = shot;
+                // penalty: keep lastNonPenaltyPosition unchanged
 
                 setRoundActive();
 
@@ -1069,22 +1078,23 @@ const markTeeBtn = document.getElementById('markTeeBtn');
 
     // Render Current Hole
     function renderHole() {
-        const shots = holes[currentHole].shots;
-        const teeBox = holes[currentHole].teeBox;
+        initHole(currentHole);
+
+        const hole = holes[currentHole];
+        const shots = hole.shots || [];
+        const teeBox = hole.teeBox || null;
 
         const maxHole = Math.max(...Object.keys(holes).map(Number));
         const isCurrentPlayingHole = currentHole === maxHole;
         const headerText = isCurrentPlayingHole ? 'This Hole' : `Hole ${currentHole} (Review)`;
 
+        const parVal = hole.par || 4;
+        const fw = hole.fairway === true;
+        const gir = hole.gir === true;
+
         let html = `<div class="shots-header">${headerText}</div>`;
 
-        // Hole meta controls
-        const holeMeta = holes[currentHole];
-        const parVal = holeMeta.par || 4;
-        const fw = holeMeta.fairway; // null/true/false
-        const gir = holeMeta.gir;   // null/true/false
-        const fwClass = fw === true ? 'yes' : (fw === false ? 'no' : '');
-        const girClass = gir === true ? 'yes' : (gir === false ? 'no' : '');
+        // Compact hole controls (single line)
         html += `
           <div class="meta-card">
             <div class="meta-row" style="justify-content:space-between; gap:12px;">
@@ -1119,9 +1129,30 @@ const markTeeBtn = document.getElementById('markTeeBtn');
                     <div>${isCurrentPlayingHole ? 'Mark tee box to start' : 'No shots recorded'}</div>
                 </div>
             `;
-            shotsList.innerHTML = html;
-        
-        // Wire up hole meta controls (robust)
+        } else {
+            shots.forEach((shot, index) => {
+                const hasDistance = (shot.distance !== null && shot.distance !== undefined);
+                const distanceHTML = hasDistance ? `<div class="shot-distance">${shot.distance} yds</div>` : '';
+                const cardStyle = shot.isPenalty
+                    ? 'style="border-color: rgba(220, 53, 69, 0.8); background: rgba(220, 53, 69, 0.18);"'
+                    : '';
+
+                html += `
+                    <div class="shot-card" ${cardStyle}>
+                        <div class="shot-info">
+                            <div class="shot-number">Shot ${index + 1}</div>
+                            <div class="shot-club">${shot.club}${shot.shotType && shot.shotType !== 'full' ? ` (${shot.shotType.toUpperCase()})` : ''}</div>
+                        </div>
+                        ${distanceHTML}
+                        <button class="delete-btn" onclick="deleteShot(${index})">✕</button>
+                    </div>
+                `;
+            });
+        }
+
+        shotsList.innerHTML = html;
+
+        // Wire up hole meta controls every render
         const par3Btn = document.getElementById('par3Btn');
         const par4Btn = document.getElementById('par4Btn');
         const par5Btn = document.getElementById('par5Btn');
@@ -1148,32 +1179,6 @@ const markTeeBtn = document.getElementById('markTeeBtn');
         if (par5Btn) par5Btn.addEventListener('click', () => setPar(5));
         if (fairwayBtn) fairwayBtn.addEventListener('click', () => toggleBool('fairway'));
         if (girBtn) girBtn.addEventListener('click', () => toggleBool('gir'));
-return;
-        }
-
-        shots.forEach((shot, index) => {
-            const hasDistance = (shot.distance !== null && shot.distance !== undefined);
-            const distanceHTML = hasDistance
-                ? `<div class="shot-distance">${shot.distance} yds</div>`
-                : '';
-
-            const cardStyle = shot.isPenalty
-                ? 'style="border-color: rgba(220, 53, 69, 0.6); background: rgba(220, 53, 69, 0.15);"'
-                : '';
-
-            html += `
-                <div class="shot-card" ${cardStyle}>
-                    <div class="shot-info">
-                        <div class="shot-number">Shot ${index + 1}</div>
-                        <div class="shot-club">${shot.club}</div>
-                    </div>
-                    ${distanceHTML}
-                    <button class="delete-btn" onclick="deleteShot(${index})">✕</button>
-                </div>
-            `;
-        });
-
-        shotsList.innerHTML = html;
     }
 
     // Delete Shot
@@ -1334,7 +1339,7 @@ return;
                     ].join(","));
                 }
                 h.shots.forEach((s, i) => {
-                    const distance = (typeof s.distance === 'number') ? s.distance : "";
+                    const distance = (typeof s.distance === 'number') ? s.distance : 0;
                     const isPenalty = s.isPenalty ? "1" : "0";
                     rows.push([
                         h.holeNumber,
