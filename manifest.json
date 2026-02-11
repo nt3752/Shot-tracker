@@ -2,6 +2,7 @@
   "name": "Shot Tracker",
   "short_name": "ShotTracker",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#1a3009",
   "theme_color": "#1a3009",

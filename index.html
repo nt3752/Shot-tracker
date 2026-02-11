@@ -2,8 +2,6 @@
 
 <html lang="en">
 <head>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1a3009">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -41,6 +39,7 @@
             min-height: 100vh;
             color: var(--white);
             overflow-x: hidden;
+            padding-top: env(safe-area-inset-top);
             padding-bottom: env(safe-area-inset-bottom);
         }
 
@@ -277,7 +276,7 @@
 
         .gps-status {
             position: fixed;
-            top: 20px;
+            top: calc(20px + env(safe-area-inset-top));
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7);
@@ -481,6 +480,8 @@
     let selectedClub = null;
     let holes = {};
     let lastPosition = null;
+                lastNonPenaltyPosition = null;
+    let lastNonPenaltyPosition = null;
 
     // Track whether a round is "active" to prevent accidental refresh loss
     let roundActive = false;
@@ -593,6 +594,8 @@
                 };
 
                 lastPosition = holes[currentHole].teeBox;
+                lastNonPenaltyPosition = holes[currentHole].teeBox;
+                lastNonPenaltyPosition = holes[currentHole].teeBox;
 
                 setRoundActive();
 
@@ -640,10 +643,10 @@
                     accuracy: Math.round(position.coords.accuracy)
                 };
 
-                if (lastPosition) {
+                if (lastNonPenaltyPosition) {
                     shot.distance = calculateDistance(
-                        lastPosition.latitude,
-                        lastPosition.longitude,
+                        lastNonPenaltyPosition.latitude,
+                        lastNonPenaltyPosition.longitude,
                         shot.latitude,
                         shot.longitude
                     );
@@ -651,10 +654,13 @@
 
                 holes[currentHole].shots.push(shot);
                 lastPosition = shot;
+                lastNonPenaltyPosition = shot;
 
                 setRoundActive();
 
-                const distanceMsg = shot.distance
+                const hasDistance = (shot.distance !== null && shot.distance !== undefined);
+
+                const distanceMsg = hasDistance
                     ? `✅ Shot marked: ${shot.distance} yards (±${shot.accuracy}m accuracy)`
                     : `✅ Shot marked (±${shot.accuracy}m accuracy)`;
 
@@ -699,10 +705,10 @@
                     isPenalty: true
                 };
 
-                if (lastPosition) {
+                if (lastNonPenaltyPosition) {
                     shot.distance = calculateDistance(
-                        lastPosition.latitude,
-                        lastPosition.longitude,
+                        lastNonPenaltyPosition.latitude,
+                        lastNonPenaltyPosition.longitude,
                         shot.latitude,
                         shot.longitude
                     );
@@ -710,6 +716,7 @@
 
                 holes[currentHole].shots.push(shot);
                 lastPosition = shot;
+                lastNonPenaltyPosition = shot;
 
                 setRoundActive();
 
@@ -735,10 +742,15 @@
             currentHole--;
             if (holes[currentHole] && holes[currentHole].shots.length > 0) {
                 lastPosition = holes[currentHole].shots[holes[currentHole].shots.length - 1];
+                const nonPenalty = [...holes[currentHole].shots].reverse().find(s => !s.isPenalty);
+                lastNonPenaltyPosition = nonPenalty || (holes[currentHole].teeBox ? holes[currentHole].teeBox : null);
             } else if (holes[currentHole] && holes[currentHole].teeBox) {
                 lastPosition = holes[currentHole].teeBox;
+                lastNonPenaltyPosition = holes[currentHole].teeBox;
+                lastNonPenaltyPosition = holes[currentHole].teeBox;
             } else {
                 lastPosition = null;
+                lastNonPenaltyPosition = null;
             }
             renderHole();
             updateStats();
@@ -753,7 +765,10 @@
         initHole(currentHole);
 
         if (holes[currentHole].teeBox) lastPosition = holes[currentHole].teeBox;
+                lastNonPenaltyPosition = holes[currentHole].teeBox;
+                lastNonPenaltyPosition = holes[currentHole].teeBox;
         else lastPosition = null;
+                lastNonPenaltyPosition = null;
 
         renderHole();
         updateStats();
@@ -802,7 +817,8 @@
         }
 
         shots.forEach((shot, index) => {
-            const distanceHTML = shot.distance
+            const hasDistance = (shot.distance !== null && shot.distance !== undefined);
+            const distanceHTML = hasDistance
                 ? `<div class="shot-distance">${shot.distance} yds</div>`
                 : '';
 
@@ -831,13 +847,26 @@
             holes[currentHole].shots.splice(index, 1);
 
             if (holes[currentHole].shots.length > 0) {
-                holes[currentHole].shots[0].distance = null;
-                for (let i = 1; i < holes[currentHole].shots.length; i++) {
-                    const prev = holes[currentHole].shots[i - 1];
+                // Recompute distances ignoring penalties (penalties get blank distance)
+                let prevRef = holes[currentHole].teeBox ? holes[currentHole].teeBox : null;
+                for (let i = 0; i < holes[currentHole].shots.length; i++) {
                     const curr = holes[currentHole].shots[i];
-                    curr.distance = calculateDistance(prev.latitude, prev.longitude, curr.latitude, curr.longitude);
+                    if (curr.isPenalty) {
+                        curr.distance = null;
+                        continue;
+                    }
+                    if (prevRef) {
+                        curr.distance = calculateDistance(prevRef.latitude, prevRef.longitude, curr.latitude, curr.longitude);
+                    } else {
+                        curr.distance = null;
+                    }
+                    prevRef = curr;
                 }
                 lastPosition = holes[currentHole].shots[holes[currentHole].shots.length - 1];
+                const nonPenalty = [...holes[currentHole].shots].reverse().find(s => !s.isPenalty);
+                lastNonPenaltyPosition = nonPenalty || (holes[currentHole].teeBox ? holes[currentHole].teeBox : null);
+                const lastNonPenalty = [...holes[currentHole].shots].reverse().find(s => !s.isPenalty);
+                lastNonPenaltyPosition = lastNonPenalty || (holes[currentHole].teeBox ? holes[currentHole].teeBox : null);
             } else {
                 lastPosition = holes[currentHole].teeBox ? holes[currentHole].teeBox : null;
             }
@@ -855,7 +884,7 @@
         Object.values(holes).forEach(h => {
             h.shots.forEach(s => {
                 if (s.isPenalty) return;
-                if (!s.distance || typeof s.distance !== 'number') return;
+                if (s.distance === null || s.distance === undefined || typeof s.distance !== 'number') return;
                 if (!stats[s.club]) stats[s.club] = { count: 0, sum: 0, max: 0 };
                 stats[s.club].count += 1;
                 stats[s.club].sum += s.distance;
@@ -925,10 +954,15 @@
 
             if (holes[currentHole] && holes[currentHole].shots.length > 0) {
                 lastPosition = holes[currentHole].shots[holes[currentHole].shots.length - 1];
+                const nonPenalty = [...holes[currentHole].shots].reverse().find(s => !s.isPenalty);
+                lastNonPenaltyPosition = nonPenalty || (holes[currentHole].teeBox ? holes[currentHole].teeBox : null);
             } else if (holes[currentHole] && holes[currentHole].teeBox) {
                 lastPosition = holes[currentHole].teeBox;
+                lastNonPenaltyPosition = holes[currentHole].teeBox;
+                lastNonPenaltyPosition = holes[currentHole].teeBox;
             } else {
                 lastPosition = null;
+                lastNonPenaltyPosition = null;
             }
 
             const anyShots = Object.values(holes).some(h => (h.shots && h.shots.length > 0) || h.teeBox);
@@ -941,12 +975,26 @@
     }
 
     // Export to CSV
-    function exportCSV() {
+    async function exportCSV() {
         const rows = ["Hole,ShotIndex,Club,DistanceYds,IsPenalty,Timestamp,AccuracyM,Latitude,Longitude"];
 
         Object.values(holes)
             .sort((a,b) => a.holeNumber - b.holeNumber)
             .forEach(h => {
+                // Tee box row (ShotIndex 0)
+                if (h.teeBox) {
+                    rows.push([
+                        h.holeNumber,
+                        0,
+                        "TEE",
+                        "",
+                        0,
+                        h.teeBox.timestamp || "",
+                        (typeof h.teeBox.accuracy === 'number') ? h.teeBox.accuracy : "",
+                        h.teeBox.latitude,
+                        h.teeBox.longitude
+                    ].join(","));
+                }
                 h.shots.forEach((s, i) => {
                     const distance = (typeof s.distance === 'number') ? s.distance : "";
                     const isPenalty = s.isPenalty ? "1" : "0";
@@ -998,6 +1046,7 @@
             currentHole = 1;
             holes = {};
             lastPosition = null;
+                lastNonPenaltyPosition = null;
             initHole(currentHole);
             renderHole();
             updateStats();
@@ -1008,13 +1057,6 @@
     // Initial render
     updateStats();
     updateNavigationButtons();
-</script>
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./service-worker.js");
-    });
-  }
 </script>
 
 </body>
