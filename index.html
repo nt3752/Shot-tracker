@@ -1067,6 +1067,8 @@ const markTeeBtn = document.getElementById('markTeeBtn');
     nextHoleBtn.addEventListener('click', () => {
         finalizeHoleSummary(currentHole);
         saveData();
+        finalizeHoleSummary(currentHole);
+        saveData();
         currentHole++;
         initHole(currentHole);
 
@@ -1385,6 +1387,8 @@ const markTeeBtn = document.getElementById('markTeeBtn');
     exportBtn.addEventListener('click', () => {
         finalizeHoleSummary(currentHole);
         saveData();
+        finalizeHoleSummary(currentHole);
+        saveData();
         const anyShots = Object.values(holes).some(h => h.shots && h.shots.length > 0);
         if (!anyShots) {
             showGPSStatus("⚠️ No shots to export yet", 2500);
@@ -1414,7 +1418,39 @@ const markTeeBtn = document.getElementById('markTeeBtn');
         backdrop.style.display = 'flex';
     }
 
-    window.addEventListener('load', () => {
+    
+    // Finalize per-hole summary (called on Next + Export)
+    function finalizeHoleSummary(holeNum) {
+        const h = holes[holeNum];
+        if (!h) return;
+
+        const par = (h.par ?? 4);
+        const fairway = !!h.fairway;
+        const gir = !!h.gir;
+
+        // Penalty strokes: each penalty mark counts as 1 stroke
+        const penaltyStrokes = (h.shots || []).filter(s => s.isPenalty).length;
+
+        // Score: non-penalty shots + penalty strokes
+        const nonPenaltyShots = (h.shots || []).filter(s => !s.isPenalty).length;
+        const score = nonPenaltyShots + penaltyStrokes;
+
+        const rec = {
+            hole: holeNum,
+            par,
+            score,
+            fairway: fairway ? "YES" : "NO",
+            gir: gir ? "YES" : "NO",
+            penaltyStrokes,
+            timestamp: new Date().toISOString()
+        };
+
+        const idx = holeSummaries.findIndex(r => r.hole === holeNum);
+        if (idx >= 0) holeSummaries[idx] = rec;
+        else holeSummaries.push(rec);
+    }
+
+window.addEventListener('load', () => {
         // JS badge (proves scripts are running)
         const badge = document.getElementById('jsBadge');
         if (badge) {
