@@ -899,9 +899,14 @@ const markTeeBtn = document.getElementById('markTeeBtn');
     // Mark Shot
     markShotBtn.addEventListener('click', () => {
         if (!selectedClub) {
-            showGPSStatus('⚠️ Please select a club first');
-            return;
-        }
+                    // For short game shots, allow recording without a club selection.
+                    if (selectedShotType === 'pitch' || selectedShotType === 'chip' || selectedShotType === 'putt') {
+                        selectedClub = selectedShotType.toUpperCase();
+                    } else {
+                        showGPSStatus("⚠️ Select a club", 2000);
+                        return;
+                    }
+                }
 
         showGPSStatus('📡 Getting GPS location...');
 
@@ -1082,25 +1087,21 @@ const markTeeBtn = document.getElementById('markTeeBtn');
         const girClass = gir === true ? 'yes' : (gir === false ? 'no' : '');
         html += `
           <div class="meta-card">
-            <div class="meta-row">
-              <div class="meta-label">Par</div>
-              <div class="meta-buttons">
-                <button class="meta-btn ${parVal===3?'selected':''}" id="par3Btn">3</button>
-                <button class="meta-btn ${parVal===4?'selected':''}" id="par4Btn">4</button>
-                <button class="meta-btn ${parVal===5?'selected':''}" id="par5Btn">5</button>
+            <div class="meta-row" style="justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div class="meta-label">Par</div>
+                <div class="meta-buttons">
+                  <button class="meta-btn ${parVal===3?'selected':''}" id="par3Btn">3</button>
+                  <button class="meta-btn ${parVal===4?'selected':''}" id="par4Btn">4</button>
+                  <button class="meta-btn ${parVal===5?'selected':''}" id="par5Btn">5</button>
+                </div>
               </div>
-            </div>
-            <div class="meta-row">
-              <div class="meta-buttons">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                 <button class="meta-btn ${fw?'selected':''}" id="fairwayBtn">Fairway</button>
-              </div>
-            </div>
-            <div class="meta-row">
-              <div class="meta-buttons">
                 <button class="meta-btn ${gir?'selected':''}" id="girBtn">GIR</button>
               </div>
             </div>
-            <div class="meta-hint">Tap buttons to toggle</div>
+            <div class="meta-hint">Tap to toggle (highlight = YES)</div>
           </div>`;
 
         if (teeBox) {
