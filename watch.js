@@ -130,6 +130,17 @@ function ensureWatch(){
   );
 }
 
+
+function bestPos(maxAgeMs=6000){
+  // Prefer the live watch position if it's recent enough; fallback to getFix().
+  if(currentPos){
+    const ts = currentPos.timestamp ? Date.parse(currentPos.timestamp) : NaN;
+    const age = Number.isFinite(ts) ? (Date.now()-ts) : 0;
+    if(age <= maxAgeMs) return currentPos;
+  }
+  return null;
+}
+
 function activateRound(r){
   activeRoundId = r.id;
   roundMeta = r;
@@ -187,8 +198,12 @@ els.nextHole.addEventListener("click", ()=>{
 els.markTee.addEventListener("click", async ()=>{
   try{
     ensureWatch();
-    const pos = await getFix();
-    const tee = { latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() };
+    let p = bestPos();
+    if(!p){
+      const pos = await getFix();
+      p = { latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() };
+    }
+    const tee = { latitude:p.latitude, longitude:p.longitude, accuracy:(p.accuracy??0), timestamp:p.timestamp || new Date().toISOString() };
     ensureHole(currentHole);
     holes[currentHole].teeBox = tee;
     setCourseHoleTee(courseStore, currentHole, tee);
@@ -205,8 +220,12 @@ els.markTee.addEventListener("click", async ()=>{
 els.markFlag.addEventListener("click", async ()=>{
   try{
     ensureWatch();
-    const pos = await getFix();
-    const flag = { latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() };
+    let p = bestPos();
+    if(!p){
+      const pos = await getFix();
+      p = { latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() };
+    }
+    const flag = { latitude:p.latitude, longitude:p.longitude, accuracy:(p.accuracy??0), timestamp:p.timestamp || new Date().toISOString() };
     ensureHole(currentHole);
     holes[currentHole].flag = flag;
     setCourseHoleFlag(courseStore, currentHole, flag);
@@ -226,8 +245,12 @@ els.markShot.addEventListener("click", async ()=>{
     const h = holes[currentHole];
     if(!h.teeBox) return toast("⚠️ Mark tee first", 1400);
 
-    const pos = await getFix();
-    const shot = { id: crypto.randomUUID(), club:"Club?", shotType:"full", latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString(), isPenalty:false };
+    let p = bestPos();
+    if(!p){
+      const pos = await getFix();
+      p = { latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() };
+    }
+    const shot = { id: crypto.randomUUID(), club:"Club?", shotType:"full", latitude:p.latitude, longitude:p.longitude, accuracy:(p.accuracy??0), timestamp:p.timestamp || new Date().toISOString(), isPenalty:false };
 
     // distance from last non-penalty reference
     const calc = lastNonPenaltyPos ? Math.round(distanceYds(lastNonPenaltyPos, shot)*10)/10 : 0;

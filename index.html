@@ -32,10 +32,7 @@
       <button id="clearCourse" class="mini danger2" type="button">Clear Course Data</button>
         <button id="courseSetup" type="button">⚙️ Setup</button>
         <a href="./watch.html" style="text-decoration:none;"><button id="watchMode" type="button">⌚ Watch</button></a>
-        <button id="watchCopy" type="button">🔗 Copy</button>
-        <button id="watchShare" type="button">📤 Share</button>
-        <button id="watchQR" type="button">📷 QR</button>
-    </div>
+</div>
   </section>
 
 
@@ -122,11 +119,7 @@
 <script type="module" src="app.js?v=36_6"></script>
 <!-- Cache/SW reset helper: /reset.html -->
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<div id="qrModal" style="display:none;position:fixed;inset:0;background:#000c;align-items:center;justify-content:center;z-index:9999;">
-  <div style="background:#111;padding:20px;border-radius:14px;text-align:center;color:#fff;">
-    <div style="margin-bottom:10px;font-weight:bold;">Scan to open Watch Mode</div>
-    <div id="qrBox"></div>
+<div id="qrBox"></div>
     <button onclick="document.getElementById('qrModal').style.display='none'" style="margin-top:12px;">Close</button>
   </div>
 </div>
