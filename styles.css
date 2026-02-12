@@ -1,3 +1,4 @@
+
 :root{
   --bg:#061612; --muted:#a8c0b7; --text:#eaf6f1;
   --danger:#ff5c77; --line:rgba(255,255,255,.10);
@@ -32,7 +33,9 @@ button.selected{background:rgba(95,211,165,.28);border-color:rgba(95,211,165,.85
 .row{display:flex;gap:10px;align-items:center}
 .spacer{flex:1}
 .manualWrap{display:none;gap:10px;align-items:center}
-input[type="number"]{width:120px;padding:10px 12px;border-radius:12px;border:2px solid rgba(255,255,255,.18);background:rgba(0,0,0,.18);color:var(--text);font-size:16px;font-weight:900}
+input[type="number"], input[type="text"], #roundTitleInput, .modal input{
+  width:140px;padding:10px 12px;border-radius:12px;border:2px solid rgba(255,255,255,.18);background:rgba(0,0,0,.18);color:var(--text);font-size:16px;font-weight:900
+}
 .unit{color:var(--muted);font-weight:900}
 .shots{margin-top:8px}
 .shotCard{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:16px;padding:10px 12px;margin-bottom:8px}
@@ -42,4 +45,20 @@ input[type="number"]{width:120px;padding:10px 12px;border-radius:12px;border:2px
 .shotRight{display:flex;align-items:center;gap:8px}
 .shotDist{font-weight:950}
 .shotEdit{width:90px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.18);padding:10px 12px;border-radius:14px;font-weight:900;max-width:92vw;display:none}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.18);padding:10px 12px;border-radius:14px;font-weight:900;max-width:92vw;display:none;z-index:20}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:30}
+.modal.show{display:flex}
+.modalCard{width:min(560px,96vw);background:rgba(8,24,20,.98);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:14px}
+.modalTitle{font-size:18px;font-weight:1000;margin-bottom:6px}
+.modalText{color:var(--muted);font-weight:800;font-size:13px}
+.modalRow{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.primaryBtn{background:linear-gradient(180deg,rgba(95,211,165,.35),rgba(95,211,165,.22));border:2px solid rgba(95,211,165,.9);padding:12px 12px;border-radius:14px;font-weight:950}
+.miniBtn{padding:10px 12px;border-radius:12px}
+.roundList{margin-top:8px;display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}
+.roundItem{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 12px}
+.roundName{font-weight:950}
+.roundMeta{color:var(--muted);font-weight:850;font-size:12px}
+.roundLoad{border:2px solid rgba(255,255,255,.18);padding:10px 12px;border-radius:12px}
+.roundDel{border:2px solid rgba(255,92,119,.65);background:rgba(255,92,119,.12);padding:10px 12px;border-radius:12px}

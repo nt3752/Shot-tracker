@@ -18,6 +18,7 @@
     <div class="pill">Hole <span id="holeNum">1</span></div>
     <div class="pill">Shots <span id="shotCount">0</span></div>
     <div class="pill">Total <span id="totalShots">0</span></div>
+    <div class="pill">Round <span id="roundName">—</span></div>
   </div>
 </header>
 
@@ -94,11 +95,34 @@
     <button id="next" class="mini" type="button">Next ▶</button>
     <div class="spacer"></div>
     <button id="export" class="mini" type="button">Export CSV</button>
+    <button id="resetRound" class="mini danger2" type="button">Reset</button>
+    <div class="spacer"></div>
+    <button id="newRound" class="mini" type="button">New/Load</button>
   </section>
 
   <section class="section shots" id="shotsList"></section>
 
 </main>
+
+<!-- Round modal -->
+<div class="modal" id="roundModal" aria-hidden="true">
+  <div class="modalCard">
+    <div class="modalTitle">Round</div>
+    <div class="modalText">Start a new round or continue an existing one.</div>
+
+    <div class="modalRow">
+      <input id="roundTitleInput" placeholder="Round name (optional)" />
+      <button id="startNewBtn" class="primaryBtn" type="button">Start New</button>
+    </div>
+
+    <div class="modalText" style="margin-top:12px;">Continue recent:</div>
+    <div id="roundList" class="roundList"></div>
+
+    <div class="modalRow" style="justify-content:flex-end;margin-top:12px;">
+      <button id="closeModal" class="miniBtn" type="button">Close</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
