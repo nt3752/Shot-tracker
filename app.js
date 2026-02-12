@@ -62,6 +62,7 @@ let liveEnabled = true;
 const CFG = window.APP_CONFIG || {};
 const DEFAULT_CLUB = (CFG.defaults && CFG.defaults.club) ? CFG.defaults.club : "Club?";
 const DEFAULT_SHOT_TYPE = (CFG.defaults && CFG.defaults.shotType) ? CFG.defaults.shotType : "full";
+const MAX_HOLES = 18;
 
 const _DEFAULT_CLUBS = ["D","3W","5W","7W","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","PT"];
 const _DEFAULT_TYPES = ["full","pitch","chip","putt"];
@@ -185,14 +186,14 @@ function initCourseUI(){
 }
 
 function ensureHole(n){
-  if(!holes[n]) holes[n] = { holeNumber:n, par:4, fairway:false, gir:false, holeYards:null, handicap:null, teeBox:null, flag:null, shots:[] };
+  if(!holes[n]) holes[n] = { holeNumber:n, par:null, _parUserSet:false, fairway:false, gir:false, holeYards:null, handicap:null, teeBox:null, flag:null, shots:[] };
   // If this round doesn't have baseline info yet, pull from saved course profile (option 2)
   const ch = getCourseHole(courseStore, n);
   if(ch){
     if(!holes[n].teeBox && ch.teeBox) holes[n].teeBox = ch.teeBox;
     if(!holes[n].flag && ch.flag) holes[n].flag = ch.flag;
     if((holes[n].holeYards==null || holes[n].holeYards==="") && ch.holeYards!=null) holes[n].holeYards = ch.holeYards;
-    if((holes[n].par==null) && ch.par!=null) holes[n].par = ch.par;
+    if(ch.par!=null && !holes[n]._parUserSet) holes[n].par = ch.par;
     if((holes[n].handicap==null) && ch.handicap!=null) holes[n].handicap = ch.handicap;
     if((holes[n].holeYards === null || holes[n].holeYards === "" || typeof holes[n].holeYards === "undefined") && ch.holeYards != null) holes[n].holeYards = ch.holeYards;
     if((holes[n].par === null || typeof holes[n].par === "undefined") && ch.par != null) holes[n].par = ch.par;
@@ -553,9 +554,9 @@ els.shotsList.addEventListener("change", (e)=>{
 });
 
 
-els.par3.addEventListener("click", ()=>{ holes[currentHole].par=3; setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.par4.addEventListener("click", ()=>{ holes[currentHole].par=4; setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.par5.addEventListener("click", ()=>{ holes[currentHole].par=5; setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.par3.addEventListener("click", ()=>{ holes[currentHole].par=3; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.par4.addEventListener("click", ()=>{ holes[currentHole].par=4; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.par5.addEventListener("click", ()=>{ holes[currentHole].par=5; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.fw.addEventListener("click", ()=>{ holes[currentHole].fairway=!holes[currentHole].fairway; finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHole].gir; finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.holeYards.addEventListener("input", ()=>{ const v=parseInt(els.holeYards.value,10); holes[currentHole].holeYards = Number.isFinite(v)?v:null; setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); });
@@ -654,9 +655,8 @@ els.deleteLast.addEventListener("click", ()=>{
 });
 
 els.prev.addEventListener("click", ()=>{
-  if(currentHole<=1) return;
   finalizeHoleSummary(currentHole);
-  currentHole -= 1;
+  currentHole = (currentHole<=1) ? MAX_HOLES : (currentHole-1);
   ensureHole(currentHole);
   syncRefForHole();
   save(); renderShots();
@@ -665,7 +665,7 @@ els.prev.addEventListener("click", ()=>{
 
 els.next.addEventListener("click", ()=>{
   finalizeHoleSummary(currentHole); // creates/updates HOLE_SUMMARY record on Next (your earlier requirement)
-  currentHole += 1;
+  currentHole = (currentHole>=MAX_HOLES) ? 1 : (currentHole+1);
   ensureHole(currentHole);
   syncRefForHole();
   save(); renderShots();
