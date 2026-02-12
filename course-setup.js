@@ -16,7 +16,10 @@ if(courseId){
   saveCourseStore(store);
 }
 
-const course = getActiveCourse(store);
+function activeCourse(){
+  return getActiveCourse(store);
+}
+
 const els = {
   courseName: $("courseName"),
   rows: $("rows"),
@@ -26,7 +29,7 @@ const els = {
   deleteCourseBtn: $("deleteCourseBtn"),
 };
 
-els.courseName.textContent = course?.name || "Course";
+els.courseName.textContent = activeCourse()?.name || "Course";
 
 function holeRow(holeNum){
   const h = getCourseHole(store, holeNum) || {};
@@ -57,10 +60,11 @@ function render(){
   for(let i=1;i<=18;i++){
     els.rows.appendChild(holeRow(i));
   }
+  // Update header name in case active changes
+  els.courseName.textContent = activeCourse()?.name || "Course";
 }
 
 function applyFromUI(){
-  // Read values from the inputs and update store.
   for(let i=1;i<=18;i++){
     const parSel = els.rows.querySelector(`select[data-par="${i}"]`);
     const yardsInp = els.rows.querySelector(`input[data-yards="${i}"]`);
@@ -72,50 +76,27 @@ function applyFromUI(){
   }
 }
 
-els.saveBtn.addEventListener("click", ()=>{
+els.saveBtn?.addEventListener("click", ()=>{
   applyFromUI();
   saveCourseStore(store);
   els.saveBtn.textContent = "Saved ✓";
   setTimeout(()=>els.saveBtn.textContent="Save", 1200);
 });
 
-els.backBtn.addEventListener("click", ()=>{
-  // Go back to main app (preserve as much as possible)
+els.backBtn?.addEventListener("click", ()=>{
   window.location.href = "./index.html";
 });
 
-els.clearBtn.addEventListener("click", ()=>{
-  const cname = course?.name || "this course";
+els.clearBtn?.addEventListener("click", ()=>{
+  const cname = activeCourse()?.name || "this course";
   if(!confirm(`Clear setup (par/yards/handicap/tee/flag) for ${cname}?`)) return;
   clearActiveCourseData(store);
   saveCourseStore(store);
-  
-els.deleteCourseBtn?.addEventListener("click", ()=>{
-  const c = getActiveCourse(store);
-  const cname = c?.name || "this course";
-  const ids = Object.keys(store.courses || {});
-  if(ids.length <= 1){
-    alert("You can’t delete the last remaining course.");
-    return;
-  }
-  if(!confirm(`Delete course "${cname}"?\n\nThis removes saved par/yards/handicap/tee/flag for that course. Your rounds remain saved.`)) return;
-
-  const ok = deleteCourse(store, c.id);
-  saveCourseStore(store);
-
-  if(!ok){
-    alert("Could not delete this course.");
-    return;
-  }
-  window.location.href = "./index.html";
+  render();
 });
 
-render();
-});
-
-
 els.deleteCourseBtn?.addEventListener("click", ()=>{
-  const c = getActiveCourse(store);
+  const c = activeCourse();
   const cname = c?.name || "this course";
   const ids = Object.keys(store.courses || {});
   if(ids.length <= 1){
