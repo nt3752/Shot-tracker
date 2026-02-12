@@ -1,6 +1,7 @@
 import { distanceYds, getFix, startWatch } from "./gps.js";
 import { buildCSV } from "./csv.js";
 import { listRounds, createRound, loadRound, setActiveRound, deleteRound, saveRoundState, getActiveRoundId } from "./rounds.js";
+import { loadCourseStore, saveCourseStore, listCourses, getCourseHole, setCourseHoleTee, setCourseHoleFlag, setActiveCourse, createCourse, clearActiveCourseData, getActiveCourse } from "./courseProfile.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -12,15 +13,15 @@ const els = {
   par3: $("par3"), par4: $("par4"), par5: $("par5"),
   fw: $("fw"), gir: $("gir"),
   holeYards: $("holeYards"),
-  clubGrid: $("clubGrid"),
-  shotTypeGrid: $("shotTypeGrid"),
+
   manualWrap: $("manualWrap"),
   manualInput: $("manualInput"),
   manualUnit: $("manualUnit"),
+  toFlag: $("toFlag"),
   markTee: $("markTee"),
   markFlag: $("markFlag"),
   markShot: $("markShot"),
-  penalty: $("penalty"),
+  addPenalty: $("addPenalty"),
   deleteLast: $("deleteLast"),
   prev: $("prev"),
   next: $("next"),
@@ -32,6 +33,9 @@ const els = {
   roundModal: $("roundModal"),
   roundList: $("roundList"),
   roundTitleInput: $("roundTitleInput"),
+  courseSelect: $("courseSelect"),
+  addCourse: $("addCourse"),
+  clearCourse: $("clearCourse"),
   startNewBtn: $("startNewBtn"),
   closeModal: $("closeModal"),
 };
@@ -49,14 +53,32 @@ let roundMeta = null;
 let currentHole = 1;
 let holes = {};
 let holeSummaries = [];
-let selectedClub = null;
-let selectedShotType = "full";
 let manualValue = null;
 let liveEnabled = true;
 
-// Dropdown options for per-shot reconciliation
-const CLUB_OPTIONS = ["Club?","D","3W","5W","7W","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","PT"];
-const SHOT_TYPE_OPTIONS = ["full","pitch","chip","putt","penalty"];
+// Dropdown options for per-shot reconciliation (configured via config.js if present)
+const CFG = window.APP_CONFIG || {};
+const DEFAULT_CLUB = (CFG.defaults && CFG.defaults.club) ? CFG.defaults.club : "Club?";
+const DEFAULT_SHOT_TYPE = (CFG.defaults && CFG.defaults.shotType) ? CFG.defaults.shotType : "full";
+
+const _DEFAULT_CLUBS = ["D","3W","5W","7W","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","PT"];
+const _DEFAULT_TYPES = ["full","pitch","chip","putt"];
+
+const CLUB_OPTIONS = [DEFAULT_CLUB, ...((CFG.clubs && Array.isArray(CFG.clubs)) ? CFG.clubs : _DEFAULT_CLUBS)]
+  .filter((v, i, a) => a.indexOf(v) === i);
+if(!CLUB_OPTIONS.includes("N/A")) CLUB_OPTIONS.splice(1,0,"N/A");
+
+
+const SHOT_TYPE_OPTIONS = [...((CFG.shotTypes && Array.isArray(CFG.shotTypes)) ? CFG.shotTypes : _DEFAULT_TYPES)]
+  .filter((v, i, a) => a.indexOf(v) === i);
+
+if(!SHOT_TYPE_OPTIONS.includes("penalty")) SHOT_TYPE_OPTIONS.push("penalty");
+
+
+function isPenaltyShot(s){
+  return !!(s && (s.isPenalty===true || (s.shotType||"") === "penalty"));
+}
+
 
 let lastNonPenaltyPos = null;
 let currentPos = null;
@@ -64,32 +86,127 @@ let watchId = null;
 let lastBadgeYds = null;
 let lastBadgeTs = 0;
 
+let courseStore = loadCourseStore();
+
+
+function renderCourseSelect(){
+  if(!els.courseSelect) return;
+  const courses = listCourses(courseStore);
+  const active = getActiveCourse(courseStore);
+  els.courseSelect.innerHTML = "";
+  for(const c of courses){
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = c.name || "Course";
+    if(active && c.id === active.id) opt.selected = true;
+    els.courseSelect.appendChild(opt);
+  }
+}
+
+function initCourseUI(){
+  if(!els.courseSelect) return;
+  renderCourseSelect();
+
+  els.courseSelect.addEventListener("change", (e)=>{
+    const id = e.target.value;
+    setActiveCourse(courseStore, id);
+    saveCourseStore(courseStore);
+    toast(`⛳ Course: ${getActiveCourse(courseStore)?.name || "Course"}`, 1600);
+    // Refresh holes to pull tee/flag baselines for holes that don't have them in this round yet
+    ensureHole(currentHole);
+    renderShots();
+    updateToFlag();
+  });
+
+  if(els.addCourse){
+    els.addCourse.addEventListener("click", ()=>{
+      const name = prompt("New course name:", "");
+      if(name === null) return;
+      createCourse(courseStore, name);
+      saveCourseStore(courseStore);
+      renderCourseSelect();
+      toast("✅ Course created", 1600);
+      ensureHole(currentHole);
+      renderShots();
+      updateToFlag();
+    });
+  }
+
+  if(els.clearCourse){
+    els.clearCourse.addEventListener("click", ()=>{
+      const cname = getActiveCourse(courseStore)?.name || "this course";
+      if(!confirm(`Clear saved tee/flag baselines for ${cname}?\n\nThis does NOT delete your rounds/shots.`)) return;
+      clearActiveCourseData(courseStore);
+      saveCourseStore(courseStore);
+      toast("🧽 Course data cleared", 1800);
+    });
+  }
+}
+
 function ensureHole(n){
   if(!holes[n]) holes[n] = { holeNumber:n, par:4, fairway:false, gir:false, holeYards:null, teeBox:null, flag:null, shots:[] };
+  // If this round doesn't have tee/flag yet, pull from saved course profile (option 2)
+  const ch = getCourseHole(courseStore, n);
+  if(ch){
+    if(!holes[n].teeBox && ch.teeBox) holes[n].teeBox = ch.teeBox;
+    if(!holes[n].flag && ch.flag) holes[n].flag = ch.flag;
+  }
 }
 
 function getState(){
-  return { currentHole, holes, holeSummaries, selectedClub, selectedShotType, manualValue, liveEnabled };
+  return { currentHole, holes, holeSummaries, manualValue, liveEnabled };
 }
 
 function setState(s){
   currentHole = s.currentHole || 1;
   holes = s.holes || {};
   holeSummaries = s.holeSummaries || [];
-  selectedClub = s.selectedClub || null;
-  selectedShotType = s.selectedShotType || "full";
   manualValue = (s.manualValue !== undefined) ? s.manualValue : null;
   liveEnabled = (s.liveEnabled !== undefined) ? s.liveEnabled : true;
 }
 
-function save() {
+let _saveTimer = null;
+function saveNow(){
   if(activeRoundId) saveRoundState(activeRoundId, getState());
+}
+function save(){
+  if(!activeRoundId) return;
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(()=>saveRoundState(activeRoundId, getState()), 250);
 }
 
 function computeScore(h){
-  const penaltyStrokes = (h.shots||[]).filter(s=>s.isPenalty).length;
-  const nonPenalty = (h.shots||[]).filter(s=>!s.isPenalty).length;
+  const penaltyStrokes = (h.shots||[]).filter(s=>isPenaltyShot(s)).length;
+  const nonPenalty = (h.shots||[]).filter(s=>!isPenaltyShot(s)).length;
   return { score: nonPenalty + penaltyStrokes, penaltyStrokes };
+}
+
+function recomputeHoleDistances(holeNum){
+  const h = holes[holeNum];
+  if(!h?.teeBox) return;
+
+  let lastPos = { latitude: h.teeBox.latitude, longitude: h.teeBox.longitude };
+  for(const s of (h.shots||[])){
+    if(isPenaltyShot(s)){
+      // Penalties should not affect sequencing or distance stats
+      s.distance = 0;
+      s.manualUnit = "";
+      s.manualValue = "";
+      s.club = "N/A";
+      s.shotType = "penalty";
+      s.isPenalty = true;
+      continue;
+    }
+
+    const hasManual = (s.manualValue!=="" && s.manualValue!==null && typeof s.manualValue !== "undefined" && Number.isFinite(parseFloat(s.manualValue)));
+    const calc = lastPos ? Math.round(distanceYds(lastPos, s)*10)/10 : 0;
+    if(!hasManual){
+      s.distance = calc;
+    }
+    lastPos = { latitude: s.latitude, longitude: s.longitude };
+    s.isPenalty = false;
+  }
+  lastNonPenaltyPos = lastPos;
 }
 
 function finalizeHoleSummary(holeNum){
@@ -114,26 +231,6 @@ function finalizeHoleSummary(holeNum){
   if(idx>=0) holeSummaries[idx]=rec; else holeSummaries.push(rec);
 }
 
-function setSelectedShotType(type){
-  selectedShotType = type;
-  const needsManual = (selectedShotType !== "full");
-  els.manualWrap.style.display = needsManual ? "flex" : "none";
-  els.manualUnit.textContent = (selectedShotType === "putt") ? "ft" : "yds";
-  els.manualInput.placeholder = (selectedShotType === "putt") ? "e.g. 12" : "e.g. 25";
-  if(!needsManual){ manualValue=null; els.manualInput.value=""; }
-}
-
-function resetSelectors(){
-  selectedClub = null;
-  setSelectedShotType("full");
-  manualValue = null;
-  els.clubGrid.querySelectorAll("button[data-club]").forEach(b=>b.classList.remove("selected"));
-  els.shotTypeGrid.querySelectorAll("button[data-shot]").forEach(b=>b.classList.toggle("selected", b.dataset.shot==="full"));
-  els.manualWrap.style.display="none";
-  els.manualInput.value="";
-  els.manualUnit.textContent="yds";
-  updateMarkShotEnabled();
-}
 
 function updateMetaButtons(){
   const h=holes[currentHole];
@@ -158,7 +255,7 @@ function updateMarkShotEnabled(){
   // Club selection is optional now (defaults to "Club?")
   // Manual distance is optional; distance will be prefilled from GPS calc and can be edited later.
   els.markShot.disabled = !(h.teeBox);
-  els.markShot.textContent = "📍 Mark Shot";
+  els.markShot.textContent = "➕ Add Shot";
 }
 
 function shotDisplayDistance(s){
@@ -189,50 +286,53 @@ function renderShots(){
   (h.shots||[]).forEach((s,i)=>{
     const div=document.createElement("div");
     div.className="shotCard";
-
-    const penalty = s.isPenalty ? " ⚠️" : "";
-    const distVal = shotDisplayDistance(s);
-
-    if(s.isPenalty){
-      div.innerHTML = `
-        <div class="shotLeft">
-          <div class="shotTop">Penalty${penalty}</div>
-          <div class="shotSub">${s.club||"PENALTY"}</div>
-        </div>
-        <div class="shotRight"><div class="shotDist">${distVal} yds</div></div>
-      `;
-      els.shotsList.appendChild(div);
-      return;
-    }
-
-    const clubVal = s.club || "Club?";
-    const typeVal = s.shotType || "full";
-
-    const clubSelect = `<select class="shotSelect clubSelect" data-idx="${i}">
-      ${CLUB_OPTIONS.map(c=>`<option value="${c}" ${c===clubVal?"selected":""}>${c}</option>`).join("")}
-    </select>`;
-
-    const typeSelect = `<select class="shotSelect typeSelect" data-idx="${i}">
-      ${SHOT_TYPE_OPTIONS.map(t=>`<option value="${t}" ${t===typeVal?"selected":""}>${t.toUpperCase()}</option>`).join("")}
-    </select>`;
-
-    const right = `<div class="shotRight">
-        <input class="shotEdit" type="number" inputmode="decimal" data-edit-idx="${i}" value="${distVal}">
-        <div class="shotDist">yds</div>
-      </div>`;
-
-    div.innerHTML = `
-      <div class="shotLeft">
-        <div class="shotTop">Shot ${i+1}${penalty}</div>
-        <div class="shotSubRow">
-          ${clubSelect}
-          ${typeSelect}
-        </div>
-      </div>
-      ${right}
-    `;
+    div.innerHTML = buildShotCardHTML(s, i);
     els.shotsList.appendChild(div);
   });
+}
+
+function buildShotCardHTML(s, i){
+  const isPen = isPenaltyShot(s);
+  const penalty = isPen ? " ⚠️" : "";
+  const distVal = isPen ? "" : shotDisplayDistance(s);
+
+  const clubVal = isPen ? "N/A" : (s.club || "Club?");
+  const typeVal = isPen ? "penalty" : (s.shotType || "full");
+
+  const clubSelect = `<select class="shotSelect clubSelect" data-idx="${i}" ${isPen?"disabled":""}>
+    ${CLUB_OPTIONS.map(c=>`<option value="${c}" ${c===clubVal?"selected":""}>${c}</option>`).join("")}
+  </select>`;
+
+  const typeSelect = `<select class="shotSelect typeSelect" data-idx="${i}">
+    ${SHOT_TYPE_OPTIONS.map(t=>`<option value="${t}" ${t===typeVal?"selected":""}>${t.toUpperCase()}</option>`).join("")}
+  </select>`;
+
+  const right = `<div class="shotRight">
+      <input class="shotEdit" type="number" inputmode="decimal" data-edit-idx="${i}" value="${distVal}" ${isPen?"disabled":""}>
+      <div class="shotDist">yds</div>
+    </div>`;
+
+  return `
+    <div class="shotLeft">
+      <div class="shotTop">${isPen?"Penalty":"Shot "+(i+1)}${penalty}</div>
+      <div class="shotSubRow">
+        ${clubSelect}
+        ${typeSelect}
+      </div>
+    </div>
+    ${right}
+  `;
+}
+
+function appendShotCardForCurrentHole(){
+  const h = holes[currentHole];
+  if(!h?.shots?.length) return;
+  const i = h.shots.length - 1;
+  const s = h.shots[i];
+  const div = document.createElement("div");
+  div.className = "shotCard";
+  div.innerHTML = buildShotCardHTML(s, i);
+  els.shotsList.appendChild(div);
 }
 
 function syncRefForHole(){
@@ -240,9 +340,25 @@ function syncRefForHole(){
   lastNonPenaltyPos = null;
   if(h?.teeBox) lastNonPenaltyPos = { latitude:h.teeBox.latitude, longitude:h.teeBox.longitude };
   if(h?.shots?.length){
-    for(let i=h.shots.length-1;i>=0;i--){ if(!h.shots[i].isPenalty){ lastNonPenaltyPos={ latitude:h.shots[i].latitude, longitude:h.shots[i].longitude }; break; } }
+    for(let i=h.shots.length-1;i>=0;i--){ if(!isPenaltyShot(h.shots[i])){ lastNonPenaltyPos={ latitude:h.shots[i].latitude, longitude:h.shots[i].longitude }; break; } }
   }
   updateLiveBadge(true);
+}
+
+
+function getFlagPosForCurrentHole(){
+  const h = holes?.[currentHole];
+  if(h?.flag){ return { latitude: h.flag.latitude, longitude: h.flag.longitude }; }
+  const ch = getCourseHole(courseStore, currentHole);
+  if(ch?.flag){ return { latitude: ch.flag.latitude, longitude: ch.flag.longitude }; }
+  return null;
+}
+
+function updateToFlag(){
+  const flagPos = getFlagPosForCurrentHole();
+  if(!flagPos || !currentPos){ els.toFlag.textContent = "To Flag:—"; return; }
+  const yds = Math.round(distanceYds(currentPos, flagPos));
+  els.toFlag.textContent = `To Flag:${yds}y`;
 }
 
 function updateLiveBadge(force=false){
@@ -259,7 +375,7 @@ function updateLiveBadge(force=false){
 function ensureWatch(){
   if(watchId!==null) return;
   watchId = startWatch(
-    (pos)=>{ currentPos={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; updateLiveBadge(false); },
+    (pos)=>{ currentPos={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; updateLiveBadge(false); updateToFlag(); },
     (err)=>toast("❌ GPS error: " + (err.message||err), 3000)
   );
 }
@@ -314,10 +430,8 @@ function activateRound(r){
   syncRefForHole();
   els.roundName.textContent = r.name;
   // restore UI selections
-  setSelectedShotType(selectedShotType);
-  els.shotTypeGrid.querySelectorAll("button[data-shot]").forEach(b=>b.classList.toggle("selected", b.dataset.shot===selectedShotType));
-  if(selectedClub) els.clubGrid.querySelectorAll("button[data-club]").forEach(b=>b.classList.toggle("selected", b.dataset.club===selectedClub));
   updateLiveBadge(true);
+  updateToFlag();
   renderShots();
   save();
   hideModal();
@@ -356,8 +470,6 @@ els.roundList.addEventListener("click", (e)=>{
 
 // Core events
 els.liveBadge.addEventListener("click", ()=>{ liveEnabled=!liveEnabled; updateLiveBadge(true); save(); });
-els.clubGrid.addEventListener("click",(e)=>{ const btn=e.target.closest("button[data-club]"); if(!btn) return; selectedClub=btn.dataset.club; els.clubGrid.querySelectorAll("button[data-club]").forEach(b=>b.classList.toggle("selected", b===btn)); updateMarkShotEnabled(); save(); });
-els.shotTypeGrid.addEventListener("click",(e)=>{ const btn=e.target.closest("button[data-shot]"); if(!btn) return; setSelectedShotType(btn.dataset.shot); els.shotTypeGrid.querySelectorAll("button[data-shot]").forEach(b=>b.classList.toggle("selected", b===btn)); updateMarkShotEnabled(); save(); });
 els.manualInput.addEventListener("input", ()=>{ const v=parseFloat(els.manualInput.value); manualValue = Number.isFinite(v)?v:null; updateMarkShotEnabled(); save(); });
 els.shotsList.addEventListener("input", (e)=>{ const inp=e.target.closest("input[data-edit-idx]"); if(!inp) return; const idx=parseInt(inp.dataset.editIdx,10); const v=parseFloat(inp.value); holes[currentHole].shots[idx].distance = Number.isFinite(v)?v:0; finalizeHoleSummary(currentHole); save(); });
 els.shotsList.addEventListener("change", (e)=>{
@@ -371,10 +483,24 @@ els.shotsList.addEventListener("change", (e)=>{
     shot.club = sel.value || "Club?";
   }
   if(sel.classList.contains("typeSelect")){
-    shot.shotType = sel.value || "full";
-    // Keep existing distance; manual override is optional now.
-    shot.manualUnit = shot.manualUnit || "";
-    shot.manualValue = shot.manualValue || "";
+    const newType = (sel.value || "full");
+    shot.shotType = newType;
+    if(newType === "penalty"){
+      // Penalty is 1 stroke by default. Add multiple penalty entries as needed.
+      shot.club = "N/A";
+      shot.isPenalty = true;
+      shot.distance = 0;
+      shot.manualUnit = "";
+      shot.manualValue = "";
+      // Recompute distances for the rest of the hole so penalties don't break sequencing.
+      recomputeHoleDistances(currentHole);
+    } else {
+      // Switching away from penalty restores normal behavior.
+      shot.isPenalty = false;
+      if(shot.club === "N/A") shot.club = DEFAULT_CLUB;
+      // If there was no manual distance, recompute from last non-penalty reference.
+      recomputeHoleDistances(currentHole);
+    }
   }
   finalizeHoleSummary(currentHole);
   save();
@@ -389,12 +515,12 @@ els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHol
 els.holeYards.addEventListener("input", ()=>{ const v=parseInt(els.holeYards.value,10); holes[currentHole].holeYards = Number.isFinite(v)?v:null; finalizeHoleSummary(currentHole); save(); });
 
 els.markTee.addEventListener("click", async ()=>{
-  try{ ensureWatch(); const pos=await getFix(); const tee={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; holes[currentHole].teeBox=tee; lastNonPenaltyPos={ latitude:tee.latitude, longitude:tee.longitude }; toast(`✅ Tee marked (±${tee.accuracy}m)`); finalizeHoleSummary(currentHole); save(); renderShots(); updateLiveBadge(true); } 
+  try{ ensureWatch(); const pos=await getFix(); const tee={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; holes[currentHole].teeBox=tee; setCourseHoleTee(courseStore, currentHole, tee); saveCourseStore(courseStore); lastNonPenaltyPos={ latitude:tee.latitude, longitude:tee.longitude }; toast(`✅ Tee marked (±${tee.accuracy}m)`); finalizeHoleSummary(currentHole); save(); renderShots(); updateLiveBadge(true); updateToFlag(); } 
   catch(err){ toast("❌ GPS: " + (err.message||err), 3000); }
 });
 
 els.markFlag.addEventListener("click", async ()=>{
-  try{ ensureWatch(); const pos=await getFix(); const flag={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; holes[currentHole].flag=flag; toast(`✅ Flag marked (±${flag.accuracy}m)`); finalizeHoleSummary(currentHole); save(); renderShots(); } 
+  try{ ensureWatch(); const pos=await getFix(); const flag={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; holes[currentHole].flag=flag; setCourseHoleFlag(courseStore, currentHole, flag); saveCourseStore(courseStore); toast(`✅ Flag marked (±${flag.accuracy}m)`); finalizeHoleSummary(currentHole); save(); renderShots(); updateToFlag(); } 
   catch(err){ toast("❌ GPS: " + (err.message||err), 3000); }
 });
 
@@ -406,10 +532,10 @@ els.markShot.addEventListener("click", async ()=>{
 
     const pos=await getFix();
 
-    const club = selectedClub || "Club?";
-    const shotType = selectedShotType || "full";
+    const club = DEFAULT_CLUB;
+    const shotType = DEFAULT_SHOT_TYPE;
 
-    const shot={ club, shotType, latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString(), isPenalty:false };
+    const shot={ id: crypto.randomUUID(), club, shotType, latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString(), isPenalty:false };
 
     // Prefill distance from GPS calculation (including 0). If a manual value is provided, use it as an override.
     const calcYds = lastNonPenaltyPos ? Math.round(distanceYds(lastNonPenaltyPos, shot)*10)/10 : 0;
@@ -418,11 +544,10 @@ els.markShot.addEventListener("click", async ()=>{
     let manualUnit = "";
     let manualValueOut = "";
 
-    if(manualValue!==null && Number.isFinite(manualValue) && manualValue>=0){
-      // For putts we often think in feet; store as entered, but convert to yds for distance.
-      manualUnit = (shotType==="putt") ? "ft" : "yds";
+        if(manualValue!==null && Number.isFinite(manualValue) && manualValue>=0){
+      manualUnit = "yds";
       manualValueOut = Math.round(manualValue*10)/10;
-      finalYds = (manualUnit==="ft") ? Math.round((manualValue/3.0)*10)/10 : manualValueOut;
+      finalYds = manualValueOut;
     }
 
     shot.manualUnit = manualUnit;
@@ -432,19 +557,46 @@ els.markShot.addEventListener("click", async ()=>{
     h.shots.push(shot);
     lastNonPenaltyPos={ latitude:shot.latitude, longitude:shot.longitude };
     toast("✅ Shot recorded");
-    finalizeHoleSummary(currentHole); save(); renderShots(); updateLiveBadge(true);
-    resetSelectors();
+    finalizeHoleSummary(currentHole);
+    save();
+    // Performance: avoid full list re-render on every shot; just append the new shot row.
+    updateCounts();
+    updateMetaButtons();
+    updateMarkShotEnabled();
+    appendShotCardForCurrentHole();
+    updateLiveBadge(true);
   } catch(err){ toast("❌ GPS: " + (err.message||err), 3000); }
 });
 
-els.penalty.addEventListener("click", ()=>{
-  const h=holes[currentHole];
-  if(!h.teeBox) return toast("⚠️ Mark tee first",2200);
-  const shot={ club:"PENALTY", shotType:"penalty", latitude: currentPos?.latitude ?? "", longitude: currentPos?.longitude ?? "", accuracy: currentPos?.accuracy ?? "", timestamp:new Date().toISOString(), isPenalty:true, manualUnit:"", manualValue:"", distance:0 };
-  h.shots.push(shot);
-  toast("⚠️ Penalty added");
-  finalizeHoleSummary(currentHole); save(); renderShots();
-});
+
+
+
+if(els.addPenalty){
+  els.addPenalty.addEventListener("click", ()=>{
+    try{
+      ensureHole(currentHole);
+      const h = holes[currentHole];
+      const shot = {
+        id: crypto.randomUUID(),
+        club: "N/A",
+        shotType: "penalty",
+        isPenalty: true,
+        timestamp: new Date().toISOString()
+      };
+      // No GPS / no distance for penalties
+      h.shots.push(shot);
+
+      // Recompute distances so subsequent shots measure from last real shot
+      recomputeHoleDistances(currentHole);
+      finalizeHoleSummary(currentHole);
+      save();
+      renderShots();
+      toast("⚠️ Penalty +1", 1400);
+    }catch(e){
+      toast("❌ Penalty error", 2200);
+    }
+  });
+}
 
 els.deleteLast.addEventListener("click", ()=>{
   const h=holes[currentHole];
@@ -461,8 +613,8 @@ els.prev.addEventListener("click", ()=>{
   currentHole -= 1;
   ensureHole(currentHole);
   syncRefForHole();
-  resetSelectors();
   save(); renderShots();
+  updateToFlag();
 });
 
 els.next.addEventListener("click", ()=>{
@@ -470,14 +622,14 @@ els.next.addEventListener("click", ()=>{
   currentHole += 1;
   ensureHole(currentHole);
   syncRefForHole();
-  resetSelectors();
   save(); renderShots();
+  updateToFlag();
 });
 
 els.exportBtn.addEventListener("click", ()=>{
   finalizeHoleSummary(currentHole);
   Object.keys(holes).forEach(k=>finalizeHoleSummary(parseInt(k,10)));
-  save();
+  saveNow();
   const csv = buildCSV(holes, holeSummaries);
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob);
@@ -489,7 +641,12 @@ els.exportBtn.addEventListener("click", ()=>{
 });
 
 // Init
+initCourseUI();
 ensureWatch();
 loadOrCreateInitialRound();
 
-if("serviceWorker" in navigator) navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
+// Service worker disabled for performance on iOS (can be re-enabled later).
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.getRegistrations?.().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+}
+

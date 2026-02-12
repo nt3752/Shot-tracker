@@ -4,11 +4,12 @@ export function buildCSV(holes, holeSummaries){
   Object.values(holes).sort((a,b)=>a.holeNumber-b.holeNumber).forEach(h=>{
     const par=(h.par ?? 4);
     (h.shots||[]).forEach((s,i)=>{
-      const dist=(typeof s.distance==="number")?s.distance:0;
+      const isPen = (s.isPenalty || (s.shotType==="penalty"));
+      const dist = isPen ? "" : ((typeof s.distance==="number")?s.distance:0);
       rows.push([
         h.holeNumber, par, i+1,
         s.club||"", (s.shotType||"full"),
-        s.isPenalty?"YES":"",
+        (s.isPenalty || (s.shotType==="penalty"))?"YES":"",
         (s.manualUnit||""), (s.manualValue ?? ""),
         dist,
         (s.timestamp||""),
