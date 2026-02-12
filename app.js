@@ -696,3 +696,48 @@ if("serviceWorker" in navigator){
   navigator.serviceWorker.getRegistrations?.().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
 }
 
+
+
+// ---- Watch quick actions (Copy / Share / QR) ----
+function getWatchUrl(){
+  return location.origin + location.pathname.replace("index.html","") + "watch.html";
+}
+
+const watchCopyBtn = document.getElementById("watchCopy");
+const watchShareBtn = document.getElementById("watchShare");
+const watchQRBtn = document.getElementById("watchQR");
+
+if(watchCopyBtn){
+  watchCopyBtn.addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText(getWatchUrl());
+      toast("🔗 Link copied");
+    }catch{
+      prompt("Copy this link:", getWatchUrl());
+    }
+  });
+}
+
+if(watchShareBtn){
+  watchShareBtn.addEventListener("click", async ()=>{
+    const url = getWatchUrl();
+    if(navigator.share){
+      try{
+        await navigator.share({ title:"Shot Tracker Watch Mode", url });
+      }catch(e){}
+    }else{
+      prompt("Share this link:", url);
+    }
+  });
+}
+
+if(watchQRBtn){
+  watchQRBtn.addEventListener("click", ()=>{
+    const modal = document.getElementById("qrModal");
+    const box = document.getElementById("qrBox");
+    if(!modal || !box) return;
+    box.innerHTML = "";
+    new QRCode(box, { text:getWatchUrl(), width:220, height:220 });
+    modal.style.display = "flex";
+  });
+}

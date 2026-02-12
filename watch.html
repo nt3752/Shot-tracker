@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Shot Tracker — Watch Mode</title>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    body{padding:10px;}
+    .wTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+    .wTitle{font-weight:800;font-size:16px;line-height:1.1;}
+    .wSub{font-size:12px;opacity:.85;margin-top:2px;}
+    .wStats{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
+    .pill{border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:5px 10px;font-size:12px;opacity:.95;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+    .btnBig{
+      border:1px solid rgba(255,255,255,.2);
+      background:#1a1a1a;color:#fff;
+      border-radius:16px;
+      padding:16px 12px;
+      font-weight:900;
+      font-size:16px;
+      text-align:center;
+      user-select:none;
+      touch-action:manipulation;
+    }
+    .btnWide{grid-column:1 / -1;}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+    .tiny{font-size:12px;opacity:.85;}
+  </style>
+</head>
+<body>
+  <div class="wTop">
+    <div>
+      <div class="wTitle">⌚ Watch Mode</div>
+      <div class="wSub"><span id="courseName">—</span> • Round: <span id="roundName">—</span></div>
+    </div>
+    <a class="tiny" href="./index.html">Main</a>
+  </div>
+
+  <div class="wStats">
+    <div class="pill">Hole: <span id="holeNum">1</span></div>
+    <div class="pill">Shots: <span id="shotCount">0</span></div>
+    <div class="pill"><span id="liveBadge">LIVE:—</span></div>
+    <div class="pill"><span id="toFlag">To Flag:—</span></div>
+  </div>
+
+  <div class="row2">
+    <div class="btnBig" id="prevHole">← Prev</div>
+    <div class="btnBig" id="nextHole">Next →</div>
+  </div>
+
+  <div class="grid">
+    <div class="btnBig" id="markTee">🏁 Tee</div>
+    <div class="btnBig" id="markFlag">🚩 Flag</div>
+    <div class="btnBig btnWide" id="markShot">➕ Shot</div>
+    <div class="btnBig" id="addPenalty">⚠️ Penalty</div>
+    <div class="btnBig" id="deleteLast">🗑 Undo</div>
+  </div>
+
+  <div id="toast" class="toast" style="display:none;"></div>
+
+  <script type="module" src="./watch.js?v=36_7"></script>
+</body>
+</html>
