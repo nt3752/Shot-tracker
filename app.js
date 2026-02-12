@@ -140,9 +140,7 @@ function initCourseUI(){
       updateCourseName();
       toast("✅ Course created", 1600);
       // Offer immediate setup for par/yards/handicap
-      const go = confirm("Set up this course now?
-
-You can enter par, yards, and handicap for each hole.");
+      const go = confirm("Set up this course now?\n\nYou can enter par, yards, and handicap for each hole.");
       if(go){
         window.location.href = `./course-setup.html?course=${encodeURIComponent(c.id)}`;
         return;
