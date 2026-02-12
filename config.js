@@ -4,10 +4,10 @@
 // Shot types are lowercase keys (full, pitch, chip, putt).
 
 window.APP_CONFIG = {
-  clubs: ["D","3W","5W","7W","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","PT"],
-  shotTypes: ["full","pitch","chip","putt","penalty"],
+  clubs: ["D","3W","5W","7W","3H","5H","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","PT"],
+  shotTypes: ["full","3/4","1/2","pitch","chip","putt","penalty"],
   defaults: {
     club: "Club?",
-    shotType: "full"
+    shotType: "Type?"
   }
 };
