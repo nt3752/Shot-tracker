@@ -1,5 +1,5 @@
-const CACHE_NAME = "shot-tracker-v33";
-const ASSETS = ["./","./index.html","./styles.css","./app.js","./gps.js","./storage.js","./csv.js","./rounds.js"];
+const CACHE_NAME = "shot-tracker-v34";
+const ASSETS = ["./","./index.html","./styles.css","./app.js","./gps.js","./storage.js","./csv.js","./rounds.js","./log.html"];
 self.addEventListener("install",(e)=>{
   e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });

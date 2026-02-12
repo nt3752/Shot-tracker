@@ -54,6 +54,10 @@ let selectedShotType = "full";
 let manualValue = null;
 let liveEnabled = true;
 
+// Dropdown options for per-shot reconciliation
+const CLUB_OPTIONS = ["Club?","D","3W","5W","7W","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","PT"];
+const SHOT_TYPE_OPTIONS = ["full","pitch","chip","putt","penalty"];
+
 let lastNonPenaltyPos = null;
 let currentPos = null;
 let watchId = null;
@@ -151,9 +155,9 @@ function updateCounts(){
 
 function updateMarkShotEnabled(){
   const h=holes[currentHole];
-  const needsManual = (selectedShotType!=="full");
-  const hasManual = (!needsManual) || (manualValue!==null && Number.isFinite(manualValue) && manualValue>=0);
-  els.markShot.disabled = !(h.teeBox && selectedClub && hasManual);
+  // Club selection is optional now (defaults to "Club?")
+  // Manual distance is optional; distance will be prefilled from GPS calc and can be edited later.
+  els.markShot.disabled = !(h.teeBox);
   els.markShot.textContent = "📍 Mark Shot";
 }
 
@@ -185,19 +189,45 @@ function renderShots(){
   (h.shots||[]).forEach((s,i)=>{
     const div=document.createElement("div");
     div.className="shotCard";
-    const st = (s.shotType && s.shotType!=="full") ? ` (${s.shotType.toUpperCase()})` : "";
+
     const penalty = s.isPenalty ? " ⚠️" : "";
     const distVal = shotDisplayDistance(s);
-    const editable = (!s.isPenalty && s.shotType==="full");
 
-    const right = editable
-      ? `<div class="shotRight"><input class="shotEdit" type="number" inputmode="decimal" data-edit-idx="${i}" value="${distVal}"><div class="shotDist">yds</div></div>`
-      : `<div class="shotRight"><div class="shotDist">${distVal} yds</div></div>`;
+    if(s.isPenalty){
+      div.innerHTML = `
+        <div class="shotLeft">
+          <div class="shotTop">Penalty${penalty}</div>
+          <div class="shotSub">${s.club||"PENALTY"}</div>
+        </div>
+        <div class="shotRight"><div class="shotDist">${distVal} yds</div></div>
+      `;
+      els.shotsList.appendChild(div);
+      return;
+    }
+
+    const clubVal = s.club || "Club?";
+    const typeVal = s.shotType || "full";
+
+    const clubSelect = `<select class="shotSelect clubSelect" data-idx="${i}">
+      ${CLUB_OPTIONS.map(c=>`<option value="${c}" ${c===clubVal?"selected":""}>${c}</option>`).join("")}
+    </select>`;
+
+    const typeSelect = `<select class="shotSelect typeSelect" data-idx="${i}">
+      ${SHOT_TYPE_OPTIONS.map(t=>`<option value="${t}" ${t===typeVal?"selected":""}>${t.toUpperCase()}</option>`).join("")}
+    </select>`;
+
+    const right = `<div class="shotRight">
+        <input class="shotEdit" type="number" inputmode="decimal" data-edit-idx="${i}" value="${distVal}">
+        <div class="shotDist">yds</div>
+      </div>`;
 
     div.innerHTML = `
       <div class="shotLeft">
         <div class="shotTop">Shot ${i+1}${penalty}</div>
-        <div class="shotSub">${s.club||""}${st}</div>
+        <div class="shotSubRow">
+          ${clubSelect}
+          ${typeSelect}
+        </div>
       </div>
       ${right}
     `;
@@ -330,6 +360,26 @@ els.clubGrid.addEventListener("click",(e)=>{ const btn=e.target.closest("button[
 els.shotTypeGrid.addEventListener("click",(e)=>{ const btn=e.target.closest("button[data-shot]"); if(!btn) return; setSelectedShotType(btn.dataset.shot); els.shotTypeGrid.querySelectorAll("button[data-shot]").forEach(b=>b.classList.toggle("selected", b===btn)); updateMarkShotEnabled(); save(); });
 els.manualInput.addEventListener("input", ()=>{ const v=parseFloat(els.manualInput.value); manualValue = Number.isFinite(v)?v:null; updateMarkShotEnabled(); save(); });
 els.shotsList.addEventListener("input", (e)=>{ const inp=e.target.closest("input[data-edit-idx]"); if(!inp) return; const idx=parseInt(inp.dataset.editIdx,10); const v=parseFloat(inp.value); holes[currentHole].shots[idx].distance = Number.isFinite(v)?v:0; finalizeHoleSummary(currentHole); save(); });
+els.shotsList.addEventListener("change", (e)=>{
+  const sel = e.target.closest("select[data-idx]");
+  if(!sel) return;
+  const idx=parseInt(sel.dataset.idx,10);
+  const shot = holes[currentHole].shots[idx];
+  if(!shot) return;
+
+  if(sel.classList.contains("clubSelect")){
+    shot.club = sel.value || "Club?";
+  }
+  if(sel.classList.contains("typeSelect")){
+    shot.shotType = sel.value || "full";
+    // Keep existing distance; manual override is optional now.
+    shot.manualUnit = shot.manualUnit || "";
+    shot.manualValue = shot.manualValue || "";
+  }
+  finalizeHoleSummary(currentHole);
+  save();
+});
+
 
 els.par3.addEventListener("click", ()=>{ holes[currentHole].par=3; finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.par4.addEventListener("click", ()=>{ holes[currentHole].par=4; finalizeHoleSummary(currentHole); save(); renderShots(); });
@@ -353,21 +403,32 @@ els.markShot.addEventListener("click", async ()=>{
     ensureWatch();
     const h=holes[currentHole];
     if(!h.teeBox) return toast("⚠️ Mark tee first",2200);
-    if(!selectedClub) return toast("⚠️ Select a club",2200);
-    const needsManual = (selectedShotType!=="full");
-    if(needsManual && !(manualValue!==null && Number.isFinite(manualValue) && manualValue>=0)) return toast("⚠️ Enter distance",2200);
+
     const pos=await getFix();
-    const shot={ club:selectedClub, shotType:selectedShotType, latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString(), isPenalty:false };
-    if(needsManual){
-      const unit = (selectedShotType==="putt") ? "ft" : "yds";
-      shot.manualUnit=unit;
-      shot.manualValue=Math.round(manualValue*10)/10;
-      const yds = (unit==="ft") ? (manualValue/3.0) : manualValue;
-      shot.distance=Math.round(yds*10)/10;
-    } else {
-      shot.manualUnit=""; shot.manualValue="";
-      shot.distance = lastNonPenaltyPos ? Math.round(distanceYds(lastNonPenaltyPos, shot)*10)/10 : 0;
+
+    const club = selectedClub || "Club?";
+    const shotType = selectedShotType || "full";
+
+    const shot={ club, shotType, latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString(), isPenalty:false };
+
+    // Prefill distance from GPS calculation (including 0). If a manual value is provided, use it as an override.
+    const calcYds = lastNonPenaltyPos ? Math.round(distanceYds(lastNonPenaltyPos, shot)*10)/10 : 0;
+
+    let finalYds = calcYds;
+    let manualUnit = "";
+    let manualValueOut = "";
+
+    if(manualValue!==null && Number.isFinite(manualValue) && manualValue>=0){
+      // For putts we often think in feet; store as entered, but convert to yds for distance.
+      manualUnit = (shotType==="putt") ? "ft" : "yds";
+      manualValueOut = Math.round(manualValue*10)/10;
+      finalYds = (manualUnit==="ft") ? Math.round((manualValue/3.0)*10)/10 : manualValueOut;
     }
+
+    shot.manualUnit = manualUnit;
+    shot.manualValue = manualValueOut;
+    shot.distance = Math.round((Number.isFinite(finalYds)?finalYds:0)*10)/10;
+
     h.shots.push(shot);
     lastNonPenaltyPos={ latitude:shot.latitude, longitude:shot.longitude };
     toast("✅ Shot recorded");
