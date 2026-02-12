@@ -1,7 +1,7 @@
 import { distanceYds, getFix, startWatch } from "./gps.js";
 import { buildCSV } from "./csv.js";
 import { listRounds, createRound, loadRound, setActiveRound, deleteRound, saveRoundState, getActiveRoundId } from "./rounds.js";
-import { loadCourseStore, saveCourseStore, listCourses, getCourseHole, setCourseHoleTee, setCourseHoleFlag, setActiveCourse, createCourse, clearActiveCourseData, getActiveCourse } from "./courseProfile.js";
+import { loadCourseStore, saveCourseStore, listCourses, getCourseHole, setCourseHoleTee, setCourseHoleFlag, setCourseHoleYards, setCourseHolePar, setActiveCourse, createCourse, clearActiveCourseData, getActiveCourse } from "./courseProfile.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -34,8 +34,10 @@ const els = {
   roundList: $("roundList"),
   roundTitleInput: $("roundTitleInput"),
   courseSelect: $("courseSelect"),
+  courseName: $("courseName"),
   addCourse: $("addCourse"),
   clearCourse: $("clearCourse"),
+  courseSetup: $("courseSetup"),
   startNewBtn: $("startNewBtn"),
   closeModal: $("closeModal"),
 };
@@ -101,7 +103,16 @@ function renderCourseSelect(){
     if(active && c.id === active.id) opt.selected = true;
     els.courseSelect.appendChild(opt);
   }
+  updateCourseName();
 }
+
+
+function updateCourseName(){
+  if(!els.courseName) return;
+  const active = getActiveCourse(courseStore);
+  els.courseName.textContent = active?.name || "—";
+}
+
 
 function initCourseUI(){
   if(!els.courseSelect) return;
@@ -115,6 +126,7 @@ function initCourseUI(){
     // Refresh holes to pull tee/flag baselines for holes that don't have them in this round yet
     ensureHole(currentHole);
     renderShots();
+    updateCourseName();
     updateToFlag();
   });
 
@@ -122,10 +134,19 @@ function initCourseUI(){
     els.addCourse.addEventListener("click", ()=>{
       const name = prompt("New course name:", "");
       if(name === null) return;
-      createCourse(courseStore, name);
+      const c = createCourse(courseStore, name);
       saveCourseStore(courseStore);
       renderCourseSelect();
+      updateCourseName();
       toast("✅ Course created", 1600);
+      // Offer immediate setup for par/yards/handicap
+      const go = confirm("Set up this course now?
+
+You can enter par, yards, and handicap for each hole.");
+      if(go){
+        window.location.href = `./course-setup.html?course=${encodeURIComponent(c.id)}`;
+        return;
+      }
       ensureHole(currentHole);
       renderShots();
       updateToFlag();
@@ -138,18 +159,45 @@ function initCourseUI(){
       if(!confirm(`Clear saved tee/flag baselines for ${cname}?\n\nThis does NOT delete your rounds/shots.`)) return;
       clearActiveCourseData(courseStore);
       saveCourseStore(courseStore);
+
+      // Also clear any baseline data already loaded into the current round state
+      Object.values(holes).forEach(h=>{
+        h.teeBox = null;
+        h.flag = null;
+        h.holeYards = null;
+        h.par = 4;
+      });
+      syncRefForHole();
+      renderShots();
+      updateToFlag();
+      save();
+
       toast("🧽 Course data cleared", 1800);
     });
   }
+
+  if(els.courseSetup){
+    els.courseSetup.addEventListener("click", ()=>{
+      const active = getActiveCourse(courseStore);
+      if(!active) return;
+      window.location.href = `./course-setup.html?course=${encodeURIComponent(active.id)}`;
+    });
+  }
+
 }
 
 function ensureHole(n){
-  if(!holes[n]) holes[n] = { holeNumber:n, par:4, fairway:false, gir:false, holeYards:null, teeBox:null, flag:null, shots:[] };
-  // If this round doesn't have tee/flag yet, pull from saved course profile (option 2)
+  if(!holes[n]) holes[n] = { holeNumber:n, par:4, fairway:false, gir:false, holeYards:null, handicap:null, teeBox:null, flag:null, shots:[] };
+  // If this round doesn't have baseline info yet, pull from saved course profile (option 2)
   const ch = getCourseHole(courseStore, n);
   if(ch){
     if(!holes[n].teeBox && ch.teeBox) holes[n].teeBox = ch.teeBox;
     if(!holes[n].flag && ch.flag) holes[n].flag = ch.flag;
+    if((holes[n].holeYards==null || holes[n].holeYards==="") && ch.holeYards!=null) holes[n].holeYards = ch.holeYards;
+    if((holes[n].par==null) && ch.par!=null) holes[n].par = ch.par;
+    if((holes[n].handicap==null) && ch.handicap!=null) holes[n].handicap = ch.handicap;
+    if((holes[n].holeYards === null || holes[n].holeYards === "" || typeof holes[n].holeYards === "undefined") && ch.holeYards != null) holes[n].holeYards = ch.holeYards;
+    if((holes[n].par === null || typeof holes[n].par === "undefined") && ch.par != null) holes[n].par = ch.par;
   }
 }
 
@@ -507,12 +555,12 @@ els.shotsList.addEventListener("change", (e)=>{
 });
 
 
-els.par3.addEventListener("click", ()=>{ holes[currentHole].par=3; finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.par4.addEventListener("click", ()=>{ holes[currentHole].par=4; finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.par5.addEventListener("click", ()=>{ holes[currentHole].par=5; finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.par3.addEventListener("click", ()=>{ holes[currentHole].par=3; setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.par4.addEventListener("click", ()=>{ holes[currentHole].par=4; setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.par5.addEventListener("click", ()=>{ holes[currentHole].par=5; setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.fw.addEventListener("click", ()=>{ holes[currentHole].fairway=!holes[currentHole].fairway; finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHole].gir; finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.holeYards.addEventListener("input", ()=>{ const v=parseInt(els.holeYards.value,10); holes[currentHole].holeYards = Number.isFinite(v)?v:null; finalizeHoleSummary(currentHole); save(); });
+els.holeYards.addEventListener("input", ()=>{ const v=parseInt(els.holeYards.value,10); holes[currentHole].holeYards = Number.isFinite(v)?v:null; setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); });
 
 els.markTee.addEventListener("click", async ()=>{
   try{ ensureWatch(); const pos=await getFix(); const tee={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; holes[currentHole].teeBox=tee; setCourseHoleTee(courseStore, currentHole, tee); saveCourseStore(courseStore); lastNonPenaltyPos={ latitude:tee.latitude, longitude:tee.longitude }; toast(`✅ Tee marked (±${tee.accuracy}m)`); finalizeHoleSummary(currentHole); save(); renderShots(); updateLiveBadge(true); updateToFlag(); } 

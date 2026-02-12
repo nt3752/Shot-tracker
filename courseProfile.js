@@ -5,7 +5,7 @@ const STORE_KEY = "shotTrackerCourseStore_v1";
  * {
  *   activeCourseId: "course_...",
  *   courses: {
- *     [id]: { id, name, holes: { "1": { teeBox, flag }, ... } }
+ *     [id]: { id, name, holes: { "1": { teeBox, flag, holeYards, par, handicap }, ... } }
  *   }
  * }
  */
@@ -114,4 +114,26 @@ export function setCourseHoleFlag(store, holeNumber, flag){
   const h = ensureHole(store, holeNumber);
   if(!h) return;
   h.flag = cleanFix(flag);
+}
+
+export function setCourseHoleYards(store, holeNumber, holeYards){
+  const h = ensureHole(store, holeNumber);
+  if(!h) return;
+  const v = parseInt(holeYards, 10);
+  h.holeYards = Number.isFinite(v) ? v : null;
+}
+
+export function setCourseHolePar(store, holeNumber, par){
+  const h = ensureHole(store, holeNumber);
+  if(!h) return;
+  const v = parseInt(par, 10);
+  h.par = (v===3 || v===4 || v===5) ? v : null;
+}
+
+export function setCourseHoleHandicap(store, holeNumber, handicap){
+  const h = ensureHole(store, holeNumber);
+  if(!h) return;
+  const v = parseInt(handicap, 10);
+  // Handicap is typically 1-18 (or null)
+  h.handicap = (Number.isFinite(v) && v>=1 && v<=18) ? v : null;
 }
