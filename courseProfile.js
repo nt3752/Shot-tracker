@@ -73,6 +73,26 @@ export function createCourse(store, name){
   return store.courses[id];
 }
 
+export function deleteCourse(store, id){
+  store = ensureDefault(store);
+  if(!id || !store.courses[id]) return false;
+
+  // Don't allow deleting the last remaining course.
+  const ids = Object.keys(store.courses);
+  if(ids.length <= 1) return false;
+
+  delete store.courses[id];
+
+  // If the deleted course was active, switch active to another existing course.
+  if(store.activeCourseId === id){
+    store.activeCourseId = Object.keys(store.courses)[0] || null;
+  }
+
+  // Ensure store still has a valid active course
+  ensureDefault(store);
+  return true;
+}
+
 export function clearActiveCourseData(store){
   store = ensureDefault(store);
   const active = getActiveCourse(store);

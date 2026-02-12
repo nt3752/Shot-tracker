@@ -1,4 +1,4 @@
-import { loadCourseStore, saveCourseStore, getActiveCourse, setActiveCourse, getCourseHole, setCourseHolePar, setCourseHoleYards, setCourseHoleHandicap, clearActiveCourseData } from "./courseProfile.js";
+import { loadCourseStore, saveCourseStore, getActiveCourse, setActiveCourse, getCourseHole, setCourseHolePar, setCourseHoleYards, setCourseHoleHandicap, clearActiveCourseData, deleteCourse } from "./courseProfile.js";
 
 const $ = (id)=>document.getElementById(id);
 
@@ -23,6 +23,7 @@ const els = {
   saveBtn: $("saveBtn"),
   backBtn: $("backBtn"),
   clearBtn: $("clearBtn"),
+  deleteCourseBtn: $("deleteCourseBtn"),
 };
 
 els.courseName.textContent = course?.name || "Course";
@@ -88,7 +89,49 @@ els.clearBtn.addEventListener("click", ()=>{
   if(!confirm(`Clear setup (par/yards/handicap/tee/flag) for ${cname}?`)) return;
   clearActiveCourseData(store);
   saveCourseStore(store);
-  render();
+  
+els.deleteCourseBtn?.addEventListener("click", ()=>{
+  const c = getActiveCourse(store);
+  const cname = c?.name || "this course";
+  const ids = Object.keys(store.courses || {});
+  if(ids.length <= 1){
+    alert("You can’t delete the last remaining course.");
+    return;
+  }
+  if(!confirm(`Delete course "${cname}"?\n\nThis removes saved par/yards/handicap/tee/flag for that course. Your rounds remain saved.`)) return;
+
+  const ok = deleteCourse(store, c.id);
+  saveCourseStore(store);
+
+  if(!ok){
+    alert("Could not delete this course.");
+    return;
+  }
+  window.location.href = "./index.html";
+});
+
+render();
+});
+
+
+els.deleteCourseBtn?.addEventListener("click", ()=>{
+  const c = getActiveCourse(store);
+  const cname = c?.name || "this course";
+  const ids = Object.keys(store.courses || {});
+  if(ids.length <= 1){
+    alert("You can’t delete the last remaining course.");
+    return;
+  }
+  if(!confirm(`Delete course "${cname}"?\n\nThis removes saved par/yards/handicap/tee/flag for that course. Your rounds remain saved.`)) return;
+
+  const ok = deleteCourse(store, c.id);
+  saveCourseStore(store);
+
+  if(!ok){
+    alert("Could not delete this course.");
+    return;
+  }
+  window.location.href = "./index.html";
 });
 
 render();
