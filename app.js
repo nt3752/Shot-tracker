@@ -313,6 +313,8 @@ function updateMarkShotEnabled(){
 
 function shotDisplayDistance(s){
   if(typeof s.distance !== "number") return "";
+  // Display feet for putter, yards otherwise
+  if(isPutter(s.club)) return yardsToFeet(s.distance).toString();
   return (Math.round(s.distance*10)/10).toString();
 }
 
@@ -350,7 +352,7 @@ function buildShotCardHTML(s, i){
   const distVal = isPen ? "" : shotDisplayDistance(s);
 
   const clubVal = isPen ? "N/A" : (s.club || "Club?");
-  const typeVal = isPen ? "penalty" : (s.shotType || "full");
+  const typeVal = isPen ? "penalty" : (s.shotType || DEFAULT_SHOT_TYPE);
 
   const clubSelect = `<select class="shotSelect clubSelect" data-idx="${i}" ${isPen?"disabled":""}>
     ${CLUB_OPTIONS.map(c=>`<option value="${c}" ${c===clubVal?"selected":""}>${c}</option>`).join("")}
@@ -362,7 +364,7 @@ function buildShotCardHTML(s, i){
 
   const right = `<div class="shotRight">
       <input class="shotEdit" type="number" inputmode="decimal" data-edit-idx="${i}" value="${distVal}" ${isPen?"disabled":""}>
-      <div class="shotDist">yds</div>
+      <div class="shotDist">${isPutter(clubVal) ? "ft" : "yds"}</div>
     </div>`;
 
   return `
@@ -524,7 +526,19 @@ els.roundList.addEventListener("click", (e)=>{
 // Core events
 els.liveBadge.addEventListener("click", ()=>{ liveEnabled=!liveEnabled; updateLiveBadge(true); save(); });
 els.manualInput.addEventListener("input", ()=>{ const v=parseFloat(els.manualInput.value); manualValue = Number.isFinite(v)?v:null; updateMarkShotEnabled(); save(); });
-els.shotsList.addEventListener("input", (e)=>{ const inp=e.target.closest("input[data-edit-idx]"); if(!inp) return; const idx=parseInt(inp.dataset.editIdx,10); const v=parseFloat(inp.value); holes[currentHole].shots[idx].distance = Number.isFinite(v)?v:0; finalizeHoleSummary(currentHole); save(); });
+els.shotsList.addEventListener("input", (e)=>{
+  const inp = e.target.closest("input[data-edit-idx]");
+  if(!inp) return;
+  const idx = parseInt(inp.dataset.editIdx, 10);
+  const v = parseFloat(inp.value);
+  const shot = holes[currentHole].shots[idx];
+  if(!shot) return;
+  const num = Number.isFinite(v) ? v : 0;
+  // Manual edit respects unit based on club
+  shot.distance = isPutter(shot.club) ? feetToYards(num) : num;
+  finalizeHoleSummary(currentHole);
+  save();
+});
 els.shotsList.addEventListener("change", (e)=>{
   const sel = e.target.closest("select[data-idx]");
   if(!sel) return;
@@ -534,6 +548,8 @@ els.shotsList.addEventListener("change", (e)=>{
 
   if(sel.classList.contains("clubSelect")){
     shot.club = sel.value || "Club?";
+    // Re-render so distance unit/label updates when switching to/from PT
+    renderShots();
   }
   if(sel.classList.contains("typeSelect")){
     const newType = (sel.value || DEFAULT_SHOT_TYPE);
