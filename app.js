@@ -61,11 +61,11 @@ let liveEnabled = true;
 // Dropdown options for per-shot reconciliation (configured via config.js if present)
 const CFG = window.APP_CONFIG || {};
 const DEFAULT_CLUB = (CFG.defaults && CFG.defaults.club) ? CFG.defaults.club : "Club?";
-const DEFAULT_SHOT_TYPE = (CFG.defaults && CFG.defaults.shotType) ? CFG.defaults.shotType : "full";
+const DEFAULT_SHOT_TYPE = (CFG.defaults && CFG.defaults.shotType) ? CFG.defaults.shotType : "Type?";
 const MAX_HOLES = 18;
 
 const _DEFAULT_CLUBS = ["D","3W","5W","7W","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","PT"];
-const _DEFAULT_TYPES = ["full","pitch","chip","putt"];
+const _DEFAULT_TYPES = ["Type?","full","pitch","chip","putt"];
 
 const CLUB_OPTIONS = [DEFAULT_CLUB, ...((CFG.clubs && Array.isArray(CFG.clubs)) ? CFG.clubs : _DEFAULT_CLUBS)]
   .filter((v, i, a) => a.indexOf(v) === i);
@@ -530,7 +530,7 @@ els.shotsList.addEventListener("change", (e)=>{
     shot.club = sel.value || "Club?";
   }
   if(sel.classList.contains("typeSelect")){
-    const newType = (sel.value || "full");
+    const newType = (sel.value || DEFAULT_SHOT_TYPE);
     shot.shotType = newType;
     if(newType === "penalty"){
       // Penalty is 1 stroke by default. Add multiple penalty entries as needed.
