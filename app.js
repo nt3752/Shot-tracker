@@ -64,8 +64,8 @@ const DEFAULT_CLUB = (CFG.defaults && CFG.defaults.club) ? CFG.defaults.club : "
 const DEFAULT_SHOT_TYPE = (CFG.defaults && CFG.defaults.shotType) ? CFG.defaults.shotType : "Type?";
 const MAX_HOLES = 18;
 
-const _DEFAULT_CLUBS = ["D","3W","5W","7W","4I","5I","6I","7I","8I","9I","PW","GW","SW","LW","PT"];
-const _DEFAULT_TYPES = ["Type?","full","pitch","chip","putt"];
+const _DEFAULT_CLUBS = ["D","MD","3W","5W","7W","3H","5H","4I","5I","6I","7I","8I","9I","PW","46","56","60","PT"];
+const _DEFAULT_TYPES = ["Type?","3/4","1/2","full","pitch","chip","putt","penalty"];
 
 const CLUB_OPTIONS = [DEFAULT_CLUB, ...((CFG.clubs && Array.isArray(CFG.clubs)) ? CFG.clubs : _DEFAULT_CLUBS)]
   .filter((v, i, a) => a.indexOf(v) === i);
