@@ -1,3 +1,9 @@
+
+
+// ---- Distance unit helpers (yards internal, feet for putter) ----
+function yardsToFeet(y){ return Math.round((y||0) * 3); }
+function feetToYards(ft){ return (ft||0) / 3; }
+function isPutter(club){ return club === "PT"; }
 import { distanceYds, getFix, startWatch } from "./gps.js";
 import { buildCSV } from "./csv.js";
 import { listRounds, createRound, loadRound, setActiveRound, deleteRound, saveRoundState, getActiveRoundId } from "./rounds.js";
