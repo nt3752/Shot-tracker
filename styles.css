@@ -258,3 +258,7 @@ select{
   font-weight: 800;
 }
 .caddy-actions{ display:none; }
+
+
+/* ensure hidden panels don't block taps */
+.hidden{ display:none !important; }
