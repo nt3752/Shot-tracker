@@ -1,3 +1,4 @@
+window.SHOT_TRACKER_VERSION = "v36_18"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 
 
 // ---- Distance unit helpers (yards internal, feet for putter) ----
