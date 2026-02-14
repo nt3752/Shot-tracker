@@ -110,3 +110,10 @@ select{
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.25);
 }
+
+
+/* Lit state for toggles (tee/flag) */
+.btn-is-set{
+  outline: 2px solid currentColor;
+  filter: brightness(1.12);
+}

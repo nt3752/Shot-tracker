@@ -55,6 +55,32 @@ function toast(msg, ms=2200){
   setTimeout(()=>els.toast.style.display="none", ms);
 }
 
+// --- UI feedback helpers ---
+function flashButton(btn, ms=90){
+  if(!btn) return;
+  btn.classList.add("btn-flash");
+  setTimeout(()=>btn.classList.remove("btn-flash"), ms);
+}
+
+function setBtnLit(btn, lit){
+  if(!btn) return;
+  btn.classList.toggle("btn-is-set", !!lit);
+  btn.setAttribute("aria-pressed", lit ? "true" : "false");
+}
+
+// Keep tee/flag buttons in sync with stored hole state
+function updateTeeFlagButtons(){
+  try{
+    ensureHole(currentHole);
+    const h = holes[currentHole] || {};
+    setBtnLit(els.markTee, !!h.teeBox);
+    setBtnLit(els.markFlag, !!h.flag);
+  } catch(e) {
+    // if state not ready yet, ignore
+  }
+}
+
+
 let activeRoundId = null;
 let roundMeta = null;
 
