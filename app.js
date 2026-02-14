@@ -1,16 +1,14 @@
-import { distanceYds, getFix, startWatch } from "./gps.js";
-import { buildCSV } from "./csv.js";
-import { listRounds, createRound, loadRound, setActiveRound, deleteRound, saveRoundState, getActiveRoundId } from "./rounds.js";
-import { loadCourseStore, saveCourseStore, listCourses, getCourseHole, setCourseHoleTee, setCourseHoleFlag, setCourseHoleYards, setCourseHolePar, setActiveCourse, createCourse, clearActiveCourseData, getActiveCourse } from "./courseProfile.js";
-window.__ST_BOOTED = true;
-
-window.SHOT_TRACKER_VERSION = "v37_10"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_11"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 
 
 // ---- Distance unit helpers (yards internal, feet for putter) ----
 function yardsToFeet(y){ return Math.round((y||0) * 3); }
 function feetToYards(ft){ return (ft||0) / 3; }
 function isPutter(club){ return club === "PT"; }
+import { distanceYds, getFix, startWatch } from "./gps.js";
+import { buildCSV } from "./csv.js";
+import { listRounds, createRound, loadRound, setActiveRound, deleteRound, saveRoundState, getActiveRoundId } from "./rounds.js";
+import { loadCourseStore, saveCourseStore, listCourses, getCourseHole, setCourseHoleTee, setCourseHoleFlag, setCourseHoleYards, setCourseHolePar, setActiveCourse, createCourse, clearActiveCourseData, getActiveCourse } from "./courseProfile.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
