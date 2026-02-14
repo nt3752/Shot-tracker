@@ -1,4 +1,5 @@
-window.SHOT_TRACKER_VERSION = "v37_11"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_12"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.__ST_BOOTED = true;
 
 
 // ---- Distance unit helpers (yards internal, feet for putter) ----
@@ -25,14 +26,6 @@ const els = {
   manualInput: $("manualInput"),
   manualUnit: $("manualUnit"),
   toFlag: $("toFlag"),
-  attemptedDistance: $("attemptedDistance"),
-  openCaddyBtn: $("openCaddyBtn"),
-  caddyPanel: $("caddyPanel"),
-  caddyTarget: $("caddyTarget"),
-  caddySuggestions: $("caddySuggestions"),
-  closeCaddyBtn: $("closeCaddyBtn"),
-  modeCarry: $("modeCarry"),
-  modeTotal: $("modeTotal"),
   markTee: $("markTee"),
   markFlag: $("markFlag"),
   markShot: $("markShot"),
@@ -103,148 +96,6 @@ let liveEnabled = true;
 const CFG = window.APP_CONFIG || {};
 const DEFAULT_CLUB = (CFG.defaults && CFG.defaults.club) ? CFG.defaults.club : "Club?";
 const DEFAULT_SHOT_TYPE = (CFG.defaults && CFG.defaults.shotType) ? CFG.defaults.shotType : "Type?";
-
-// ---- v37_1 Caddy foundation ----
-const CADDY_SHOT_TYPES = ["full","3/4","1/2","pitch"];
-let caddyMode = "carry"; // default carry
-let caddyAdjust = 0;     // -10..+10 applied to attempted for conditions
-let caddySelected = { club: null, shotType: null };
-
-function loadBagMatrix(){
-  try{
-    const raw = localStorage.getItem("bagMatrix_v1");
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  // seed with clubs from config when available; fall back to a sensible default set
-  const clubs = (typeof CFG !== "undefined" && CFG && Array.isArray(CFG.clubs) && CFG.clubs.length) ? CFG.clubs.filter(c=>c!=="PT") : ["D","3W","5W","3H","5H","4I","5I","6I","7I","8I","9I","PW"];
-  const m = {};
-  clubs.forEach(club=>{
-    m[club] = {};
-    CADDY_SHOT_TYPES.forEach(t=> m[club][t] = { carry: null, total: null });
-  });
-  localStorage.setItem("bagMatrix_v1", JSON.stringify(m));
-  return m;
-}
-
-function saveBagMatrix(m){
-  localStorage.setItem("bagMatrix_v1", JSON.stringify(m));
-}
-
-let bagMatrix = loadBagMatrix();
-
-function parseToFlagYds(){
-  // expects "To Flag:152y ..." (or —)
-  if(!els.toFlag) return null;
-  const txt = els.toFlag.textContent || "";
-  const m = txt.match(/To Flag:\s*(\d+)y/);
-  return m ? parseInt(m[1],10) : null;
-}
-
-let attemptedDirty = false;
-function maybeSyncAttemptedFromToFlag(){
-  if(!els.attemptedDistance) return;
-  if(attemptedDirty) return;
-  const y = parseToFlagYds();
-  if(Number.isFinite(y)) els.attemptedDistance.value = String(y);
-}
-
-function openCaddy(){
-  if(!els.caddyPanel) return;
-  els.caddyPanel.classList.remove("hidden");
-  updateCaddyUI();
-}
-function closeCaddy(){
-  if(!els.caddyPanel) return;
-  els.caddyPanel.classList.add("hidden");
-}
-
-function setCaddyMode(mode){
-  caddyMode = mode;
-  if(els.modeCarry && els.modeTotal){
-    els.modeCarry.classList.toggle("active", mode==="carry");
-    els.modeTotal.classList.toggle("active", mode==="total");
-  }
-  updateCaddyUI();
-}
-
-function setAdjust(val){
-  caddyAdjust = val;
-  updateCaddyUI();
-}
-
-function getAttemptedTarget(){
-  const base = parseInt(els.attemptedDistance?.value || "",10);
-  const attempted = Number.isFinite(base) ? base : parseToFlagYds();
-  if(!Number.isFinite(attempted)) return null;
-  return attempted + caddyAdjust;
-}
-
-function updateCaddyUI(){
-  if(!els.caddyTarget || !els.caddySuggestions) return;
-  const target = getAttemptedTarget();
-  els.caddyTarget.textContent = target ? `Target: ${target}y` : "Target: —";
-
-  const rows = [];
-  if(target){
-    for(const club of Object.keys(bagMatrix||{})){
-      for(const t of CADDY_SHOT_TYPES){
-        const entry = bagMatrix?.[club]?.[t];
-        if(!entry) continue;
-        const dist = entry?.[caddyMode];
-        if(!Number.isFinite(dist)) continue;
-        const delta = dist - target;
-        rows.push({club, shotType:t, dist, delta});
-      }
-    }
-    rows.sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
-  }
-
-  els.caddySuggestions.innerHTML = "";
-  if(!rows.length){
-    const d=document.createElement("div");
-    d.className="row";
-    d.textContent = "No bag distances yet. (Bag editor comes next)";
-    els.caddySuggestions.appendChild(d);
-    return;
-  }
-
-  rows.slice(0,8).forEach(r=>{
-    const div=document.createElement("div");
-    div.className="row";
-    const left=document.createElement("div");
-    left.textContent = `${r.club} ${r.shotType}`;
-    const right=document.createElement("div");
-    const sign = r.delta>=0?"+":"";
-    right.textContent = `${r.dist} (Δ ${sign}${r.delta})`;
-    div.appendChild(left); div.appendChild(right);
-    div.addEventListener("click", ()=>{
-      caddySelected = { club: r.club, shotType: r.shotType };
-      toast(`✅ Selected ${r.club} ${r.shotType}`, 900);
-      closeCaddy();
-    });
-    els.caddySuggestions.appendChild(div);
-  });
-}
-
-function initCaddy(){
-  // attempted field behavior
-  if(els.attemptedDistance){
-    els.attemptedDistance.addEventListener("input", ()=>{ attemptedDirty = true; });
-    els.attemptedDistance.addEventListener("focus", ()=>{ attemptedDirty = true; });
-  }
-  if(els.openCaddyBtn) els.openCaddyBtn.addEventListener("click", openCaddy);
-  if(els.closeCaddyBtn) els.closeCaddyBtn.addEventListener("click", closeCaddy);
-  if(els.modeCarry) els.modeCarry.addEventListener("click", ()=>setCaddyMode("carry"));
-  if(els.modeTotal) els.modeTotal.addEventListener("click", ()=>setCaddyMode("total"));
-  document.querySelectorAll(".adj").forEach(btn=>{
-    btn.addEventListener("click", ()=> setAdjust(parseInt(btn.dataset.adj,10)||0));
-  });
-  // default mode carry
-  setCaddyMode("carry");
-  // initial sync
-  maybeSyncAttemptedFromToFlag();
-}
-// ---- end v37_1 caddy foundation ----
 const MAX_HOLES = 18;
 
 const _DEFAULT_CLUBS = ["D","MD","3W","5W","7W","3H","5H","4I","5I","6I","7I","8I","9I","PW","46","56","60","PT"];
@@ -793,12 +644,6 @@ els.shotsList.addEventListener("change", (e)=>{
       shot.distance = 0;
       shot.manualUnit = "";
       shot.manualValue = "";
-      toPinDistance: parseToFlagYds(),
-      attemptedDistance: (parseInt(els.attemptedDistance?.value||"",10) || parseToFlagYds()),
-      expectedCarry: (bagMatrix?.[(caddySelected.club||club)]?.[(caddySelected.shotType||shotType)]?.carry ?? null),
-      expectedTotal: (bagMatrix?.[(caddySelected.club||club)]?.[(caddySelected.shotType||shotType)]?.total ?? null),
-      expectedMode: caddyMode,
-
       // Recompute distances for the rest of the hole so penalties don't break sequencing.
       recomputeHoleDistances(currentHole);
     } else {
@@ -913,8 +758,8 @@ els.markShot.addEventListener("click", async ()=>{
     const h=holes[currentHole];
     if(!h.teeBox) return toast("⚠️ Mark tee first",2200);
 
-    const club = (caddySelected.club || DEFAULT_CLUB);
-    const shotType = (caddySelected.shotType || DEFAULT_SHOT_TYPE);
+    const club = DEFAULT_CLUB;
+    const shotType = DEFAULT_SHOT_TYPE;
 
     // 1) Add placeholder row immediately so you know the press registered
     const shot={
@@ -1069,7 +914,7 @@ ensureWatch();
 loadOrCreateInitialRound();
 
 // Service worker disabled for performance on iOS (can be re-enabled later).
-if (false && ("serviceWorker" in navigator)) {
+if("serviceWorker" in navigator){
   navigator.serviceWorker.getRegistrations?.().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
 }
 
@@ -1077,4 +922,132 @@ if (false && ("serviceWorker" in navigator)) {
 
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden'){ stopWatch(); } });
 
-document.addEventListener("DOMContentLoaded", ()=>{ initCaddy(); });
+
+// ---- v37_12 caddy foundation (minimal, non-breaking) ----
+const CADDY_SHOT_TYPES = ["full","3/4","1/2","pitch"];
+let caddyMode = "carry";
+let caddyAdjust = 0;
+let caddySelected = { club: null, shotType: null };
+
+function loadBagMatrix(){
+  try{
+    const raw = localStorage.getItem("bagMatrix_v1");
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  const clubs = (typeof CFG !== "undefined" && CFG && Array.isArray(CFG.clubs) && CFG.clubs.length)
+    ? CFG.clubs.filter(c=>c!=="PT")
+    : ["D","3W","5W","3H","5H","4I","5I","6I","7I","8I","9I","PW"];
+  const m = {};
+  clubs.forEach(club=>{
+    m[club] = {};
+    CADDY_SHOT_TYPES.forEach(t=> m[club][t] = { carry: null, total: null });
+  });
+  localStorage.setItem("bagMatrix_v1", JSON.stringify(m));
+  return m;
+}
+let bagMatrix = loadBagMatrix();
+
+function $(id){ return document.getElementById(id); }
+
+function parseToFlagYds(){
+  const el = $("toFlag");
+  if(!el) return null;
+  const txt = el.textContent || "";
+  const m = txt.match(/To Flag:\s*(\d+)y/);
+  return m ? parseInt(m[1],10) : null;
+}
+
+let attemptedDirty = false;
+function maybeSyncAttempted(){
+  const inp = $("attemptedDistance");
+  if(!inp || attemptedDirty) return;
+  const y = parseToFlagYds();
+  if(Number.isFinite(y)) inp.value = String(y);
+}
+
+function getTarget(){
+  const inp = $("attemptedDistance");
+  const base = parseInt(inp?.value||"",10);
+  const attempted = Number.isFinite(base) ? base : parseToFlagYds();
+  if(!Number.isFinite(attempted)) return null;
+  return attempted + caddyAdjust;
+}
+
+function updateCaddyUI(){
+  const tgt = getTarget();
+  const targetEl = $("caddyTarget");
+  const list = $("caddySuggestions");
+  if(targetEl) targetEl.textContent = tgt ? `Target: ${tgt}y` : "Target: —";
+  if(!list) return;
+  list.innerHTML = "";
+  if(!tgt){
+    const d=document.createElement("div");
+    d.className="row"; d.textContent="No target yet";
+    list.appendChild(d);
+    return;
+  }
+  const rows=[];
+  for(const club of Object.keys(bagMatrix||{})){
+    for(const st of CADDY_SHOT_TYPES){
+      const dist = bagMatrix?.[club]?.[st]?.[caddyMode];
+      if(!Number.isFinite(dist)) continue;
+      rows.push({club, st, dist, delta: dist-tgt});
+    }
+  }
+  rows.sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
+  if(!rows.length){
+    const d=document.createElement("div");
+    d.className="row"; d.textContent="No bag distances yet (BAG editor next)";
+    list.appendChild(d);
+    return;
+  }
+  rows.slice(0,8).forEach(r=>{
+    const div=document.createElement("div");
+    div.className="row";
+    const l=document.createElement("div"); l.textContent=`${r.club} ${r.st}`;
+    const sign=r.delta>=0?"+":"";
+    const rr=document.createElement("div"); rr.textContent=`${r.dist} (Δ ${sign}${r.delta})`;
+    div.appendChild(l); div.appendChild(rr);
+    div.addEventListener("click", ()=>{
+      caddySelected = { club: r.club, shotType: r.st };
+      const cs = $("clubSelect"); if(cs) cs.value = r.club;
+      const stSel = $("shotTypeSelect"); if(stSel) stSel.value = r.st;
+      const panel = $("caddyPanel"); if(panel) panel.classList.add("hidden");
+      if(typeof toast === "function") toast(`✅ Selected ${r.club} ${r.st}`, 900);
+    });
+    list.appendChild(div);
+  });
+}
+
+function initCaddy(){
+  const open = $("openCaddyBtn");
+  const close = $("closeCaddyBtn");
+  const panel = $("caddyPanel");
+  const inp = $("attemptedDistance");
+  const carryBtn = $("modeCarry");
+  const totalBtn = $("modeTotal");
+
+  if(inp){
+    inp.addEventListener("input", ()=>{ attemptedDirty = true; });
+    inp.addEventListener("focus", ()=>{ attemptedDirty = true; });
+  }
+  if(open && panel){
+    open.addEventListener("click", ()=>{ panel.classList.remove("hidden"); updateCaddyUI(); });
+  }
+  if(close && panel){
+    close.addEventListener("click", ()=>{ panel.classList.add("hidden"); });
+  }
+  if(carryBtn && totalBtn){
+    carryBtn.addEventListener("click", ()=>{ caddyMode="carry"; carryBtn.classList.add("active"); totalBtn.classList.remove("active"); updateCaddyUI(); });
+    totalBtn.addEventListener("click", ()=>{ caddyMode="total"; totalBtn.classList.add("active"); carryBtn.classList.remove("active"); updateCaddyUI(); });
+  }
+  document.querySelectorAll(".adj").forEach(b=>{
+    b.addEventListener("click", ()=>{ caddyAdjust = parseInt(b.dataset.adj,10)||0; updateCaddyUI(); });
+  });
+
+  // keep attempted synced initially and after toFlag updates (simple polling; minimal impact)
+  maybeSyncAttempted();
+  setInterval(maybeSyncAttempted, 1500);
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{ try{ initCaddy(); }catch(e){ console.error(e); } });
