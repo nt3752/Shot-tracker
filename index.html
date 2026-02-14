@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Shot Tracker v37_14</title>
+  <title>Shot Tracker v37_15</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#061612" />
   <link rel="stylesheet" href="styles.css" />
@@ -11,7 +11,7 @@
 <body>
 <header class="header">
   <div class="toprow">
-    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_14</span></div>
+    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_15</span></div>
     <button id="liveBadge" class="badge on" type="button" title="Tap to toggle live yardage">LIVE:—</button>
   </div>
   <div class="subrow">
@@ -67,7 +67,7 @@
   <button id="openCaddyBtn" class="secondary caddy-open" type="button">CADDY</button>
 </div>
 <div class="attempted-row">
-  <div class="attempted-label">Attempted</div>
+  <div class="attempted-label">Attempt</div>
   <input id="attemptedDistance" class="attempted-input" type="number" inputmode="numeric" min="0" placeholder="—" />
   <div class="unit">yds</div>
 </div>
@@ -126,6 +126,7 @@
   <div class="caddy-top">
     <div id="caddyTarget" class="caddy-target">Target: —</div>
     <button id="closeCaddyBtn" class="secondary caddy-close-inline" type="button">Close</button>
+    <button id="openBagBtn" class="secondary bag-open" type="button">BAG</button>
     <div class="caddy-mode">
       <button id="modeCarry" class="mode-btn active" type="button">CARRY</button>
       <button id="modeTotal" class="mode-btn" type="button">TOTAL</button>
@@ -139,6 +140,52 @@
     <button class="adj" data-adj="10" type="button">+10</button>
   </div>
   <div id="caddySuggestions" class="caddy-suggestions"></div>
+</div>
+
+
+<div id="bagBackdrop" class="caddy-backdrop hidden" aria-hidden="true"></div>
+<div id="bagPanel" class="bag-panel hidden" role="dialog" aria-modal="true">
+  <div class="bag-top">
+    <div class="bag-title">Bag Matrix</div>
+    <button id="closeBagBtn" class="secondary bag-close" type="button">Close</button>
+  </div>
+  <div class="bag-controls">
+    <label class="bag-label" for="bagClubSelect">Club</label>
+    <select id="bagClubSelect" class="bag-club"></select>
+    <button id="bagResetClubBtn" class="secondary bag-reset" type="button">Clear Club</button>
+  </div>
+
+  <div class="bag-grid">
+    <div class="bag-header">
+      <div>Shot</div><div>Carry</div><div>Total</div>
+    </div>
+
+    <div class="bag-row" data-type="full">
+      <div class="bag-type">full</div>
+      <input class="bag-input" id="bag_full_carry" type="number" inputmode="numeric" min="0" placeholder="—" />
+      <input class="bag-input" id="bag_full_total" type="number" inputmode="numeric" min="0" placeholder="—" />
+    </div>
+
+    <div class="bag-row" data-type="3/4">
+      <div class="bag-type">3/4</div>
+      <input class="bag-input" id="bag_3_4_carry" type="number" inputmode="numeric" min="0" placeholder="—" />
+      <input class="bag-input" id="bag_3_4_total" type="number" inputmode="numeric" min="0" placeholder="—" />
+    </div>
+
+    <div class="bag-row" data-type="1/2">
+      <div class="bag-type">1/2</div>
+      <input class="bag-input" id="bag_1_2_carry" type="number" inputmode="numeric" min="0" placeholder="—" />
+      <input class="bag-input" id="bag_1_2_total" type="number" inputmode="numeric" min="0" placeholder="—" />
+    </div>
+
+    <div class="bag-row" data-type="pitch">
+      <div class="bag-type">pitch</div>
+      <input class="bag-input" id="bag_pitch_carry" type="number" inputmode="numeric" min="0" placeholder="—" />
+      <input class="bag-input" id="bag_pitch_total" type="number" inputmode="numeric" min="0" placeholder="—" />
+    </div>
+  </div>
+
+  <div class="bag-footnote">Values saved automatically to your phone (localStorage).</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -162,8 +209,8 @@
   setTimeout(function(){ if(!window.__ST_BOOTED) show('❌ app.js did not boot (module failed to load/run)'); }, 1200);
 })();
 </script>
-<script src="config.js?v=37_14"></script>
-<script type="module" src="app.js?v=37_14"></script>
+<script src="config.js?v=37_15"></script>
+<script type="module" src="app.js?v=37_15"></script>
 <!-- Cache/SW reset helper: /reset.html -->
 </body>
 </html>

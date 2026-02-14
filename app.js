@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_14"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_15"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -1084,4 +1084,154 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
   }
 
   document.addEventListener("DOMContentLoaded", ()=>{ try{ init(); }catch(e){ console.error(e); } });
+})();
+
+
+// ---- v37_15 bag editor (IIFE) ----
+(() => {
+  const TYPES = ["full","3/4","1/2","pitch"];
+  const el = (id) => document.getElementById(id);
+
+  function safeParse(raw){
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function loadBag(){
+    try{
+      const raw = localStorage.getItem("bagMatrix_v1");
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return null;
+  }
+
+  function saveBag(bag){
+    try{ localStorage.setItem("bagMatrix_v1", JSON.stringify(bag)); }catch(e){}
+  }
+
+  function getClubsFromCfg(){
+    if(typeof CFG !== "undefined" && CFG && Array.isArray(CFG.clubs) && CFG.clubs.length){
+      return CFG.clubs.filter(c=>c!=="PT");
+    }
+    return ["D","MD","3W","5W","7W","3H","5H","4I","5I","6I","7I","8I","9I","PW","46","56","60"];
+  }
+
+  function ensureBag(){
+    let bag = loadBag();
+    if(!bag){
+      bag = {};
+    }
+    const clubs = getClubsFromCfg();
+    clubs.forEach(club=>{
+      bag[club] = bag[club] || {};
+      TYPES.forEach(t=>{
+        bag[club][t] = bag[club][t] || { carry: null, total: null };
+        if(!("carry" in bag[club][t])) bag[club][t].carry = null;
+        if(!("total" in bag[club][t])) bag[club][t].total = null;
+      });
+    });
+    saveBag(bag);
+    return bag;
+  }
+
+  function typeToIds(t){
+    if(t==="3/4") return ["bag_3_4_carry","bag_3_4_total"];
+    if(t==="1/2") return ["bag_1_2_carry","bag_1_2_total"];
+    return [`bag_${t}_carry`, `bag_${t}_total`];
+  }
+
+  function openBag(){
+    const bd = el("bagBackdrop");
+    const panel = el("bagPanel");
+    if(bd) bd.classList.remove("hidden");
+    if(panel) panel.classList.remove("hidden");
+  }
+  function closeBag(){
+    const bd = el("bagBackdrop");
+    const panel = el("bagPanel");
+    if(bd) bd.classList.add("hidden");
+    if(panel) panel.classList.add("hidden");
+  }
+
+  function renderClub(bag, club){
+    TYPES.forEach(t=>{
+      const ids = typeToIds(t);
+      const cIn = el(ids[0]);
+      const tIn = el(ids[1]);
+      const row = bag?.[club]?.[t] || { carry:null, total:null };
+      if(cIn) cIn.value = Number.isFinite(row.carry) ? String(row.carry) : "";
+      if(tIn) tIn.value = Number.isFinite(row.total) ? String(row.total) : "";
+    });
+  }
+
+  function bindInputs(bag, clubSel){
+    // autosave on input
+    TYPES.forEach(t=>{
+      const ids = typeToIds(t);
+      const cIn = el(ids[0]);
+      const tIn = el(ids[1]);
+      const handler = () => {
+        const club = clubSel.value;
+        bag[club] = bag[club] || {};
+        bag[club][t] = bag[club][t] || { carry:null, total:null };
+        if(cIn) bag[club][t].carry = safeParse(cIn.value);
+        if(tIn) bag[club][t].total = safeParse(tIn.value);
+        saveBag(bag);
+      };
+      if(cIn) cIn.addEventListener("input", handler);
+      if(tIn) tIn.addEventListener("input", handler);
+    });
+  }
+
+  function clearClub(bag, clubSel){
+    const club = clubSel.value;
+    TYPES.forEach(t=>{
+      if(bag?.[club]?.[t]){
+        bag[club][t].carry = null;
+        bag[club][t].total = null;
+      }
+    });
+    saveBag(bag);
+    renderClub(bag, club);
+    if(typeof toast === "function") toast(`🧹 Cleared ${club}`, 900);
+  }
+
+  function initBagEditor(){
+    const openBtn = el("openBagBtn");
+    const closeBtn = el("closeBagBtn");
+    const bd = el("bagBackdrop");
+    const clubSel = el("bagClubSelect");
+    const clearBtn = el("bagResetClubBtn");
+    const bag = ensureBag();
+
+    if(!clubSel) return;
+
+    // populate clubs
+    const clubs = Object.keys(bag);
+    clubSel.innerHTML = "";
+    clubs.forEach(c=>{
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      clubSel.appendChild(opt);
+    });
+
+    renderClub(bag, clubSel.value);
+
+    clubSel.addEventListener("change", ()=>renderClub(bag, clubSel.value));
+    bindInputs(bag, clubSel);
+
+    if(openBtn) openBtn.addEventListener("click", ()=>{
+      // close caddy behind bag to avoid confusion
+      const cbd = el("caddyBackdrop"); const cp = el("caddyPanel");
+      if(cbd) cbd.classList.add("hidden");
+      if(cp) cp.classList.add("hidden");
+      openBag();
+    });
+    if(closeBtn) closeBtn.addEventListener("click", closeBag);
+    if(bd) bd.addEventListener("click", closeBag);
+    if(clearBtn) clearBtn.addEventListener("click", ()=>clearClub(bag, clubSel));
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{ try{ initBagEditor(); }catch(e){ console.error(e); } });
 })();
