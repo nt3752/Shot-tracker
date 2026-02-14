@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_15"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_17"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -1087,14 +1087,15 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 })();
 
 
-// ---- v37_15 bag editor (IIFE) ----
+
+
+// ---- v37_17 bag editor (2 dropdowns; config-sourced) ----
 (() => {
-  const TYPES = ["full","3/4","1/2","pitch"];
   const el = (id) => document.getElementById(id);
 
   function safeParse(raw){
     const n = parseFloat(raw);
-    return Number.isFinite(n) ? n : null;
+    return Number.isFinite(n) ? n : 0;
   }
 
   function loadBag(){
@@ -1109,35 +1110,41 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     try{ localStorage.setItem("bagMatrix_v1", JSON.stringify(bag)); }catch(e){}
   }
 
-  function getClubsFromCfg(){
-    if(typeof CFG !== "undefined" && CFG && Array.isArray(CFG.clubs) && CFG.clubs.length){
-      return CFG.clubs.filter(c=>c!=="PT");
-    }
-    return ["D","MD","3W","5W","7W","3H","5H","4I","5I","6I","7I","8I","9I","PW","46","56","60"];
+  function getCfg(){
+    return (window.__getCfgSafe ? window.__getCfgSafe() : { clubs:[], shotTypes:[], defaults:{club:"Club?",shotType:"Type?"}, bagMatrix:{} });
   }
 
   function ensureBag(){
+    const cfg = getCfg();
     let bag = loadBag();
-    if(!bag){
-      bag = {};
+    if(!bag || typeof bag !== "object") bag = {};
+    // seed from config defaults if provided
+    if(cfg.bagMatrix && typeof cfg.bagMatrix === "object"){
+      for(const club of Object.keys(cfg.bagMatrix)){
+        bag[club] = bag[club] || {};
+        const clubObj = cfg.bagMatrix[club] || {};
+        for(const st of Object.keys(clubObj)){
+          bag[club][st] = bag[club][st] || { carry: 0, total: 0 };
+          const row = clubObj[st] || {};
+          if(Number.isFinite(row.carry)) bag[club][st].carry = row.carry;
+          if(Number.isFinite(row.total)) bag[club][st].total = row.total;
+          if(!Number.isFinite(bag[club][st].carry)) bag[club][st].carry = 0;
+          if(!Number.isFinite(bag[club][st].total)) bag[club][st].total = 0;
+        }
+      }
     }
-    const clubs = getClubsFromCfg();
+    const clubs = (cfg.clubs && cfg.clubs.length) ? cfg.clubs.filter(c=>c!=="PT") : ["Club?"];
+    const types = (cfg.shotTypes && cfg.shotTypes.length) ? cfg.shotTypes.filter(t=>t!=="Type?" && t!=="penalty") : ["Type?"];
     clubs.forEach(club=>{
       bag[club] = bag[club] || {};
-      TYPES.forEach(t=>{
-        bag[club][t] = bag[club][t] || { carry: null, total: null };
-        if(!("carry" in bag[club][t])) bag[club][t].carry = null;
-        if(!("total" in bag[club][t])) bag[club][t].total = null;
+      types.forEach(t=>{
+        bag[club][t] = bag[club][t] || { carry: 0, total: 0 };
+        if(!Number.isFinite(bag[club][t].carry)) bag[club][t].carry = 0;
+        if(!Number.isFinite(bag[club][t].total)) bag[club][t].total = 0;
       });
     });
     saveBag(bag);
     return bag;
-  }
-
-  function typeToIds(t){
-    if(t==="3/4") return ["bag_3_4_carry","bag_3_4_total"];
-    if(t==="1/2") return ["bag_1_2_carry","bag_1_2_total"];
-    return [`bag_${t}_carry`, `bag_${t}_total`];
   }
 
   function openBag(){
@@ -1153,76 +1160,94 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     if(panel) panel.classList.add("hidden");
   }
 
-  function renderClub(bag, club){
-    TYPES.forEach(t=>{
-      const ids = typeToIds(t);
-      const cIn = el(ids[0]);
-      const tIn = el(ids[1]);
-      const row = bag?.[club]?.[t] || { carry:null, total:null };
-      if(cIn) cIn.value = Number.isFinite(row.carry) ? String(row.carry) : "";
-      if(tIn) tIn.value = Number.isFinite(row.total) ? String(row.total) : "";
-    });
+  function currentKey(clubSel, typeSel){
+    const club = clubSel?.value || "Club?";
+    const st = typeSel?.value || "Type?";
+    return [club, st];
   }
 
-  function bindInputs(bag, clubSel){
-    // autosave on input
-    TYPES.forEach(t=>{
-      const ids = typeToIds(t);
-      const cIn = el(ids[0]);
-      const tIn = el(ids[1]);
-      const handler = () => {
-        const club = clubSel.value;
-        bag[club] = bag[club] || {};
-        bag[club][t] = bag[club][t] || { carry:null, total:null };
-        if(cIn) bag[club][t].carry = safeParse(cIn.value);
-        if(tIn) bag[club][t].total = safeParse(tIn.value);
-        saveBag(bag);
-      };
-      if(cIn) cIn.addEventListener("input", handler);
-      if(tIn) tIn.addEventListener("input", handler);
-    });
+  function render(bag, clubSel, typeSel){
+    const [club, st] = currentKey(clubSel, typeSel);
+    const row = bag?.[club]?.[st] || { carry: 0, total: 0 };
+    const carryIn = el("bagCarryInput");
+    const totalIn = el("bagTotalInput");
+    const label = el("bagSelectedLabel");
+    if(label) label.textContent = `${club} ${st}`;
+    if(carryIn) carryIn.value = String(Number.isFinite(row.carry) ? row.carry : 0);
+    if(totalIn) totalIn.value = String(Number.isFinite(row.total) ? row.total : 0);
   }
 
-  function clearClub(bag, clubSel){
-    const club = clubSel.value;
-    TYPES.forEach(t=>{
-      if(bag?.[club]?.[t]){
-        bag[club][t].carry = null;
-        bag[club][t].total = null;
-      }
-    });
+  function saveFromInputs(bag, clubSel, typeSel){
+    const [club, st] = currentKey(clubSel, typeSel);
+    const carryIn = el("bagCarryInput");
+    const totalIn = el("bagTotalInput");
+    bag[club] = bag[club] || {};
+    bag[club][st] = bag[club][st] || { carry: 0, total: 0 };
+    bag[club][st].carry = safeParse(carryIn?.value);
+    bag[club][st].total = safeParse(totalIn?.value);
     saveBag(bag);
-    renderClub(bag, club);
-    if(typeof toast === "function") toast(`🧹 Cleared ${club}`, 900);
   }
 
-  function initBagEditor(){
+  function clearCurrent(bag, clubSel, typeSel){
+    const [club, st] = currentKey(clubSel, typeSel);
+    if(bag?.[club]?.[st]){
+      bag[club][st].carry = 0;
+      bag[club][st].total = 0;
+      saveBag(bag);
+    }
+    render(bag, clubSel, typeSel);
+    if(typeof toast === "function") toast(`🧹 Cleared ${club} ${st}`, 900);
+  }
+
+  function init(){
     const openBtn = el("openBagBtn");
     const closeBtn = el("closeBagBtn");
     const bd = el("bagBackdrop");
     const clubSel = el("bagClubSelect");
-    const clearBtn = el("bagResetClubBtn");
+    const typeSel = el("bagShotTypeSelect");
+    const clearBtn = el("bagClearBtn");
+    const carryIn = el("bagCarryInput");
+    const totalIn = el("bagTotalInput");
+
+    const cfg = getCfg();
     const bag = ensureBag();
 
-    if(!clubSel) return;
+    if(!clubSel || !typeSel) return;
 
-    // populate clubs
-    const clubs = Object.keys(bag);
+    // populate dropdowns from config
+    const clubs = (cfg.clubs && cfg.clubs.length) ? cfg.clubs.filter(c=>c!=="PT") : ["Club?"];
+    const types = (cfg.shotTypes && cfg.shotTypes.length) ? cfg.shotTypes.filter(t=>t!=="Type?" && t!=="penalty") : ["Type?"];
+
     clubSel.innerHTML = "";
     clubs.forEach(c=>{
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = c;
+      const opt=document.createElement("option");
+      opt.value=c; opt.textContent=c;
       clubSel.appendChild(opt);
     });
+    typeSel.innerHTML = "";
+    types.forEach(t=>{
+      const opt=document.createElement("option");
+      opt.value=t; opt.textContent=t;
+      typeSel.appendChild(opt);
+    });
 
-    renderClub(bag, clubSel.value);
+    // defaults
+    clubSel.value = (clubs.includes(cfg.defaults?.club) ? cfg.defaults.club : clubs[0]);
+    typeSel.value = (types.includes(cfg.defaults?.shotType) ? cfg.defaults.shotType : types[0]);
 
-    clubSel.addEventListener("change", ()=>renderClub(bag, clubSel.value));
-    bindInputs(bag, clubSel);
+    render(bag, clubSel, typeSel);
+
+    clubSel.addEventListener("change", ()=>render(bag, clubSel, typeSel));
+    typeSel.addEventListener("change", ()=>render(bag, clubSel, typeSel));
+
+    const onInput = ()=>saveFromInputs(bag, clubSel, typeSel);
+    if(carryIn) carryIn.addEventListener("input", onInput);
+    if(totalIn) totalIn.addEventListener("input", onInput);
+
+    if(clearBtn) clearBtn.addEventListener("click", ()=>clearCurrent(bag, clubSel, typeSel));
 
     if(openBtn) openBtn.addEventListener("click", ()=>{
-      // close caddy behind bag to avoid confusion
+      // hide caddy behind bag
       const cbd = el("caddyBackdrop"); const cp = el("caddyPanel");
       if(cbd) cbd.classList.add("hidden");
       if(cp) cp.classList.add("hidden");
@@ -1230,8 +1255,28 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     });
     if(closeBtn) closeBtn.addEventListener("click", closeBag);
     if(bd) bd.addEventListener("click", closeBag);
-    if(clearBtn) clearBtn.addEventListener("click", ()=>clearClub(bag, clubSel));
   }
 
-  document.addEventListener("DOMContentLoaded", ()=>{ try{ initBagEditor(); }catch(e){ console.error(e); } });
+  document.addEventListener("DOMContentLoaded", ()=>{ try{ init(); }catch(e){ console.error(e); } });
 })();
+
+
+
+// ---- v37_16 bagMatrix config source + safe defaults ----
+// Rules:
+// - Clubs + shotTypes come from config (CFG) when possible.
+// - bagMatrix defaults can be provided in config (CFG.bagMatrix).
+// - Any missing/invalid entry falls back to carry=0,total=0.
+// - If config is missing/broken, default club="Club?", shotType="Type?".
+window.__getCfgSafe = function(){
+  try{
+    const c = (typeof CFG !== "undefined" && CFG) ? CFG : (window.APP_CONFIG || null);
+    const clubs = (c && Array.isArray(c.clubs)) ? c.clubs : [];
+    const shotTypes = (c && Array.isArray(c.shotTypes)) ? c.shotTypes : ["Type?","full","pitch","chip","putt","penalty"];
+    const defaults = (c && c.defaults) ? c.defaults : { club:"Club?", shotType:"Type?" };
+    const bagMatrix = (c && typeof c.bagMatrix === "object" && c.bagMatrix) ? c.bagMatrix : {};
+    return { clubs, shotTypes, defaults, bagMatrix };
+  }catch(e){
+    return { clubs:[], shotTypes:["Type?","full","pitch","chip","putt","penalty"], defaults:{club:"Club?",shotType:"Type?"}, bagMatrix:{} };
+  }
+};

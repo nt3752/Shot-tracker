@@ -315,3 +315,38 @@ select{
 
 /* keep bag overlay above caddy */
 #bagBackdrop{ z-index: 10000; }
+
+
+/* v37_17 bag 2 dropdown */
+.bag-select{
+  min-width: 110px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.18);
+  color: inherit;
+  font-weight: 800;
+}
+.bag-grid-single{
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.bag-header-single, .bag-row-single{
+  display:grid;
+  grid-template-columns: 0.9fr 1fr 1fr;
+  gap: 8px;
+  align-items:center;
+  padding: 10px 12px;
+}
+.bag-header-single{
+  font-weight: 900;
+  background: rgba(255,255,255,0.06);
+}
+.bag-row-single{
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.bag-type-chip{
+  font-weight: 900;
+  opacity: 0.95;
+}

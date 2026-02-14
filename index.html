@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Shot Tracker v37_15</title>
+  <title>Shot Tracker v37_17</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#061612" />
   <link rel="stylesheet" href="styles.css" />
@@ -11,7 +11,7 @@
 <body>
 <header class="header">
   <div class="toprow">
-    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_15</span></div>
+    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_17</span></div>
     <button id="liveBadge" class="badge on" type="button" title="Tap to toggle live yardage">LIVE:—</button>
   </div>
   <div class="subrow">
@@ -144,49 +144,37 @@
 
 
 <div id="bagBackdrop" class="caddy-backdrop hidden" aria-hidden="true"></div>
+
 <div id="bagPanel" class="bag-panel hidden" role="dialog" aria-modal="true">
   <div class="bag-top">
     <div class="bag-title">Bag Matrix</div>
     <button id="closeBagBtn" class="secondary bag-close" type="button">Close</button>
   </div>
+
   <div class="bag-controls">
     <label class="bag-label" for="bagClubSelect">Club</label>
-    <select id="bagClubSelect" class="bag-club"></select>
-    <button id="bagResetClubBtn" class="secondary bag-reset" type="button">Clear Club</button>
+    <select id="bagClubSelect" class="bag-select"></select>
+
+    <label class="bag-label" for="bagShotTypeSelect">Type</label>
+    <select id="bagShotTypeSelect" class="bag-select"></select>
+
+    <button id="bagClearBtn" class="secondary bag-reset" type="button">Clear</button>
   </div>
 
-  <div class="bag-grid">
-    <div class="bag-header">
-      <div>Shot</div><div>Carry</div><div>Total</div>
+  <div class="bag-grid-single">
+    <div class="bag-header-single">
+      <div></div><div>Carry</div><div>Total</div>
     </div>
-
-    <div class="bag-row" data-type="full">
-      <div class="bag-type">full</div>
-      <input class="bag-input" id="bag_full_carry" type="number" inputmode="numeric" min="0" placeholder="—" />
-      <input class="bag-input" id="bag_full_total" type="number" inputmode="numeric" min="0" placeholder="—" />
-    </div>
-
-    <div class="bag-row" data-type="3/4">
-      <div class="bag-type">3/4</div>
-      <input class="bag-input" id="bag_3_4_carry" type="number" inputmode="numeric" min="0" placeholder="—" />
-      <input class="bag-input" id="bag_3_4_total" type="number" inputmode="numeric" min="0" placeholder="—" />
-    </div>
-
-    <div class="bag-row" data-type="1/2">
-      <div class="bag-type">1/2</div>
-      <input class="bag-input" id="bag_1_2_carry" type="number" inputmode="numeric" min="0" placeholder="—" />
-      <input class="bag-input" id="bag_1_2_total" type="number" inputmode="numeric" min="0" placeholder="—" />
-    </div>
-
-    <div class="bag-row" data-type="pitch">
-      <div class="bag-type">pitch</div>
-      <input class="bag-input" id="bag_pitch_carry" type="number" inputmode="numeric" min="0" placeholder="—" />
-      <input class="bag-input" id="bag_pitch_total" type="number" inputmode="numeric" min="0" placeholder="—" />
+    <div class="bag-row-single">
+      <div class="bag-type-chip" id="bagSelectedLabel">—</div>
+      <input class="bag-input" id="bagCarryInput" type="number" inputmode="numeric" min="0" placeholder="0" />
+      <input class="bag-input" id="bagTotalInput" type="number" inputmode="numeric" min="0" placeholder="0" />
     </div>
   </div>
 
-  <div class="bag-footnote">Values saved automatically to your phone (localStorage).</div>
+  <div class="bag-footnote">Edits save to your phone immediately. Update <b>config.js</b> later to make them permanent.</div>
 </div>
+
 
 <div class="toast" id="toast"></div>
 
@@ -209,8 +197,8 @@
   setTimeout(function(){ if(!window.__ST_BOOTED) show('❌ app.js did not boot (module failed to load/run)'); }, 1200);
 })();
 </script>
-<script src="config.js?v=37_15"></script>
-<script type="module" src="app.js?v=37_15"></script>
+<script src="config.js?v=37_17"></script>
+<script type="module" src="app.js?v=37_17"></script>
 <!-- Cache/SW reset helper: /reset.html -->
 </body>
 </html>
