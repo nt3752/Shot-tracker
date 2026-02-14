@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_5"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_6"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 
 
 // ---- Distance unit helpers (yards internal, feet for putter) ----
@@ -116,7 +116,7 @@ function loadBagMatrix(){
     if(raw) return JSON.parse(raw);
   }catch(e){}
   // seed with clubs from config when available; fall back to a sensible default set
-  const clubs = (CFG && Array.isArray(CFG.clubs) && CFG.clubs.length) ? CFG.clubs.filter(c=>c!=="PT") : ["D","3W","5W","3H","5H","4I","5I","6I","7I","8I","9I","PW"];
+  const clubs = (typeof CFG !== "undefined" && CFG && Array.isArray(CFG.clubs) && CFG.clubs.length) ? CFG.clubs.filter(c=>c!=="PT") : ["D","3W","5W","3H","5H","4I","5I","6I","7I","8I","9I","PW"];
   const m = {};
   clubs.forEach(club=>{
     m[club] = {};
