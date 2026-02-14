@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Shot Tracker v37_2</title>
+  <title>Shot Tracker v37_3</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#061612" />
   <link rel="stylesheet" href="styles.css" />
@@ -11,7 +11,7 @@
 <body>
 <header class="header">
   <div class="toprow">
-    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_2</span></div>
+    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_3</span></div>
     <button id="liveBadge" class="badge on" type="button" title="Tap to toggle live yardage">LIVE:—</button>
   </div>
   <div class="subrow">
@@ -64,7 +64,8 @@
     </div>
     <div class="rangefinder-row" style="margin-top:10px;">
       <div class="pill" id="toFlag" style="margin-top:0;">To Flag:—</div>
-</div>
+<button id="openCaddyBtn" class="secondary caddy-open" type="button">CADDY</button>
+    </div>
     <div class="attempted-row">
       <div class="attempted-label">Attempted</div>
       <input id="attemptedDistance" class="attempted-input" type="number" inputmode="numeric" min="0" placeholder="—" />
@@ -121,8 +122,8 @@
 
 <div class="toast" id="toast"></div>
 
-  <script src="config.js?v=37_2"></script>
-<script type="module" src="app.js?v=37_2"></script>
+  <script src="config.js?v=37_3"></script>
+<script type="module" src="app.js?v=37_3"></script>
 <!-- Cache/SW reset helper: /reset.html -->
 
 <div id="caddyPanel" class="caddy-panel hidden" role="dialog" aria-modal="true">
