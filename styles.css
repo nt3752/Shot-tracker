@@ -218,3 +218,43 @@ select{
   display:flex;
   justify-content: flex-end;
 }
+
+
+/* v37_2 layout fixes */
+.rangefinder-row{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+.rangefinder-row .pill{
+  flex: 1 1 auto;
+}
+.caddy-open{
+  white-space: nowrap;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+/* tighten attempted row */
+.attempted-label{
+  font-size: 14px;
+  min-width: 86px;
+}
+.attempted-input{
+  width: 110px;
+}
+
+/* caddy sheet */
+.caddy-top{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.caddy-close-inline{
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-weight: 800;
+}
+.caddy-actions{ display:none; }
