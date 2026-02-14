@@ -125,7 +125,7 @@ select{
 .acc.red { color: #ff5c5c; }
 
 
-/* v37_12 caddy UI */
+/* v37_13 caddy UI */
 .hidden{ display:none !important; }
 .rangefinder-row{
   display:flex;

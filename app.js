@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_12"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_13"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -923,131 +923,148 @@ if("serviceWorker" in navigator){
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden'){ stopWatch(); } });
 
 
-// ---- v37_12 caddy foundation (minimal, non-breaking) ----
-const CADDY_SHOT_TYPES = ["full","3/4","1/2","pitch"];
-let caddyMode = "carry";
-let caddyAdjust = 0;
-let caddySelected = { club: null, shotType: null };
+// ---- v37_13 caddy foundation (IIFE; avoids identifier collisions) ----
+(() => {
+  const CADDY_TYPES = ["full","3/4","1/2","pitch"];
+  let mode = "carry";
+  let adjust = 0;
+  let selected = { club: null, shotType: null };
+  let attemptedDirty = false;
 
-function loadBagMatrix(){
-  try{
-    const raw = localStorage.getItem("bagMatrix_v1");
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  const clubs = (typeof CFG !== "undefined" && CFG && Array.isArray(CFG.clubs) && CFG.clubs.length)
-    ? CFG.clubs.filter(c=>c!=="PT")
-    : ["D","3W","5W","3H","5H","4I","5I","6I","7I","8I","9I","PW"];
-  const m = {};
-  clubs.forEach(club=>{
-    m[club] = {};
-    CADDY_SHOT_TYPES.forEach(t=> m[club][t] = { carry: null, total: null });
-  });
-  localStorage.setItem("bagMatrix_v1", JSON.stringify(m));
-  return m;
-}
-let bagMatrix = loadBagMatrix();
+  const getEl = (id) => document.getElementById(id);
 
-function $(id){ return document.getElementById(id); }
-
-function parseToFlagYds(){
-  const el = $("toFlag");
-  if(!el) return null;
-  const txt = el.textContent || "";
-  const m = txt.match(/To Flag:\s*(\d+)y/);
-  return m ? parseInt(m[1],10) : null;
-}
-
-let attemptedDirty = false;
-function maybeSyncAttempted(){
-  const inp = $("attemptedDistance");
-  if(!inp || attemptedDirty) return;
-  const y = parseToFlagYds();
-  if(Number.isFinite(y)) inp.value = String(y);
-}
-
-function getTarget(){
-  const inp = $("attemptedDistance");
-  const base = parseInt(inp?.value||"",10);
-  const attempted = Number.isFinite(base) ? base : parseToFlagYds();
-  if(!Number.isFinite(attempted)) return null;
-  return attempted + caddyAdjust;
-}
-
-function updateCaddyUI(){
-  const tgt = getTarget();
-  const targetEl = $("caddyTarget");
-  const list = $("caddySuggestions");
-  if(targetEl) targetEl.textContent = tgt ? `Target: ${tgt}y` : "Target: —";
-  if(!list) return;
-  list.innerHTML = "";
-  if(!tgt){
-    const d=document.createElement("div");
-    d.className="row"; d.textContent="No target yet";
-    list.appendChild(d);
-    return;
-  }
-  const rows=[];
-  for(const club of Object.keys(bagMatrix||{})){
-    for(const st of CADDY_SHOT_TYPES){
-      const dist = bagMatrix?.[club]?.[st]?.[caddyMode];
-      if(!Number.isFinite(dist)) continue;
-      rows.push({club, st, dist, delta: dist-tgt});
-    }
-  }
-  rows.sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
-  if(!rows.length){
-    const d=document.createElement("div");
-    d.className="row"; d.textContent="No bag distances yet (BAG editor next)";
-    list.appendChild(d);
-    return;
-  }
-  rows.slice(0,8).forEach(r=>{
-    const div=document.createElement("div");
-    div.className="row";
-    const l=document.createElement("div"); l.textContent=`${r.club} ${r.st}`;
-    const sign=r.delta>=0?"+":"";
-    const rr=document.createElement("div"); rr.textContent=`${r.dist} (Δ ${sign}${r.delta})`;
-    div.appendChild(l); div.appendChild(rr);
-    div.addEventListener("click", ()=>{
-      caddySelected = { club: r.club, shotType: r.st };
-      const cs = $("clubSelect"); if(cs) cs.value = r.club;
-      const stSel = $("shotTypeSelect"); if(stSel) stSel.value = r.st;
-      const panel = $("caddyPanel"); if(panel) panel.classList.add("hidden");
-      if(typeof toast === "function") toast(`✅ Selected ${r.club} ${r.st}`, 900);
+  function loadBag(){
+    try{
+      const raw = localStorage.getItem("bagMatrix_v1");
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    const clubs = (typeof CFG !== "undefined" && CFG && Array.isArray(CFG.clubs) && CFG.clubs.length)
+      ? CFG.clubs.filter(c=>c!=="PT")
+      : ["D","3W","5W","3H","5H","4I","5I","6I","7I","8I","9I","PW"];
+    const m = {};
+    clubs.forEach(club=>{
+      m[club] = {};
+      CADDY_TYPES.forEach(t => m[club][t] = { carry: null, total: null });
     });
-    list.appendChild(div);
-  });
-}
-
-function initCaddy(){
-  const open = $("openCaddyBtn");
-  const close = $("closeCaddyBtn");
-  const panel = $("caddyPanel");
-  const inp = $("attemptedDistance");
-  const carryBtn = $("modeCarry");
-  const totalBtn = $("modeTotal");
-
-  if(inp){
-    inp.addEventListener("input", ()=>{ attemptedDirty = true; });
-    inp.addEventListener("focus", ()=>{ attemptedDirty = true; });
+    localStorage.setItem("bagMatrix_v1", JSON.stringify(m));
+    return m;
   }
-  if(open && panel){
-    open.addEventListener("click", ()=>{ panel.classList.remove("hidden"); updateCaddyUI(); });
-  }
-  if(close && panel){
-    close.addEventListener("click", ()=>{ panel.classList.add("hidden"); });
-  }
-  if(carryBtn && totalBtn){
-    carryBtn.addEventListener("click", ()=>{ caddyMode="carry"; carryBtn.classList.add("active"); totalBtn.classList.remove("active"); updateCaddyUI(); });
-    totalBtn.addEventListener("click", ()=>{ caddyMode="total"; totalBtn.classList.add("active"); carryBtn.classList.remove("active"); updateCaddyUI(); });
-  }
-  document.querySelectorAll(".adj").forEach(b=>{
-    b.addEventListener("click", ()=>{ caddyAdjust = parseInt(b.dataset.adj,10)||0; updateCaddyUI(); });
-  });
+  const bag = loadBag();
 
-  // keep attempted synced initially and after toFlag updates (simple polling; minimal impact)
-  maybeSyncAttempted();
-  setInterval(maybeSyncAttempted, 1500);
-}
+  function parseToFlag(){
+    const el = getEl("toFlag");
+    if(!el) return null;
+    const txt = el.textContent || "";
+    const m = txt.match(/To Flag:\s*(\d+)y/);
+    return m ? parseInt(m[1],10) : null;
+  }
 
-document.addEventListener("DOMContentLoaded", ()=>{ try{ initCaddy(); }catch(e){ console.error(e); } });
+  function maybeSyncAttempted(){
+    const inp = getEl("attemptedDistance");
+    if(!inp || attemptedDirty) return;
+    const y = parseToFlag();
+    if(Number.isFinite(y)) inp.value = String(y);
+  }
+
+  function target(){
+    const inp = getEl("attemptedDistance");
+    const base = parseInt(inp?.value || "", 10);
+    const att = Number.isFinite(base) ? base : parseToFlag();
+    if(!Number.isFinite(att)) return null;
+    return att + adjust;
+  }
+
+  function update(){
+    const t = target();
+    const targetEl = getEl("caddyTarget");
+    const list = getEl("caddySuggestions");
+    if(targetEl) targetEl.textContent = t ? `Target: ${t}y` : "Target: —";
+    if(!list) return;
+    list.innerHTML = "";
+
+    if(!t){
+      const d=document.createElement("div");
+      d.className="row"; d.textContent="No target yet";
+      list.appendChild(d);
+      return;
+    }
+
+    const rows=[];
+    for(const club of Object.keys(bag)){
+      for(const st of CADDY_TYPES){
+        const dist = bag?.[club]?.[st]?.[mode];
+        if(!Number.isFinite(dist)) continue;
+        rows.push({club, st, dist, delta: dist - t});
+      }
+    }
+    rows.sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
+
+    if(!rows.length){
+      const d=document.createElement("div");
+      d.className="row"; d.textContent="No bag distances yet (BAG editor next)";
+      list.appendChild(d);
+      return;
+    }
+
+    rows.slice(0,8).forEach(r=>{
+      const div=document.createElement("div");
+      div.className="row";
+      const l=document.createElement("div"); l.textContent=`${r.club} ${r.st}`;
+      const sign=r.delta>=0?"+":"";
+      const rr=document.createElement("div"); rr.textContent=`${r.dist} (Δ ${sign}${r.delta})`;
+      div.appendChild(l); div.appendChild(rr);
+      div.addEventListener("click", ()=>{
+        selected = { club: r.club, shotType: r.st };
+        // prefill selects if present
+        const cs = getEl("clubSelect"); if(cs) cs.value = r.club;
+        const stSel = getEl("shotTypeSelect"); if(stSel) stSel.value = r.st;
+        const panel = getEl("caddyPanel"); if(panel) panel.classList.add("hidden");
+        if(typeof toast === "function") toast(`✅ Selected ${r.club} ${r.st}`, 900);
+      });
+      list.appendChild(div);
+    });
+  }
+
+  function setMode(m){
+    mode = m;
+    const carry = getEl("modeCarry");
+    const total = getEl("modeTotal");
+    if(carry && total){
+      carry.classList.toggle("active", mode==="carry");
+      total.classList.toggle("active", mode==="total");
+    }
+    update();
+  }
+
+  function init(){
+    const open = getEl("openCaddyBtn");
+    const close = getEl("closeCaddyBtn");
+    const panel = getEl("caddyPanel");
+    const inp = getEl("attemptedDistance");
+    const carry = getEl("modeCarry");
+    const total = getEl("modeTotal");
+
+    if(inp){
+      inp.addEventListener("input", ()=>{ attemptedDirty = true; });
+      inp.addEventListener("focus", ()=>{ attemptedDirty = true; });
+    }
+    if(open && panel){
+      open.addEventListener("click", ()=>{ panel.classList.remove("hidden"); update(); });
+    }
+    if(close && panel){
+      close.addEventListener("click", ()=>{ panel.classList.add("hidden"); });
+    }
+    if(carry) carry.addEventListener("click", ()=>setMode("carry"));
+    if(total) total.addEventListener("click", ()=>setMode("total"));
+    document.querySelectorAll(".adj").forEach(b=>{
+      b.addEventListener("click", ()=>{ adjust = parseInt(b.dataset.adj,10)||0; update(); });
+    });
+
+    // start in carry mode
+    setMode("carry");
+    maybeSyncAttempted();
+    setInterval(maybeSyncAttempted, 1500);
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{ try{ init(); }catch(e){ console.error(e); } });
+})();
