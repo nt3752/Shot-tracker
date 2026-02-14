@@ -262,3 +262,5 @@ select{
 
 /* ensure hidden panels don't block taps */
 .hidden{ display:none !important; }
+
+.caddy-panel.hidden{ display:none !important; pointer-events:none !important; }

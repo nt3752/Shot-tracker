@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_7"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_8"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 
 
 // ---- Distance unit helpers (yards internal, feet for putter) ----
@@ -63,6 +63,21 @@ function toast(msg, ms=2200){
   setTimeout(()=>els.toast.style.display="none", ms);
 }
 
+
+window.addEventListener('error', (e)=>{
+  try{
+    const msg = (e?.message || 'Script error') + (e?.filename ? (' @'+e.filename.split('/').pop()+':'+e.lineno) : '');
+    const t = document.getElementById('toast');
+    if(t){ t.textContent = '❌ ' + msg; t.style.display='block'; }
+  }catch(_){}
+});
+window.addEventListener('unhandledrejection', (e)=>{
+  try{
+    const msg = (e?.reason?.message || String(e?.reason || 'Promise error'));
+    const t = document.getElementById('toast');
+    if(t){ t.textContent = '❌ ' + msg; t.style.display='block'; }
+  }catch(_){}
+});
 // --- UI feedback helpers ---
 function flashButton(btn, ms=90){
   if(!btn) return;
