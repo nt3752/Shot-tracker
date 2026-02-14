@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_13"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_14"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -1018,7 +1018,9 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
         // prefill selects if present
         const cs = getEl("clubSelect"); if(cs) cs.value = r.club;
         const stSel = getEl("shotTypeSelect"); if(stSel) stSel.value = r.st;
-        const panel = getEl("caddyPanel"); if(panel) panel.classList.add("hidden");
+        const panel = getEl("caddyPanel"); const bd = getEl("caddyBackdrop");
+        if(bd) bd.classList.add("hidden");
+        if(panel) panel.classList.add("hidden");
         if(typeof toast === "function") toast(`✅ Selected ${r.club} ${r.st}`, 900);
       });
       list.appendChild(div);
@@ -1040,7 +1042,13 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     const open = getEl("openCaddyBtn");
     const close = getEl("closeCaddyBtn");
     const panel = getEl("caddyPanel");
+    const bd = getEl("caddyBackdrop");
     const inp = getEl("attemptedDistance");
+
+    if(bd && panel){
+      bd.addEventListener("click", ()=>{ bd.classList.add("hidden"); panel.classList.add("hidden"); });
+    }
+
     const carry = getEl("modeCarry");
     const total = getEl("modeTotal");
 
@@ -1049,10 +1057,19 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
       inp.addEventListener("focus", ()=>{ attemptedDirty = true; });
     }
     if(open && panel){
-      open.addEventListener("click", ()=>{ panel.classList.remove("hidden"); update(); });
+      open.addEventListener("click", ()=>{
+      const bd = getEl("caddyBackdrop");
+      if(bd) bd.classList.remove("hidden");
+      panel.classList.remove("hidden");
+      update();
+    });
     }
     if(close && panel){
-      close.addEventListener("click", ()=>{ panel.classList.add("hidden"); });
+      close.addEventListener("click", ()=>{
+      const bd = getEl("caddyBackdrop");
+      if(bd) bd.classList.add("hidden");
+      panel.classList.add("hidden");
+    });
     }
     if(carry) carry.addEventListener("click", ()=>setMode("carry"));
     if(total) total.addEventListener("click", ()=>setMode("total"));
