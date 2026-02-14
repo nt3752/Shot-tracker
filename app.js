@@ -252,6 +252,8 @@ function recomputeHoleDistances(holeNum){
     }
 
     const hasManual = (s.manualValue!=="" && s.manualValue!==null && typeof s.manualValue !== "undefined" && Number.isFinite(parseFloat(s.manualValue)));
+    if(!Number.isFinite(s.latitude) || !Number.isFinite(s.longitude)) { continue; }
+
     const calc = lastPos ? Math.round(distanceYds(lastPos, s)*10)/10 : 0;
     if(!hasManual){
       s.distance = calc;
@@ -344,6 +346,8 @@ function renderShots(){
     div.innerHTML = buildShotCardHTML(s, i);
     els.shotsList.appendChild(div);
   });
+
+  updateTeeFlagButtons();
 }
 
 function buildShotCardHTML(s, i){
@@ -363,7 +367,7 @@ function buildShotCardHTML(s, i){
   </select>`;
 
   const right = `<div class="shotRight">
-      <input class="shotEdit" type="number" inputmode="decimal" data-edit-idx="${i}" value="${distVal}" ${isPen?"disabled":""}>
+      <input class="shotEdit" type="number" inputmode="decimal" data-edit-idx="${i}" value="${distVal}" placeholder="${(!isPen && (s.pendingGPS||s.gpsMissing) && distVal==='') ? (s.gpsMissing ? 'No GPS' : 'GPS…') : ''}" ${isPen?"disabled":""}>
       <div class="shotDist">${isPutter(clubVal) ? "ft" : "yds"}</div>
     </div>`;
 
@@ -427,11 +431,34 @@ function updateLiveBadge(force=false){
   if(force || movedEnough || (now-lastBadgeTs)>2000){ lastBadgeYds=yds; lastBadgeTs=now; els.liveBadge.textContent=`LIVE:${yds}y`; }
 }
 
+let gpsIdleTimer = null;
+const GPS_WARM_MS = 30000; // warm GPS for 30s after last button press (battery-friendly)
+
+function stopWatch(){
+  if(watchId!==null){
+    try{ navigator.geolocation.clearWatch(watchId); }catch(_){}
+    watchId = null;
+  }
+  if(gpsIdleTimer){ clearTimeout(gpsIdleTimer); gpsIdleTimer=null; }
+}
+
+function touchGps(){
+  // Start GPS watch (if not already running) and keep it alive briefly.
+  ensureWatch();
+  if(gpsIdleTimer) clearTimeout(gpsIdleTimer);
+  gpsIdleTimer = setTimeout(()=>stopWatch(), GPS_WARM_MS);
+}
+
 function ensureWatch(){
   if(watchId!==null) return;
   watchId = startWatch(
-    (pos)=>{ currentPos={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; updateLiveBadge(false); updateToFlag(); },
-    (err)=>toast("❌ GPS error: " + (err.message||err), 3000)
+    (pos)=>{
+      currentPos={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() };
+      updateLiveBadge(false);
+      updateToFlag();
+    },
+    (err)=>toast("❌ GPS error: " + (err.message||err), 3000),
+    { enableHighAccuracy:true, maximumAge:2000, timeout:8000 }
   );
 }
 
@@ -534,8 +561,17 @@ els.shotsList.addEventListener("input", (e)=>{
   const shot = holes[currentHole].shots[idx];
   if(!shot) return;
   const num = Number.isFinite(v) ? v : 0;
-  // Manual edit respects unit based on club
-  shot.distance = isPutter(shot.club) ? feetToYards(num) : num;
+  // Manual edit becomes source of truth (never overwritten by GPS recompute)
+  shot._manualEdited = true;
+  if(isPutter(shot.club)){
+    shot.manualUnit = "ft";
+    shot.manualValue = Math.round(num*10)/10;
+    shot.distance = Math.round(feetToYards(num)*10)/10; // store yards internally
+  } else {
+    shot.manualUnit = "yds";
+    shot.manualValue = Math.round(num*10)/10;
+    shot.distance = Math.round(num*10)/10;
+  }
   finalizeHoleSummary(currentHole);
   save();
 });
@@ -584,60 +620,177 @@ els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHol
 els.holeYards.addEventListener("input", ()=>{ const v=parseInt(els.holeYards.value,10); holes[currentHole].holeYards = Number.isFinite(v)?v:null; setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); });
 
 els.markTee.addEventListener("click", async ()=>{
-  try{ ensureWatch(); const pos=await getFix(); const tee={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; holes[currentHole].teeBox=tee; setCourseHoleTee(courseStore, currentHole, tee); saveCourseStore(courseStore); lastNonPenaltyPos={ latitude:tee.latitude, longitude:tee.longitude }; toast(`✅ Tee marked (±${tee.accuracy}m)`); finalizeHoleSummary(currentHole); save(); renderShots(); updateLiveBadge(true); updateToFlag(); } 
-  catch(err){ toast("❌ GPS: " + (err.message||err), 3000); }
+  flashButton(els.markTee);
+  try{
+    touchGps();
+    ensureHole(currentHole);
+    const h = holes[currentHole];
+
+    // Toggle OFF only if there are no shots yet (tee is used for distance calculations)
+    if(h.teeBox){
+      const hasShots = (h.shots||[]).some(s=>!isPenaltyShot(s));
+      if(hasShots){
+        toast("⚠️ Tee locked (shots already recorded)", 2200);
+        updateTeeFlagButtons();
+        return;
+      }
+      h.teeBox = null;
+      setCourseHoleTee(courseStore, currentHole, null);
+      saveCourseStore(courseStore);
+      lastNonPenaltyPos = null;
+      toast("🧹 Tee cleared", 1600);
+      finalizeHoleSummary(currentHole);
+      save();
+      renderShots();
+      updateTeeFlagButtons();
+      updateToFlag();
+      return;
+    }
+
+    const pos = await getFix({ maximumAge: 2000, timeout: 8000 });
+    const tee={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() };
+    h.teeBox=tee;
+    setCourseHoleTee(courseStore, currentHole, tee);
+    saveCourseStore(courseStore);
+    lastNonPenaltyPos={ latitude:tee.latitude, longitude:tee.longitude };
+    toast(`✅ Tee marked (±${tee.accuracy}m)`);
+    finalizeHoleSummary(currentHole);
+    save();
+    renderShots();
+    updateLiveBadge(true);
+    updateTeeFlagButtons();
+    updateToFlag();
+  } catch(err){
+    toast("No GPS yet", 1800);
+  }
 });
+
 
 els.markFlag.addEventListener("click", async ()=>{
-  try{ ensureWatch(); const pos=await getFix(); const flag={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() }; holes[currentHole].flag=flag; setCourseHoleFlag(courseStore, currentHole, flag); saveCourseStore(courseStore); toast(`✅ Flag marked (±${flag.accuracy}m)`); finalizeHoleSummary(currentHole); save(); renderShots(); updateToFlag(); } 
-  catch(err){ toast("❌ GPS: " + (err.message||err), 3000); }
+  flashButton(els.markFlag);
+  try{
+    touchGps();
+    ensureHole(currentHole);
+    const h = holes[currentHole];
+
+    // Toggle OFF allowed anytime
+    if(h.flag){
+      h.flag = null;
+      setCourseHoleFlag(courseStore, currentHole, null);
+      saveCourseStore(courseStore);
+      toast("🧹 Flag cleared", 1600);
+      finalizeHoleSummary(currentHole);
+      save();
+      renderShots();
+      updateTeeFlagButtons();
+      updateToFlag();
+      return;
+    }
+
+    const pos = await getFix({ maximumAge: 2000, timeout: 8000 });
+    const flag={ latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString() };
+    h.flag=flag;
+    setCourseHoleFlag(courseStore, currentHole, flag);
+    saveCourseStore(courseStore);
+    toast(`✅ Flag marked (±${flag.accuracy}m)`);
+    finalizeHoleSummary(currentHole);
+    save();
+    renderShots();
+    updateTeeFlagButtons();
+    updateToFlag();
+  } catch(err){
+    toast("No GPS yet", 1800);
+  }
 });
 
+
 els.markShot.addEventListener("click", async ()=>{
+  flashButton(els.markShot);
   try{
-    ensureWatch();
+    touchGps();
     const h=holes[currentHole];
     if(!h.teeBox) return toast("⚠️ Mark tee first",2200);
-
-    const pos=await getFix();
 
     const club = DEFAULT_CLUB;
     const shotType = DEFAULT_SHOT_TYPE;
 
-    const shot={ id: crypto.randomUUID(), club, shotType, latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracy:Math.round(pos.coords.accuracy), timestamp:new Date().toISOString(), isPenalty:false };
-
-    // Prefill distance from GPS calculation (including 0). If a manual value is provided, use it as an override.
-    const calcYds = lastNonPenaltyPos ? Math.round(distanceYds(lastNonPenaltyPos, shot)*10)/10 : 0;
-
-    let finalYds = calcYds;
-    let manualUnit = "";
-    let manualValueOut = "";
-
-        if(manualValue!==null && Number.isFinite(manualValue) && manualValue>=0){
-      manualUnit = "yds";
-      manualValueOut = Math.round(manualValue*10)/10;
-      finalYds = manualValueOut;
-    }
-
-    shot.manualUnit = manualUnit;
-    shot.manualValue = manualValueOut;
-    shot.distance = Math.round((Number.isFinite(finalYds)?finalYds:0)*10)/10;
+    // 1) Add placeholder row immediately so you know the press registered
+    const shot={
+      id: crypto.randomUUID(),
+      club,
+      shotType,
+      latitude:null,
+      longitude:null,
+      accuracy:null,
+      timestamp:new Date().toISOString(),
+      isPenalty:false,
+      pendingGPS:true,
+      gpsMissing:false,
+      manualUnit:"",
+      manualValue:""
+    };
 
     h.shots.push(shot);
-    lastNonPenaltyPos={ latitude:shot.latitude, longitude:shot.longitude };
-    toast("✅ Shot recorded");
+    toast("📍 Shot added (getting GPS…)", 900);
     finalizeHoleSummary(currentHole);
     save();
-    // Performance: avoid full list re-render on every shot; just append the new shot row.
+
+    // Fast UI: append placeholder row now
     updateCounts();
     updateMetaButtons();
     updateMarkShotEnabled();
     appendShotCardForCurrentHole();
     updateLiveBadge(true);
-  } catch(err){ toast("❌ GPS: " + (err.message||err), 3000); }
+
+    // 2) Get GPS fix (may take a moment)
+    let pos = null;
+    try{
+      pos = await getFix({ maximumAge: 2000, timeout: 8000 });
+    }catch(_){
+      pos = null;
+    }
+
+    if(!pos){
+      shot.pendingGPS = false;
+      shot.gpsMissing = true;
+      save();
+      refreshLastShotCard();
+      return toast("No GPS yet", 1800);
+    }
+
+    // 3) Fill in GPS values
+    shot.latitude = pos.coords.latitude;
+    shot.longitude = pos.coords.longitude;
+    shot.accuracy = Math.round(pos.coords.accuracy);
+    shot.pendingGPS = false;
+    shot.gpsMissing = false;
+
+    // 4) Compute distance unless user already manually edited this shot
+    const hasManual = (shot._manualEdited===true) || (shot.manualValue!=="" && shot.manualValue!==null && typeof shot.manualValue !== "undefined" && Number.isFinite(parseFloat(shot.manualValue)));
+    const calcYds = lastNonPenaltyPos ? Math.round(distanceYds(lastNonPenaltyPos, shot)*10)/10 : 0;
+
+    // If a per-shot manual override is set in the manual input box, apply it once to THIS shot.
+    if(manualValue!==null && Number.isFinite(manualValue) && manualValue>=0){
+      shot._manualEdited = true;
+      shot.manualUnit = "yds";
+      shot.manualValue = Math.round(manualValue*10)/10;
+      shot.distance = Math.round(shot.manualValue*10)/10;
+    } else if(!hasManual){
+      shot.distance = Math.round(calcYds*10)/10;
+    }
+
+    // Update last non-penalty position for subsequent shots
+    lastNonPenaltyPos = { latitude: shot.latitude, longitude: shot.longitude };
+
+    finalizeHoleSummary(currentHole);
+    save();
+    refreshLastShotCard();
+    updateToFlag();
+
+  } catch(err){
+    toast("❌ " + (err?.message||err), 2500);
+  }
 });
-
-
 
 
 if(els.addPenalty){
@@ -718,3 +871,6 @@ if("serviceWorker" in navigator){
   navigator.serviceWorker.getRegistrations?.().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
 }
 
+
+
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden'){ stopWatch(); } });
