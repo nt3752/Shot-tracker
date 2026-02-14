@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_6"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_7"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 
 
 // ---- Distance unit helpers (yards internal, feet for putter) ----
@@ -1069,7 +1069,7 @@ ensureWatch();
 loadOrCreateInitialRound();
 
 // Service worker disabled for performance on iOS (can be re-enabled later).
-if("serviceWorker" in navigator){
+if (false && ("serviceWorker" in navigator)) {
   navigator.serviceWorker.getRegistrations?.().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
 }
 
