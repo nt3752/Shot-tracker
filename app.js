@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v36_21"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v36_23"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 
 
 // ---- Distance unit helpers (yards internal, feet for putter) ----
@@ -455,7 +455,15 @@ function updateToFlag(){
   const flagPos = getFlagPosForCurrentHole();
   if(!flagPos || !currentPos){ els.toFlag.textContent = "To Flag:—"; return; }
   const yds = Math.round(distanceYds(currentPos, flagPos));
-  els.toFlag.textContent = `To Flag:${yds}y`;
+  let accText = "";
+  if(currentPos && Number.isFinite(currentPos.accuracy)){
+    const accY = Math.round(currentPos.accuracy * 1.09361);
+    let color = "green";
+    if(accY > 10) color = "red";
+    else if(accY > 5) color = "orange";
+    accText = ` (<span class="acc ${color}">±${accY}y</span>)`;
+  }
+  els.toFlag.innerHTML = `To Flag:${yds}y${accText}`;
 }
 
 function updateLiveBadge(force=false){
