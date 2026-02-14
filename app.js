@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v36_18"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v36_20"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 
 
 // ---- Distance unit helpers (yards internal, feet for putter) ----
@@ -419,6 +419,17 @@ function appendShotCardForCurrentHole(){
   div.className = "shotCard";
   div.innerHTML = buildShotCardHTML(s, i);
   els.shotsList.appendChild(div);
+}
+
+function refreshLastShotCard(){
+  const h = holes[currentHole];
+  if(!h?.shots?.length) return;
+  const i = h.shots.length - 1;
+  const s = h.shots[i];
+  const cards = els.shotsList.querySelectorAll(".shotCard");
+  if(!cards.length) return;
+  const last = cards[cards.length - 1];
+  last.innerHTML = buildShotCardHTML(s, i);
 }
 
 function syncRefForHole(){

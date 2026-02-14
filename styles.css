@@ -114,6 +114,6 @@ select{
 
 /* Lit state for toggles (tee/flag) */
 .btn-is-set{
-  outline: 2px solid currentColor;
-  filter: brightness(1.12);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.55) inset, 0 0 14px rgba(120,255,200,0.25);
+  filter: brightness(1.22) saturate(1.25);
 }
