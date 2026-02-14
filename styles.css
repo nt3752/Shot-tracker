@@ -123,3 +123,98 @@ select{
 .acc.green { color: #3fd46b; }
 .acc.orange { color: #ffb347; }
 .acc.red { color: #ff5c5c; }
+
+
+/* v37_1 Caddy foundation */
+.attempted-row{
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.attempted-label{
+  font-weight: 600;
+  opacity: 0.9;
+}
+.attempted-input{
+  width: 90px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.15);
+  color: inherit;
+}
+
+/* Caddy bottom sheet */
+.caddy-panel{
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: rgba(10,10,10,0.98);
+  color: #fff;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding: 14px;
+  z-index: 9999;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+.caddy-top{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.caddy-target{
+  font-weight: 700;
+  font-size: 16px;
+}
+.caddy-mode{
+  display:flex;
+  gap: 8px;
+}
+.mode-btn{
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: inherit;
+  font-weight: 700;
+}
+.mode-btn.active{
+  background: rgba(63,212,107,0.95);
+  color: #000;
+}
+.caddy-adjust{
+  margin-top: 10px;
+  display:flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.caddy-adjust .adj{
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: inherit;
+  font-weight: 700;
+  min-width: 54px;
+}
+.caddy-suggestions{
+  margin-top: 12px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.caddy-suggestions .row{
+  padding: 10px 12px;
+  display:flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.caddy-suggestions .row:last-child{ border-bottom: none; }
+.caddy-suggestions .row:active{ background: rgba(255,255,255,0.06); }
+.caddy-actions{
+  margin-top: 12px;
+  display:flex;
+  justify-content: flex-end;
+}

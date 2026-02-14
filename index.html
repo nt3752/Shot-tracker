@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Shot Tracker v36_24</title>
+  <title>Shot Tracker v37_1</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#061612" />
   <link rel="stylesheet" href="styles.css" />
@@ -11,7 +11,7 @@
 <body>
 <header class="header">
   <div class="toprow">
-    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v36_24</span></div>
+    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_1</span></div>
     <button id="liveBadge" class="badge on" type="button" title="Tap to toggle live yardage">LIVE:—</button>
   </div>
   <div class="subrow">
@@ -63,6 +63,12 @@
       <div class="pill" style="margin-left:auto;">Rangefinder</div>
     </div>
     <div class="pill" id="toFlag" style="margin-top:10px;">To Flag:—</div>
+    <div class="attempted-row">
+      <div class="attempted-label">Attempted</div>
+      <input id="attemptedDistance" class="attempted-input" type="number" inputmode="numeric" min="0" placeholder="—" />
+      <div class="unit">yds</div>
+      <button id="openCaddyBtn" class="secondary" type="button">CADDY</button>
+    </div>
   </section>
 
   <section class="section">
@@ -114,8 +120,29 @@
 
 <div class="toast" id="toast"></div>
 
-  <script src="config.js?v=36_24"></script>
-<script type="module" src="app.js?v=36_24"></script>
+  <script src="config.js?v=37_1"></script>
+<script type="module" src="app.js?v=37_1"></script>
 <!-- Cache/SW reset helper: /reset.html -->
+
+<div id="caddyPanel" class="caddy-panel hidden" role="dialog" aria-modal="true">
+  <div class="caddy-top">
+    <div id="caddyTarget" class="caddy-target">Target: —</div>
+    <div class="caddy-mode">
+      <button id="modeCarry" class="mode-btn active" type="button">CARRY</button>
+      <button id="modeTotal" class="mode-btn" type="button">TOTAL</button>
+    </div>
+  </div>
+  <div class="caddy-adjust">
+    <button class="adj" data-adj="-10" type="button">-10</button>
+    <button class="adj" data-adj="-5" type="button">-5</button>
+    <button class="adj" data-adj="0" type="button">0</button>
+    <button class="adj" data-adj="5" type="button">+5</button>
+    <button class="adj" data-adj="10" type="button">+10</button>
+  </div>
+  <div id="caddySuggestions" class="caddy-suggestions"></div>
+  <div class="caddy-actions">
+    <button id="closeCaddyBtn" class="secondary" type="button">Close</button>
+  </div>
+</div>
 </body>
 </html>
