@@ -377,3 +377,14 @@ select{
   background: rgba(63,212,107,0.25);
   border: 1px solid rgba(63,212,107,0.55);
 }
+
+
+/* v37_22 scoreboard */
+.pill{display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 10px}
+.pill span{font-size:20px; font-weight:950; color:var(--text); line-height:1}
+.pill{font-size:11px}
+
+/* v37_22 shot action row */
+#shotActions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+#shotActions .mini{min-width:110px}
+.hint{font-size:12px;color:var(--muted);opacity:.85;font-weight:700}

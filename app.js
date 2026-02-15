@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_21"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_22"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -957,7 +957,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     localStorage.setItem("bagMatrix_v1", JSON.stringify(m));
     return m;
   }
-  const bag = loadBag();
+  let bag = loadBag();
 
   function parseToFlag(){
     const el = getEl("toFlag");
@@ -1021,13 +1021,13 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     });
 
     if(!showAll){
-      const filtered = rows.filter(r => Math.abs(r.delta) <= 10);
-      if(filtered.length){ rows = filtered; }
+      rows = rows.filter(r => Math.abs(r.delta) <= 10);
     }
 
     if(!rows.length){
       const d=document.createElement("div");
-      d.className="row"; d.textContent="No bag distances yet (use BAG to enter carry/total)";
+      d.className="row";
+      d.textContent = showAll ? "No bag distances yet (use BAG to enter carry/total)" : "No clubs within 10y (tap SHOW ALL)";
       list.appendChild(d);
       return;
     }
@@ -1065,6 +1065,16 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
         if(bd) bd.classList.add("hidden");
         if(panel) panel.classList.add("hidden");
         if(typeof toast === "function") toast(`✅ Selected ${r.club} ${r.st}`, 900);
+        // v37_22 auto-add shot on caddy selection
+        try{
+          const ms = document.getElementById("markShot");
+          if(ms && !ms.disabled){
+            ms.click();
+          }else{
+            if(typeof toast === "function") toast("ℹ️ Add Shot is disabled (GPS/tee?)", 1100);
+          }
+        }catch(e){}
+
       });
 
       list.appendChild(div);
@@ -1075,6 +1085,20 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     mode = m;
     const carry = getEl("modeCarry");
     const total = getEl("modeTotal");
+    // v37_22 SHOW ALL toggle
+    let showBtn = getEl("caddyShowAll");
+    if(!showBtn){
+      const host = panel ? panel.querySelector(".caddy-mode") : null;
+      if(host){
+        showBtn = document.createElement("button");
+        showBtn.id="caddyShowAll";
+        showBtn.className="mode-btn";
+        showBtn.type="button";
+        showBtn.textContent="SHOW ALL";
+        host.insertBefore(showBtn, host.firstChild);
+      }
+    }
+
     if(carry && total){
       carry.classList.toggle("active", mode==="carry");
       total.classList.toggle("active", mode==="total");
@@ -1095,6 +1119,20 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 
     const carry = getEl("modeCarry");
     const total = getEl("modeTotal");
+    // v37_22 SHOW ALL toggle
+    let showBtn = getEl("caddyShowAll");
+    if(!showBtn){
+      const host = panel ? panel.querySelector(".caddy-mode") : null;
+      if(host){
+        showBtn = document.createElement("button");
+        showBtn.id="caddyShowAll";
+        showBtn.className="mode-btn";
+        showBtn.type="button";
+        showBtn.textContent="SHOW ALL";
+        host.insertBefore(showBtn, host.firstChild);
+      }
+    }
+
 
     if(inp){
       inp.addEventListener("input", ()=>{ attemptedDirty = true; });
@@ -1105,10 +1143,18 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
       const bd = getEl("caddyBackdrop");
       if(bd) bd.classList.remove("hidden");
       panel.classList.remove("hidden");
+      // v37_22 reset adjustment each session
+      adjust = 0;
+      try{
+        const z = document.querySelector(".adj[data-adj=\"0\"]");
+        if(z) z.click();
+      }catch(e){}
+      // v37_22 reload bag each open (bag edits reflect immediately)
+      bag = loadBag();
       update();
     });
     }
-    if(close && panel){
+if(close && panel){
       close.addEventListener("click", ()=>{
       const bd = getEl("caddyBackdrop");
       if(bd) bd.classList.add("hidden");
@@ -1117,6 +1163,13 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     }
     if(carry) carry.addEventListener("click", ()=>setMode("carry"));
     if(total) total.addEventListener("click", ()=>setMode("total"));
+    if(showBtn){
+      showBtn.addEventListener("click", ()=>{
+        showAll = !showAll;
+        showBtn.classList.toggle("active", showAll);
+        update();
+      });
+    }
     document.querySelectorAll(".adj").forEach(b=>{
       b.addEventListener("click", ()=>{ adjust = parseInt(b.dataset.adj,10)||0; update(); });
     });
@@ -1202,6 +1255,13 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     const panel = el("bagPanel");
     if(bd) bd.classList.add("hidden");
     if(panel) panel.classList.add("hidden");
+    // v37_22 refresh caddy list if it is open
+    try{
+      const cp = document.getElementById("caddyPanel");
+      if(cp && !cp.classList.contains("hidden") && typeof window.__caddyUpdate === "function"){
+        window.__caddyUpdate();
+      }
+    }catch(e){}
   }
 
   function currentKey(clubSel, typeSel){
@@ -1336,3 +1396,30 @@ window.__consumePendingCaddy = function(){
   window.__PENDING_CADDY_SELECTION = null;
   return p;
 };
+
+
+/* v37_22 courseSetup nav */
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btn = document.getElementById("courseSetup");
+  if(btn){
+    btn.addEventListener("click", ()=>{
+      try{ window.location.href = "course-setup.html"; }catch(e){}
+    });
+  }
+});
+
+
+/* v37_22 dup action buttons */
+document.addEventListener("DOMContentLoaded", ()=>{
+  const link = (srcId, dstId)=>{
+    const s=document.getElementById(srcId);
+    const d=document.getElementById(dstId);
+    if(s && d){
+      d.addEventListener("click", ()=>{ try{s.click();}catch(e){} });
+    }
+  };
+  // Forward duplicates to original handlers
+  link("deleteLast","deleteLast2");
+  link("fw","fw2");
+  link("gir","gir2");
+});
