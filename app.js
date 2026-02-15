@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_17"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_18"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -991,31 +991,60 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 
     const rows=[];
     for(const club of Object.keys(bag)){
-      for(const st of CADDY_TYPES){
-        const dist = bag?.[club]?.[st]?.[mode];
-        if(!Number.isFinite(dist)) continue;
-        rows.push({club, st, dist, delta: dist - t});
+      for(const st of Object.keys(bag[club]||{})){
+        const row = bag?.[club]?.[st] || {};
+        const carry = Number.isFinite(row.carry) ? row.carry : 0;
+        const total = Number.isFinite(row.total) ? row.total : 0;
+
+        // Skip empty entries (both 0)
+        if(!carry && !total) continue;
+
+        const dist = (mode === "carry") ? carry : total;
+        const delta = dist - t;
+
+        rows.push({club, st, carry, total, dist, delta, modeZero: (dist===0)});
       }
     }
-    rows.sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta));
+
+    // Sort by: non-zero in selected mode first, then closest absolute delta
+    rows.sort((a,b)=>{
+      if(a.modeZero !== b.modeZero) return a.modeZero ? 1 : -1;
+      return Math.abs(a.delta) - Math.abs(b.delta);
+    });
 
     if(!rows.length){
       const d=document.createElement("div");
-      d.className="row"; d.textContent="No bag distances yet (BAG editor next)";
+      d.className="row"; d.textContent="No bag distances yet (use BAG to enter carry/total)";
       list.appendChild(d);
       return;
     }
 
-    rows.slice(0,8).forEach(r=>{
+    rows.slice(0,10).forEach((r, idx)=>{
       const div=document.createElement("div");
-      div.className="row";
-      const l=document.createElement("div"); l.textContent=`${r.club} ${r.st}`;
+      div.className = "row" + (idx===0 ? " best" : "");
+
+      const l=document.createElement("div");
+      l.textContent=`${r.club} ${r.st}`;
+
+      const right=document.createElement("div");
+      right.className="right";
+
+      const ct=document.createElement("div");
+      ct.innerHTML = `C <span class="muted">${r.carry}</span>  T <span class="muted">${r.total}</span>`;
+
       const sign=r.delta>=0?"+":"";
-      const rr=document.createElement("div"); rr.textContent=`${r.dist} (Δ ${sign}${r.delta})`;
-      div.appendChild(l); div.appendChild(rr);
+      const dlt=document.createElement("div");
+      dlt.className="muted";
+      dlt.textContent = `Δ ${sign}${r.delta}`;
+
+      right.appendChild(ct);
+      right.appendChild(dlt);
+
+      div.appendChild(l);
+      div.appendChild(right);
+
       div.addEventListener("click", ()=>{
         selected = { club: r.club, shotType: r.st };
-        // prefill selects if present
         const cs = getEl("clubSelect"); if(cs) cs.value = r.club;
         const stSel = getEl("shotTypeSelect"); if(stSel) stSel.value = r.st;
         const panel = getEl("caddyPanel"); const bd = getEl("caddyBackdrop");
@@ -1023,6 +1052,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
         if(panel) panel.classList.add("hidden");
         if(typeof toast === "function") toast(`✅ Selected ${r.club} ${r.st}`, 900);
       });
+
       list.appendChild(div);
     });
   }
