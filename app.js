@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_28"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_29"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -663,8 +663,8 @@ els.shotsList.addEventListener("change", (e)=>{
 els.par3 && els.par3.addEventListener("click", ()=>{ holes[currentHole].par=3; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.par4 && els.par4.addEventListener("click", ()=>{ holes[currentHole].par=4; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.par5 && els.par5.addEventListener("click", ()=>{ holes[currentHole].par=5; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.fw.addEventListener("click", ()=>{ holes[currentHole].fairway=!holes[currentHole].fairway; finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHole].gir; finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.fw && els.fw.addEventListener("click", ()=>{ holes[currentHole].fairway=!holes[currentHole].fairway; finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.gir && els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHole].gir; finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.holeYards.addEventListener("input", ()=>{ const v=parseInt(els.holeYards.value,10); holes[currentHole].holeYards = Number.isFinite(v)?v:null; setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); });
 
 els.markTee.addEventListener("click", async ()=>{
@@ -875,7 +875,7 @@ if(els.addPenalty){
   });
 }
 
-els.deleteLast.addEventListener("click", ()=>{
+els.deleteLast && els.deleteLast.addEventListener("click", ()=>{
   const h=holes[currentHole];
   if(!h.shots.length) return toast("Nothing to delete",1500);
   h.shots.pop();
@@ -1373,3 +1373,28 @@ document.addEventListener("DOMContentLoaded", ()=>{
     }catch(e){}
   });
 });
+
+
+/* v37_29 safeBind: prevent boot crashes when UI ids change */
+(function(){
+  function byId(id){ return document.getElementById(id); }
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const del2 = byId("deleteLast2");
+    const fwy2 = byId("fw2");
+    const gir2 = byId("gir2");
+
+    const legacyDel = byId("deleteLast");
+    const legacyFwy = byId("fw");
+    const legacyGir = byId("gir");
+
+    if(del2){
+      del2.addEventListener("click", ()=>{ try{ if(legacyDel) legacyDel.click(); }catch(e){} });
+    }
+    if(fwy2){
+      fwy2.addEventListener("click", ()=>{ try{ if(legacyFwy) legacyFwy.click(); }catch(e){} });
+    }
+    if(gir2){
+      gir2.addEventListener("click", ()=>{ try{ if(legacyGir) legacyGir.click(); }catch(e){} });
+    }
+  });
+})();

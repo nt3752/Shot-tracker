@@ -393,3 +393,9 @@ select{
 .pill{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px}
 .pill span{font-size:20px;font-weight:950;line-height:1}
 .pill{font-size:11px}
+
+
+/* v37_29 scoreboard */
+.pills {display:flex;gap:10px;flex-wrap:nowrap}
+.pill {padding:10px 12px;border-radius:18px}
+.pill span {font-size:26px;font-weight:1000;letter-spacing:0.3px}
