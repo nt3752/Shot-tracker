@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_26"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_27"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -18,7 +18,6 @@ const els = {
   shotCount: $("shotCount"),
   totalShots: $("totalShots"),
   roundName: $("roundName"),
-  par3: $("par3"), par4: $("par4"), par5: $("par5"),
   parInput: $("parInput"),
   fw: $("fw") || $("fw2"),
   gir: $("gir") || $("gir2"),
@@ -660,10 +659,6 @@ els.shotsList.addEventListener("change", (e)=>{
   save();
 });
 
-
-els.par3.addEventListener("click", ()=>{ holes[currentHole].par=3; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.par4.addEventListener("click", ()=>{ holes[currentHole].par=4; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
-els.par5.addEventListener("click", ()=>{ holes[currentHole].par=5; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
 if(els.fw) els.fw.addEventListener("click", ()=>{ holes[currentHole].fairway=!holes[currentHole].fairway; finalizeHoleSummary(currentHole); save(); renderShots(); });
 if(els.gir) els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHole].gir; finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.holeYards.addEventListener("input", ()=>{ const v=parseInt(els.holeYards.value,10); holes[currentHole].holeYards = Number.isFinite(v)?v:null; setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); });
@@ -1455,6 +1450,27 @@ document.addEventListener("DOMContentLoaded", ()=>{
         h.par = d ? Number(d) : 0;
         save();
         renderHeader();
+      }
+    }catch(e){}
+  };
+  el.addEventListener("input", clamp);
+});
+
+/* v37_27 parInput stable */
+document.addEventListener("DOMContentLoaded", ()=>{
+  const el = document.getElementById("parInput");
+  if(!el) return;
+  const clamp = ()=>{
+    const d = String(el.value||"").replace(/\D/g,"").slice(0,1);
+    el.value = d;
+    try{
+      if(typeof holes !== "undefined" && typeof currentHole !== "undefined"){
+        const h = holes[currentHole];
+        if(h){
+          h.par = d ? Number(d) : 0;
+          if(typeof save === "function") save();
+          if(typeof renderHeader === "function") renderHeader();
+        }
       }
     }catch(e){}
   };
