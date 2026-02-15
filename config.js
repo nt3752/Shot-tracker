@@ -14,264 +14,64 @@ window.APP_CONFIG = {
   // Edit these numbers (yards) as you learn your distances.
   bagMatrix: {
   "D": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 210,
+      "total": 225
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
-  },
-  "MD": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
+      },  
+"MD": {
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 195,
+      "total": 205
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "3W": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
       "carry": 0,
       "total": 0
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "5W": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
       "carry": 0,
       "total": 0
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "7W": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 175,
+      "total": 185
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "3H": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
       "carry": 0,
       "total": 0
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "5H": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 150,
+      "total": 160
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "4I": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
       "carry": 0,
       "total": 0
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "5I": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
       "carry": 0,
       "total": 0
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "6I": {
-    "3/4": {
-      "carry": 0,
-      "total": 0
-    },
-    "1/2": {
-      "carry": 0,
-      "total": 0
-    },
     "full": {
       "carry": 0,
       "total": 0
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "7I": {
     "3/4": {
@@ -283,21 +83,9 @@ window.APP_CONFIG = {
       "total": 0
     },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 138,
+      "total": 148
     },
-    "pitch": {
-      "carry": 0,
-      "total": 0
-    },
-    "chip": {
-      "carry": 0,
-      "total": 0
-    },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "8I": {
     "3/4": {
@@ -309,21 +97,13 @@ window.APP_CONFIG = {
       "total": 0
     },
     "full": {
-      "carry": 0,
-      "total": 0
-    },
-    "pitch": {
-      "carry": 0,
-      "total": 0
+      "carry": 130,
+      "total": 135
     },
     "chip": {
       "carry": 0,
       "total": 0
     },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "9I": {
     "3/4": {
@@ -335,8 +115,8 @@ window.APP_CONFIG = {
       "total": 0
     },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 117,
+      "total": 123
     },
     "pitch": {
       "carry": 0,
@@ -346,10 +126,6 @@ window.APP_CONFIG = {
       "carry": 0,
       "total": 0
     },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "PW": {
     "3/4": {
@@ -361,8 +137,8 @@ window.APP_CONFIG = {
       "total": 0
     },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 105,
+      "total": 110
     },
     "pitch": {
       "carry": 0,
@@ -372,10 +148,6 @@ window.APP_CONFIG = {
       "carry": 0,
       "total": 0
     },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "46": {
     "3/4": {
@@ -387,8 +159,8 @@ window.APP_CONFIG = {
       "total": 0
     },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 97,
+      "total": 103
     },
     "pitch": {
       "carry": 0,
@@ -398,10 +170,6 @@ window.APP_CONFIG = {
       "carry": 0,
       "total": 0
     },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "56": {
     "3/4": {
@@ -413,8 +181,8 @@ window.APP_CONFIG = {
       "total": 0
     },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 72,
+      "total": 77
     },
     "pitch": {
       "carry": 0,
@@ -424,23 +192,19 @@ window.APP_CONFIG = {
       "carry": 0,
       "total": 0
     },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   },
   "60": {
     "3/4": {
-      "carry": 0,
-      "total": 0
+      "carry": 47,
+      "total": 53
     },
     "1/2": {
       "carry": 0,
       "total": 0
     },
     "full": {
-      "carry": 0,
-      "total": 0
+      "carry": 62,
+      "total": 65
     },
     "pitch": {
       "carry": 0,
@@ -450,10 +214,6 @@ window.APP_CONFIG = {
       "carry": 0,
       "total": 0
     },
-    "putt": {
-      "carry": 0,
-      "total": 0
-    }
   }
 }
 };
