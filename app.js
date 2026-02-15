@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_19"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_20"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -990,7 +990,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
       return;
     }
 
-    const rows=[];
+    let rows=[];
     for(const club of Object.keys(bag)){
       for(const st of Object.keys(bag[club]||{})){
         const row = bag?.[club]?.[st] || {};
@@ -1015,7 +1015,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 
     if(!showAll){
       const filtered = rows.filter(r => Math.abs(r.delta) <= 10);
-      if(filtered.length) rows = filtered;
+      if(filtered.length){ rows = filtered; }
     }
 
     if(!rows.length){
