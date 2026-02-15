@@ -388,3 +388,26 @@ select{
 #shotActions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
 #shotActions .mini{min-width:110px}
 .hint{font-size:12px;color:var(--muted);opacity:.85;font-weight:700}
+
+
+/* v37_23 compact row + abbreviations */
+#shotActions{
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+#shotActions .mini{
+  min-width: 88px !important;
+  padding: 10px 10px;
+}
+
+/* compact PAR and yards inputs */
+.par-box{
+  width: 52px !important;
+  text-align: center;
+  font-weight: 900;
+}
+.yards-box{
+  width: 90px !important;
+  text-align: center;
+  font-weight: 900;
+}

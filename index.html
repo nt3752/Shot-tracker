@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Shot Tracker v37_22</title>
+  <title>Shot Tracker v37_23</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#061612" />
   <link rel="stylesheet" href="styles.css" />
@@ -11,7 +11,7 @@
 <body>
 <header class="header">
   <div class="toprow">
-    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_22</span></div>
+    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_23</span></div>
     <button id="liveBadge" class="badge on" type="button" title="Tap to toggle live yardage">LIVE:—</button>
   </div>
   <div class="subrow">
@@ -29,7 +29,7 @@
   <h2>Course</h2>
   <div class="row">
     <button id="courseSetup" class="mini" type="button">⚙️ Course Setup</button>
-    <div class="hint">Use Course Setup to pick/add/clear course + round.</div>
+    
   </div>
 </section>
 
@@ -44,13 +44,13 @@
       <button class="toggleBtn mini" id="par4" type="button">4</button>
       <button class="toggleBtn mini" id="par5" type="button">5</button>
       <div class="spacer"></div>
-      <button class="toggleBtn" id="fw" type="button">Fairway</button>
+      <button class="toggleBtn" id="fw" type="button">FWY</button>
       <button class="toggleBtn" id="gir" type="button">GIR</button>
     </div>
 
     <div class="metaLine" style="margin-top:10px;">
       <div class="metaLabel">Hole Yds</div>
-      <input id="holeYards" type="number" inputmode="numeric" placeholder="e.g. 385" />
+      <input id="holeYards" class="yards-box" type="number" inputmode="numeric" placeholder="e.g. 385" />
       <div class="spacer"></div>
       
     </div>
@@ -94,8 +94,8 @@
 
     <section class="section" id="shotActions">
     <button id="addPenalty" class="mini" type="button">+ Penalty</button>
-    <button id="deleteLast2" class="mini danger2" type="button">🗑 Delete Last</button>
-    <button id="fw2" class="mini" type="button">Fairway</button>
+    <button id="deleteLast2" class="mini danger2" type="button">DEL SHOT</button>
+    <button id="fw2" class="mini" type="button">FWY</button>
     <button id="gir2" class="mini" type="button">GIR</button>
   </section>
 
@@ -200,8 +200,8 @@
   setTimeout(function(){ if(!window.__ST_BOOTED) show('❌ app.js did not boot (module failed to load/run)'); }, 1200);
 })();
 </script>
-<script src="config.js?v=37_22"></script>
-<script type="module" src="app.js?v=37_22"></script>
+<script src="config.js?v=37_23"></script>
+<script type="module" src="app.js?v=37_23"></script>
 <!-- Cache/SW reset helper: /reset.html -->
 </body>
 </html>

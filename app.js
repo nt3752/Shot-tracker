@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_22"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_23"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -1422,4 +1422,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
   link("deleteLast","deleteLast2");
   link("fw","fw2");
   link("gir","gir2");
+});
+
+/* v37_23 par clamp */
+document.addEventListener("DOMContentLoaded", ()=>{
+  const ids = ["par","holePar","parInput"];
+  let el = null;
+  for(const id of ids){
+    const x = document.getElementById(id);
+    if(x){ el = x; break; }
+  }
+  if(el){
+    el.addEventListener("input", ()=>{
+      const d = String(el.value||"").replace(/\D/g,"").slice(0,1);
+      el.value = d;
+    });
+  }
 });
