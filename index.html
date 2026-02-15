@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Shot Tracker v37_23</title>
+  <title>Shot Tracker v37_24</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#061612" />
   <link rel="stylesheet" href="styles.css" />
@@ -11,7 +11,7 @@
 <body>
 <header class="header">
   <div class="toprow">
-    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_23</span></div>
+    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_24</span></div>
     <button id="liveBadge" class="badge on" type="button" title="Tap to toggle live yardage">LIVE:—</button>
   </div>
   <div class="subrow">
@@ -36,25 +36,17 @@
 
 
 
-  <section class="section">
-    <h2>This Hole</h2>
-    <div class="metaLine">
-      <div class="metaLabel">Par</div>
-      <button class="toggleBtn mini" id="par3" type="button">3</button>
-      <button class="toggleBtn mini" id="par4" type="button">4</button>
-      <button class="toggleBtn mini" id="par5" type="button">5</button>
-      <div class="spacer"></div>
-      <button class="toggleBtn" id="fw" type="button">FWY</button>
-      <button class="toggleBtn" id="gir" type="button">GIR</button>
-    </div>
+  
+<section class="section">
+  <h2>This Hole</h2>
+  <div class="metaLine">
+    <div class="metaLabel">Par</div>
+    <input id="parInput" class="par-box" type="number" inputmode="numeric" placeholder="4" />
+    <div class="metaLabel" style="margin-left:12px;">Yds</div>
+    <input id="holeYards" class="yards-box" type="number" inputmode="numeric" placeholder="385" />
+  </div>
+</section>
 
-    <div class="metaLine" style="margin-top:10px;">
-      <div class="metaLabel">Hole Yds</div>
-      <input id="holeYards" class="yards-box" type="number" inputmode="numeric" placeholder="e.g. 385" />
-      <div class="spacer"></div>
-      
-    </div>
-  </section>
   <section class="section">
     <h2>Rangefinder</h2>
     <div class="row manualWrap" id="manualWrap" style="margin-top:10px;">
@@ -200,8 +192,8 @@
   setTimeout(function(){ if(!window.__ST_BOOTED) show('❌ app.js did not boot (module failed to load/run)'); }, 1200);
 })();
 </script>
-<script src="config.js?v=37_23"></script>
-<script type="module" src="app.js?v=37_23"></script>
+<script src="config.js?v=37_24"></script>
+<script type="module" src="app.js?v=37_24"></script>
 <!-- Cache/SW reset helper: /reset.html -->
 </body>
 </html>

@@ -411,3 +411,17 @@ select{
   text-align: center;
   font-weight: 900;
 }
+
+
+/* v37_24 action row fit */
+#shotActions{
+  flex-wrap: nowrap !important;
+  overflow-x: hidden;
+}
+#shotActions .mini{
+  flex: 1 1 0;
+  min-width: 0 !important;
+  padding: 10px 8px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
