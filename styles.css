@@ -370,3 +370,10 @@ select{
   opacity: 0.75;
   font-weight: 700;
 }
+
+
+/* v37_19 show all toggle */
+#caddyShowAllBtn.on{
+  background: rgba(63,212,107,0.25);
+  border: 1px solid rgba(63,212,107,0.55);
+}

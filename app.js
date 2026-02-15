@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_18"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_19"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -927,6 +927,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 (() => {
   const CADDY_TYPES = ["full","3/4","1/2","pitch"];
   let mode = "carry";
+  let showAll = false;
   let adjust = 0;
   let selected = { club: null, shotType: null };
   let attemptedDirty = false;
@@ -1012,6 +1013,11 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
       return Math.abs(a.delta) - Math.abs(b.delta);
     });
 
+    if(!showAll){
+      const filtered = rows.filter(r => Math.abs(r.delta) <= 10);
+      if(filtered.length) rows = filtered;
+    }
+
     if(!rows.length){
       const d=document.createElement("div");
       d.className="row"; d.textContent="No bag distances yet (use BAG to enter carry/total)";
@@ -1019,7 +1025,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
       return;
     }
 
-    rows.slice(0,10).forEach((r, idx)=>{
+    rows.slice(0, (showAll ? 30 : 10)).forEach((r, idx)=>{
       const div=document.createElement("div");
       div.className = "row" + (idx===0 ? " best" : "");
 
@@ -1035,7 +1041,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
       const sign=r.delta>=0?"+":"";
       const dlt=document.createElement("div");
       dlt.className="muted";
-      dlt.textContent = `Δ ${sign}${r.delta}`;
+      dlt.textContent = `${sign}${r.delta}y`;
 
       right.appendChild(ct);
       right.appendChild(dlt);
@@ -1045,6 +1051,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 
       div.addEventListener("click", ()=>{
         selected = { club: r.club, shotType: r.st };
+        if(window.__setPendingCaddy) window.__setPendingCaddy(r.club, r.st);
         const cs = getEl("clubSelect"); if(cs) cs.value = r.club;
         const stSel = getEl("shotTypeSelect"); if(stSel) stSel.value = r.st;
         const panel = getEl("caddyPanel"); const bd = getEl("caddyBackdrop");
@@ -1309,4 +1316,16 @@ window.__getCfgSafe = function(){
   }catch(e){
     return { clubs:[], shotTypes:["Type?","full","pitch","chip","putt","penalty"], defaults:{club:"Club?",shotType:"Type?"}, bagMatrix:{} };
   }
+};
+
+
+/* v37_19 pending caddy selection for next Add Shot */
+window.__PENDING_CADDY_SELECTION = null;
+window.__setPendingCaddy = function(club, shotType){
+  try{ window.__PENDING_CADDY_SELECTION = { club, shotType }; }catch(e){}
+};
+window.__consumePendingCaddy = function(){
+  const p = window.__PENDING_CADDY_SELECTION;
+  window.__PENDING_CADDY_SELECTION = null;
+  return p;
 };
