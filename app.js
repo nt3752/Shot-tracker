@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_20"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_21"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -758,8 +758,15 @@ els.markShot.addEventListener("click", async ()=>{
     const h=holes[currentHole];
     if(!h.teeBox) return toast("⚠️ Mark tee first",2200);
 
-    const club = DEFAULT_CLUB;
-    const shotType = DEFAULT_SHOT_TYPE;
+    const pending = (window.__consumePendingCaddy ? window.__consumePendingCaddy() : null);
+    const uiClub = (els.clubSelect && els.clubSelect.value) ? els.clubSelect.value : null;
+    const uiType = (els.shotTypeSelect && els.shotTypeSelect.value) ? els.shotTypeSelect.value : null;
+    const club = (pending && pending.club) ? pending.club : (uiClub || DEFAULT_CLUB);
+    const shotType = (pending && pending.shotType) ? pending.shotType : (uiType || DEFAULT_SHOT_TYPE);
+    try{
+      if(els.clubSelect) els.clubSelect.value = club;
+      if(els.shotTypeSelect) els.shotTypeSelect.value = shotType;
+    }catch(e){}
 
     // 1) Add placeholder row immediately so you know the press registered
     const shot={
