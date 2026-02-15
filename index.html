@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Shot Tracker v37_27</title>
+  <title>Shot Tracker v37_28</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#061612" />
   <link rel="stylesheet" href="styles.css" />
@@ -11,7 +11,7 @@
 <body>
 <header class="header">
   <div class="toprow">
-    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_27</span></div>
+    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_28</span></div>
     <button id="liveBadge" class="badge on" type="button" title="Tap to toggle live yardage">LIVE:—</button>
   </div>
   <div class="subrow">
@@ -29,7 +29,6 @@
   <h2>Course</h2>
   <div class="row">
     <button id="courseSetup" class="mini" type="button">⚙️ Course Setup</button>
-    
   </div>
 </section>
 
@@ -84,12 +83,16 @@
     <button id="newRound" class="mini" type="button">New/Load</button>
   </section>
 
-    <section class="section" id="shotActions">
-    <button id="addPenalty" class="mini" type="button">+ Penalty</button>
-    <button id="deleteLast2" class="mini danger2" type="button">DEL SHOT</button>
+    
+<section class="section" id="shotActions">
+  <div class="row actionRow">
+    <button id="addPenalty" class="mini danger" type="button">+ Pen</button>
+    <button id="deleteLast2" class="mini danger2" type="button">DEL</button>
     <button id="fw2" class="mini" type="button">FWY</button>
     <button id="gir2" class="mini" type="button">GIR</button>
-  </section>
+  </div>
+</section>
+
 
 <section class="section shots" id="shotsList"></section>
 
@@ -192,8 +195,8 @@
   setTimeout(function(){ if(!window.__ST_BOOTED) show('❌ app.js did not boot (module failed to load/run)'); }, 1200);
 })();
 </script>
-<script src="config.js?v=37_27"></script>
-<script type="module" src="app.js?v=37_27"></script>
+<script src="config.js?v=37_28"></script>
+<script type="module" src="app.js?v=37_28"></script>
 <!-- Cache/SW reset helper: /reset.html -->
 </body>
 </html>

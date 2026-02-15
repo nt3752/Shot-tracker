@@ -379,49 +379,17 @@ select{
 }
 
 
-/* v37_22 scoreboard */
-.pill{display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 10px}
-.pill span{font-size:20px; font-weight:950; color:var(--text); line-height:1}
+/* v37_28 polish */
+.metaLine{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.metaLabel{font-size:12px;font-weight:800;color:var(--muted);}
+.par-box{width:54px !important;text-align:center;font-weight:950}
+.yards-box{width:92px !important;text-align:center;font-weight:950}
+
+/* action row */
+.actionRow{display:flex;gap:8px;flex-wrap:nowrap}
+.actionRow .mini{flex:1 1 0;min-width:0;padding:11px 8px;font-size:14px;font-weight:850}
+
+/* scoreboard header pills */
+.pill{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px}
+.pill span{font-size:20px;font-weight:950;line-height:1}
 .pill{font-size:11px}
-
-/* v37_22 shot action row */
-#shotActions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-#shotActions .mini{min-width:110px}
-.hint{font-size:12px;color:var(--muted);opacity:.85;font-weight:700}
-
-
-/* v37_23 compact row + abbreviations */
-#shotActions{
-  flex-wrap: nowrap;
-  overflow-x: auto;
-}
-#shotActions .mini{
-  min-width: 88px !important;
-  padding: 10px 10px;
-}
-
-/* compact PAR and yards inputs */
-.par-box{
-  width: 52px !important;
-  text-align: center;
-  font-weight: 900;
-}
-.yards-box{
-  width: 90px !important;
-  text-align: center;
-  font-weight: 900;
-}
-
-
-/* v37_24 action row fit */
-#shotActions{
-  flex-wrap: nowrap !important;
-  overflow-x: hidden;
-}
-#shotActions .mini{
-  flex: 1 1 0;
-  min-width: 0 !important;
-  padding: 10px 8px;
-  font-size: 14px;
-  letter-spacing: 0.2px;
-}

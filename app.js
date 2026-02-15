@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_27"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_28"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -18,10 +18,10 @@ const els = {
   shotCount: $("shotCount"),
   totalShots: $("totalShots"),
   roundName: $("roundName"),
-  parInput: $("parInput"),
-  fw: $("fw") || $("fw2"),
-  gir: $("gir") || $("gir2"),
+  par3: $("par3"), par4: $("par4"), par5: $("par5"),
+  fw: $("fw"), gir: $("gir"),
   holeYards: $("holeYards"),
+  parInput: $("parInput"),
 
   manualWrap: $("manualWrap"),
   manualInput: $("manualInput"),
@@ -31,7 +31,7 @@ const els = {
   markFlag: $("markFlag"),
   markShot: $("markShot"),
   addPenalty: $("addPenalty"),
-  deleteLast: $("deleteLast") || $("deleteLast2"),
+  deleteLast: $("deleteLast"),
   prev: $("prev"),
   next: $("next"),
   exportBtn: $("export"),
@@ -318,9 +318,9 @@ function finalizeHoleSummary(holeNum){
 
 function updateMetaButtons(){
   const h=holes[currentHole];
-  els.par3.classList.toggle("on", h.par===3);
-  els.par4.classList.toggle("on", h.par===4);
-  els.par5.classList.toggle("on", h.par===5);
+  els.par3 && els.par3.classList.toggle("on", h.par===3);
+  els.par4 && els.par4.classList.toggle("on", h.par===4);
+  els.par5 && els.par5.classList.toggle("on", h.par===5);
   els.fw.classList.toggle("on", !!h.fairway);
   els.gir.classList.toggle("on", !!h.gir);
   els.holeYards.value = (h.holeYards ?? "");
@@ -659,8 +659,12 @@ els.shotsList.addEventListener("change", (e)=>{
   save();
 });
 
-if(els.fw) els.fw.addEventListener("click", ()=>{ holes[currentHole].fairway=!holes[currentHole].fairway; finalizeHoleSummary(currentHole); save(); renderShots(); });
-if(els.gir) els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHole].gir; finalizeHoleSummary(currentHole); save(); renderShots(); });
+
+els.par3 && els.par3.addEventListener("click", ()=>{ holes[currentHole].par=3; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 3); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.par4 && els.par4.addEventListener("click", ()=>{ holes[currentHole].par=4; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 4); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.par5 && els.par5.addEventListener("click", ()=>{ holes[currentHole].par=5; holes[currentHole]._parUserSet=true; setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); setCourseHolePar(courseStore, currentHole, 5); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.fw.addEventListener("click", ()=>{ holes[currentHole].fairway=!holes[currentHole].fairway; finalizeHoleSummary(currentHole); save(); renderShots(); });
+els.gir.addEventListener("click", ()=>{ holes[currentHole].gir=!holes[currentHole].gir; finalizeHoleSummary(currentHole); save(); renderShots(); });
 els.holeYards.addEventListener("input", ()=>{ const v=parseInt(els.holeYards.value,10); holes[currentHole].holeYards = Number.isFinite(v)?v:null; setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); setCourseHoleYards(courseStore, currentHole, holes[currentHole].holeYards); saveCourseStore(courseStore); finalizeHoleSummary(currentHole); save(); });
 
 els.markTee.addEventListener("click", async ()=>{
@@ -871,7 +875,7 @@ if(els.addPenalty){
   });
 }
 
-if(els.deleteLast) els.deleteLast.addEventListener("click", ()=>{
+els.deleteLast.addEventListener("click", ()=>{
   const h=holes[currentHole];
   if(!h.shots.length) return toast("Nothing to delete",1500);
   h.shots.pop();
@@ -954,7 +958,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     localStorage.setItem("bagMatrix_v1", JSON.stringify(m));
     return m;
   }
-  let bag = loadBag();
+  const bag = loadBag();
 
   function parseToFlag(){
     const el = getEl("toFlag");
@@ -1018,13 +1022,13 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     });
 
     if(!showAll){
-      rows = rows.filter(r => Math.abs(r.delta) <= 10);
+      const filtered = rows.filter(r => Math.abs(r.delta) <= 10);
+      if(filtered.length){ rows = filtered; }
     }
 
     if(!rows.length){
       const d=document.createElement("div");
-      d.className="row";
-      d.textContent = showAll ? "No bag distances yet (use BAG to enter carry/total)" : "No clubs within 10y (tap SHOW ALL)";
+      d.className="row"; d.textContent="No bag distances yet (use BAG to enter carry/total)";
       list.appendChild(d);
       return;
     }
@@ -1062,16 +1066,6 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
         if(bd) bd.classList.add("hidden");
         if(panel) panel.classList.add("hidden");
         if(typeof toast === "function") toast(`✅ Selected ${r.club} ${r.st}`, 900);
-        // v37_22 auto-add shot on caddy selection
-        try{
-          const ms = document.getElementById("markShot");
-          if(ms && !ms.disabled){
-            ms.click();
-          }else{
-            if(typeof toast === "function") toast("ℹ️ Add Shot is disabled (GPS/tee?)", 1100);
-          }
-        }catch(e){}
-
       });
 
       list.appendChild(div);
@@ -1082,20 +1076,6 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
     mode = m;
     const carry = getEl("modeCarry");
     const total = getEl("modeTotal");
-    // v37_22 SHOW ALL toggle
-    let showBtn = getEl("caddyShowAll");
-    if(!showBtn){
-      const host = panel ? panel.querySelector(".caddy-mode") : null;
-      if(host){
-        showBtn = document.createElement("button");
-        showBtn.id="caddyShowAll";
-        showBtn.className="mode-btn";
-        showBtn.type="button";
-        showBtn.textContent="SHOW ALL";
-        host.insertBefore(showBtn, host.firstChild);
-      }
-    }
-
     if(carry && total){
       carry.classList.toggle("active", mode==="carry");
       total.classList.toggle("active", mode==="total");
@@ -1116,20 +1096,6 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 
     const carry = getEl("modeCarry");
     const total = getEl("modeTotal");
-    // v37_22 SHOW ALL toggle
-    let showBtn = getEl("caddyShowAll");
-    if(!showBtn){
-      const host = panel ? panel.querySelector(".caddy-mode") : null;
-      if(host){
-        showBtn = document.createElement("button");
-        showBtn.id="caddyShowAll";
-        showBtn.className="mode-btn";
-        showBtn.type="button";
-        showBtn.textContent="SHOW ALL";
-        host.insertBefore(showBtn, host.firstChild);
-      }
-    }
-
 
     if(inp){
       inp.addEventListener("input", ()=>{ attemptedDirty = true; });
@@ -1140,18 +1106,10 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
       const bd = getEl("caddyBackdrop");
       if(bd) bd.classList.remove("hidden");
       panel.classList.remove("hidden");
-      // v37_22 reset adjustment each session
-      adjust = 0;
-      try{
-        const z = document.querySelector(".adj[data-adj=\"0\"]");
-        if(z) z.click();
-      }catch(e){}
-      // v37_22 reload bag each open (bag edits reflect immediately)
-      bag = loadBag();
       update();
     });
     }
-if(close && panel){
+    if(close && panel){
       close.addEventListener("click", ()=>{
       const bd = getEl("caddyBackdrop");
       if(bd) bd.classList.add("hidden");
@@ -1160,13 +1118,6 @@ if(close && panel){
     }
     if(carry) carry.addEventListener("click", ()=>setMode("carry"));
     if(total) total.addEventListener("click", ()=>setMode("total"));
-    if(showBtn){
-      showBtn.addEventListener("click", ()=>{
-        showAll = !showAll;
-        showBtn.classList.toggle("active", showAll);
-        update();
-      });
-    }
     document.querySelectorAll(".adj").forEach(b=>{
       b.addEventListener("click", ()=>{ adjust = parseInt(b.dataset.adj,10)||0; update(); });
     });
@@ -1252,13 +1203,6 @@ if(close && panel){
     const panel = el("bagPanel");
     if(bd) bd.classList.add("hidden");
     if(panel) panel.classList.add("hidden");
-    // v37_22 refresh caddy list if it is open
-    try{
-      const cp = document.getElementById("caddyPanel");
-      if(cp && !cp.classList.contains("hidden") && typeof window.__caddyUpdate === "function"){
-        window.__caddyUpdate();
-      }
-    }catch(e){}
   }
 
   function currentKey(clubSel, typeSel){
@@ -1394,85 +1338,38 @@ window.__consumePendingCaddy = function(){
   return p;
 };
 
-
-/* v37_22 courseSetup nav */
+/* v37_28 courseSetup nav */
 document.addEventListener("DOMContentLoaded", ()=>{
-  const btn = document.getElementById("courseSetup");
-  if(btn){
-    btn.addEventListener("click", ()=>{
-      try{ window.location.href = "course-setup.html"; }catch(e){}
-    });
-  }
+  const b=document.getElementById("courseSetup");
+  if(b) b.addEventListener("click", ()=>{ window.location.href="course-setup.html"; });
 });
 
-
-/* v37_22 dup action buttons */
+/* v37_28 action wiring */
 document.addEventListener("DOMContentLoaded", ()=>{
-  const link = (srcId, dstId)=>{
+  const bind=(srcId,dstId)=>{
     const s=document.getElementById(srcId);
     const d=document.getElementById(dstId);
-    if(s && d){
-      d.addEventListener("click", ()=>{ try{s.click();}catch(e){} });
-    }
+    if(s && d) d.addEventListener("click", ()=>{ try{s.click();}catch(e){} });
   };
-  // Forward duplicates to original handlers
-  link("deleteLast","deleteLast2");
-  link("fw","fw2");
-  link("gir","gir2");
+  bind("fw","fw2");
+  bind("gir","gir2");
+  bind("deleteLast","deleteLast2");
 });
 
-/* v37_23 par clamp */
+/* v37_28 parInput handler */
 document.addEventListener("DOMContentLoaded", ()=>{
-  const ids = ["par","holePar","parInput"];
-  let el = null;
-  for(const id of ids){
-    const x = document.getElementById(id);
-    if(x){ el = x; break; }
-  }
-  if(el){
-    el.addEventListener("input", ()=>{
-      const d = String(el.value||"").replace(/\D/g,"").slice(0,1);
-      el.value = d;
-    });
-  }
-});
-
-/* v37_24 parInput handler */
-document.addEventListener("DOMContentLoaded", ()=>{
-  const el = document.getElementById("parInput");
+  const el=document.getElementById("parInput");
   if(!el) return;
-  const clamp = ()=>{
-    const d = String(el.value||"").replace(/\D/g,"").slice(0,1);
-    el.value = d;
+  el.addEventListener("input", ()=>{
+    const d=String(el.value||"").replace(/\D/g,"").slice(0,1);
+    el.value=d;
     try{
-      const h = holes?.[currentHole];
-      if(h){
-        h.par = d ? Number(d) : 0;
-        save();
-        renderHeader();
+      if(typeof holes!=="undefined" && typeof currentHole!=="undefined"){
+        const h=holes[currentHole];
+        if(h) h.par = d ? Number(d) : 0;
+        if(typeof save==="function") save();
+        if(typeof renderHeader==="function") renderHeader();
       }
     }catch(e){}
-  };
-  el.addEventListener("input", clamp);
-});
-
-/* v37_27 parInput stable */
-document.addEventListener("DOMContentLoaded", ()=>{
-  const el = document.getElementById("parInput");
-  if(!el) return;
-  const clamp = ()=>{
-    const d = String(el.value||"").replace(/\D/g,"").slice(0,1);
-    el.value = d;
-    try{
-      if(typeof holes !== "undefined" && typeof currentHole !== "undefined"){
-        const h = holes[currentHole];
-        if(h){
-          h.par = d ? Number(d) : 0;
-          if(typeof save === "function") save();
-          if(typeof renderHeader === "function") renderHeader();
-        }
-      }
-    }catch(e){}
-  };
-  el.addEventListener("input", clamp);
+  });
 });
