@@ -777,9 +777,12 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v39</span>
+                    <span class="brand-version">v39.1</span>
                 </div>
-                <button class="header-icon-btn" id="btnSettings" type="button" aria-label="Settings">⚙️</button>
+                <div style="display: flex; gap: var(--space-2);">
+                    <button class="header-icon-btn" id="btnExport" type="button" aria-label="Export">📊</button>
+                    <button class="header-icon-btn" id="btnSettings" type="button" aria-label="Course Setup">⚙️</button>
+                </div>
             </div>
             
             <div class="scoreboard">
@@ -875,6 +878,7 @@
         <div class="sheet-header">
             <h3 class="sheet-title" id="caddyTitle">Caddy</h3>
             <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnBagEditor" type="button">Bag</button>
                 <button class="btn btn-sm btn-secondary" id="btnCaddyMode" type="button">Carry</button>
                 <button class="btn btn-sm btn-secondary" id="btnShowAll" type="button">Show All</button>
                 <button class="btn btn-sm btn-secondary" id="btnCloseCaddy" type="button">Close</button>
@@ -888,6 +892,65 @@
         </div>
         
         <div class="suggestion-list" id="suggestionList"></div>
+    </div>
+    
+    <!-- BAG EDITOR SHEET -->
+    <div class="backdrop" id="bagBackdrop"></div>
+    <div class="sheet" id="bagSheet" role="dialog" aria-modal="true" aria-labelledby="bagTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="bagTitle">Bag Editor</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCloseBag" type="button">Close</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Club</span>
+            <select class="input-field" id="bagClub"></select>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Shot Type</span>
+            <select class="input-field" id="bagShotType"></select>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Carry</span>
+            <input type="number" class="input-field compact" id="bagCarry" inputmode="numeric" placeholder="140">
+            <span class="input-label">Total</span>
+            <input type="number" class="input-field compact" id="bagTotal" inputmode="numeric" placeholder="150">
+        </div>
+        
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btnSaveBag" type="button">Save to Bag</button>
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Current Bag</h4>
+            <div id="bagMatrix" style="font-size: 0.75rem; color: var(--text-secondary); max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+    
+    <!-- COURSE SETUP SHEET -->
+    <div class="backdrop" id="courseBackdrop"></div>
+    <div class="sheet" id="courseSheet" role="dialog" aria-modal="true" aria-labelledby="courseTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="courseTitle">Course Setup</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnSaveCourse" type="button">Save</button>
+                <button class="btn btn-sm btn-secondary" id="btnCloseCourse" type="button">Close</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Course Name</span>
+            <input type="text" class="input-field" id="courseName" placeholder="Enter course name">
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Holes</h4>
+            <div id="courseHoles" style="display: grid; gap: var(--space-3); max-height: 400px; overflow-y: auto;"></div>
+        </div>
     </div>
     
     <!-- HOLE PICKER SHEET -->
@@ -915,9 +978,10 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v39.0';
+        const VERSION = 'v39.1';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
+        const LS_COURSE_KEY = 'shotTracker.v39.course';
         
         // Default bag configuration
         const DEFAULT_CLUBS = ['Club?', 'D', '3W', '5W', '7W', '3H', '5H', '4I', '5I', '6I', '7I', '8I', '9I', 'PW', '46', '52', '56', '60', 'PT'];
@@ -1196,6 +1260,33 @@
                         data: JSON.parse(JSON.stringify(DEFAULT_BAG))
                     };
                 }
+                
+                // Load course data if exists
+                this.loadCourseData();
+            },
+            
+            loadCourseData() {
+                const courseData = Storage.load(LS_COURSE_KEY);
+                if (courseData) {
+                    this.courseName = courseData.name || '';
+                    if (courseData.holes && Array.isArray(courseData.holes)) {
+                        courseData.holes.forEach((ch, idx) => {
+                            if (this.holes[idx]) {
+                                this.holes[idx].par = ch.par || this.holes[idx].par;
+                                this.holes[idx].yards = ch.yards || this.holes[idx].yards;
+                                this.holes[idx].hcp = ch.hcp || this.holes[idx].hcp;
+                            }
+                        });
+                    }
+                }
+            },
+            
+            saveCourseData(courseName, holesData) {
+                Storage.save(LS_COURSE_KEY, {
+                    name: courseName,
+                    holes: holesData
+                });
+                this.courseName = courseName;
             },
             
             save() {
@@ -1298,12 +1389,16 @@
                     'btnTee', 'btnFlag', 'btnShot',
                     'btnPrevHole', 'btnHolePick', 'btnNextHole',
                     'btnPen', 'btnDel', 'btnFwy', 'btnGir',
-                    'btnCaddy', 'btnSettings',
+                    'btnCaddy', 'btnSettings', 'btnExport',
                     'par', 'holeYds', 'shotsList',
                     'caddyBackdrop', 'caddySheet', 'btnCloseCaddy',
                     'btnCaddyMode', 'btnShowAll', 'caddyTarget', 'btnResetTarget',
-                    'suggestionList',
-                    'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid'
+                    'suggestionList', 'btnBagEditor',
+                    'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid',
+                    'bagBackdrop', 'bagSheet', 'btnCloseBag', 'bagClub', 'bagShotType',
+                    'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix',
+                    'courseBackdrop', 'courseSheet', 'btnCloseCourse', 'btnSaveCourse',
+                    'courseName', 'courseHoles'
                 ];
                 
                 ids.forEach(id => {
@@ -1749,6 +1844,425 @@
         };
         
         // ============================================
+        // BAG EDITOR UI
+        // ============================================
+        
+        const BagEditorUI = {
+            open() {
+                this.show();
+                this.populateSelects();
+                this.renderBagMatrix();
+                this.loadCurrentSelection();
+            },
+            
+            close() {
+                this.hide();
+            },
+            
+            show() {
+                if (UI.els.bagBackdrop) {
+                    UI.els.bagBackdrop.classList.add('active');
+                }
+                if (UI.els.bagSheet) {
+                    UI.els.bagSheet.classList.add('active');
+                }
+            },
+            
+            hide() {
+                if (UI.els.bagBackdrop) {
+                    UI.els.bagBackdrop.classList.remove('active');
+                }
+                if (UI.els.bagSheet) {
+                    UI.els.bagSheet.classList.remove('active');
+                }
+            },
+            
+            populateSelects() {
+                // Populate club select
+                if (UI.els.bagClub) {
+                    UI.els.bagClub.innerHTML = '';
+                    State.bag.clubs.forEach(club => {
+                        if (club === 'Club?') return;
+                        const option = document.createElement('option');
+                        option.value = club;
+                        option.textContent = club;
+                        UI.els.bagClub.appendChild(option);
+                    });
+                }
+                
+                // Populate shot type select
+                if (UI.els.bagShotType) {
+                    UI.els.bagShotType.innerHTML = '';
+                    State.bag.shotTypes.forEach(type => {
+                        if (type === 'Type?') return;
+                        const option = document.createElement('option');
+                        option.value = type;
+                        option.textContent = type;
+                        UI.els.bagShotType.appendChild(option);
+                    });
+                }
+            },
+            
+            loadCurrentSelection() {
+                const club = UI.els.bagClub ? UI.els.bagClub.value : null;
+                const shotType = UI.els.bagShotType ? UI.els.bagShotType.value : null;
+                
+                if (!club || !shotType) return;
+                
+                const bagData = State.bag.data[club];
+                if (bagData && bagData[shotType]) {
+                    const distances = bagData[shotType];
+                    if (UI.els.bagCarry) UI.els.bagCarry.value = distances.carry || '';
+                    if (UI.els.bagTotal) UI.els.bagTotal.value = distances.total || '';
+                } else {
+                    if (UI.els.bagCarry) UI.els.bagCarry.value = '';
+                    if (UI.els.bagTotal) UI.els.bagTotal.value = '';
+                }
+            },
+            
+            saveEntry() {
+                const club = UI.els.bagClub ? UI.els.bagClub.value : null;
+                const shotType = UI.els.bagShotType ? UI.els.bagShotType.value : null;
+                const carry = UI.els.bagCarry ? Utils.saneYards(UI.els.bagCarry.value) : null;
+                const total = UI.els.bagTotal ? Utils.saneYards(UI.els.bagTotal.value) : null;
+                
+                if (!club || !shotType) {
+                    Utils.toast('Select club and shot type');
+                    return;
+                }
+                
+                if (!State.bag.data[club]) {
+                    State.bag.data[club] = {};
+                }
+                
+                State.bag.data[club][shotType] = {
+                    carry: carry || 0,
+                    total: total || 0
+                };
+                
+                State.saveBag();
+                this.renderBagMatrix();
+                Utils.toast('Saved to bag');
+            },
+            
+            renderBagMatrix() {
+                if (!UI.els.bagMatrix) return;
+                
+                UI.els.bagMatrix.innerHTML = '';
+                
+                const bagData = State.bag.data;
+                const clubs = Object.keys(bagData).sort();
+                
+                if (!clubs.length) {
+                    UI.els.bagMatrix.innerHTML = '<div style="color: var(--text-muted); padding: var(--space-2);">No clubs configured</div>';
+                    return;
+                }
+                
+                clubs.forEach(club => {
+                    const shotTypes = bagData[club];
+                    const types = Object.keys(shotTypes);
+                    
+                    types.forEach(type => {
+                        const distances = shotTypes[type];
+                        const row = document.createElement('div');
+                        row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid rgba(255,255,255,0.04);';
+                        
+                        const label = document.createElement('div');
+                        label.style.fontWeight = '700';
+                        label.textContent = `${club} • ${type}`;
+                        
+                        const values = document.createElement('div');
+                        values.style.cssText = 'font-family: var(--font-mono); color: var(--text-muted);';
+                        values.textContent = `${distances.carry}y / ${distances.total}y`;
+                        
+                        row.appendChild(label);
+                        row.appendChild(values);
+                        UI.els.bagMatrix.appendChild(row);
+                    });
+                });
+            }
+        };
+        
+        // ============================================
+        // COURSE SETUP UI
+        // ============================================
+        
+        const CourseSetupUI = {
+            open() {
+                this.show();
+                this.loadCourseData();
+                this.renderHoles();
+            },
+            
+            close() {
+                this.hide();
+            },
+            
+            show() {
+                if (UI.els.courseBackdrop) {
+                    UI.els.courseBackdrop.classList.add('active');
+                }
+                if (UI.els.courseSheet) {
+                    UI.els.courseSheet.classList.add('active');
+                }
+            },
+            
+            hide() {
+                if (UI.els.courseBackdrop) {
+                    UI.els.courseBackdrop.classList.remove('active');
+                }
+                if (UI.els.courseSheet) {
+                    UI.els.courseSheet.classList.remove('active');
+                }
+            },
+            
+            loadCourseData() {
+                if (UI.els.courseName) {
+                    UI.els.courseName.value = State.courseName || '';
+                }
+            },
+            
+            renderHoles() {
+                if (!UI.els.courseHoles) return;
+                
+                UI.els.courseHoles.innerHTML = '';
+                
+                State.holes.forEach((hole, idx) => {
+                    const card = document.createElement('div');
+                    card.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3);';
+                    
+                    const header = document.createElement('div');
+                    header.style.cssText = 'font-weight: 900; margin-bottom: var(--space-2); font-size: 0.875rem;';
+                    header.textContent = `Hole ${idx + 1}`;
+                    
+                    const inputs = document.createElement('div');
+                    inputs.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2);';
+                    
+                    const parInput = this.createInput('Par', hole.par || '', `par-${idx}`);
+                    const yardsInput = this.createInput('Yards', hole.yards || '', `yards-${idx}`);
+                    const hcpInput = this.createInput('HCP', hole.hcp || '', `hcp-${idx}`);
+                    
+                    inputs.appendChild(parInput);
+                    inputs.appendChild(yardsInput);
+                    inputs.appendChild(hcpInput);
+                    
+                    card.appendChild(header);
+                    card.appendChild(inputs);
+                    UI.els.courseHoles.appendChild(card);
+                });
+            },
+            
+            createInput(label, value, id) {
+                const wrapper = document.createElement('div');
+                
+                const labelEl = document.createElement('label');
+                labelEl.style.cssText = 'display: block; font-size: 0.625rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase;';
+                labelEl.textContent = label;
+                labelEl.setAttribute('for', id);
+                
+                const input = document.createElement('input');
+                input.id = id;
+                input.type = 'number';
+                input.inputMode = 'numeric';
+                input.value = value;
+                input.style.cssText = 'width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); color: var(--text-primary); font-size: 0.875rem; font-weight: 700; font-family: var(--font-mono);';
+                
+                wrapper.appendChild(labelEl);
+                wrapper.appendChild(input);
+                return wrapper;
+            },
+            
+            saveCourse() {
+                const courseName = UI.els.courseName ? UI.els.courseName.value : '';
+                const holesData = [];
+                
+                State.holes.forEach((hole, idx) => {
+                    const parInput = Utils.$(`par-${idx}`);
+                    const yardsInput = Utils.$(`yards-${idx}`);
+                    const hcpInput = Utils.$(`hcp-${idx}`);
+                    
+                    const par = parInput ? Utils.clampInt(parInput.value, 0, 9) : hole.par;
+                    const yards = yardsInput ? Utils.clampInt(yardsInput.value, 0, 999) : hole.yards;
+                    const hcp = hcpInput ? Utils.clampInt(hcpInput.value, 0, 18) : hole.hcp;
+                    
+                    State.holes[idx].par = par || 0;
+                    State.holes[idx].yards = yards || 0;
+                    State.holes[idx].hcp = hcp || 0;
+                    
+                    holesData.push({
+                        hole: idx + 1,
+                        par: par || 0,
+                        yards: yards || 0,
+                        hcp: hcp || 0
+                    });
+                });
+                
+                State.saveCourseData(courseName, holesData);
+                State.save();
+                UI.render();
+                Utils.toast('Course saved');
+            }
+        };
+        
+        // ============================================
+        // EXPORT FUNCTIONALITY
+        // ============================================
+        
+        const ExportData = {
+            generateCSV() {
+                const rows = [];
+                
+                // Header
+                rows.push([
+                    'Hole',
+                    'Shot Number',
+                    'Club',
+                    'Shot Type',
+                    'Target Distance',
+                    'Actual Distance',
+                    'Carry (Bag)',
+                    'Total (Bag)',
+                    'Penalty',
+                    'Timestamp'
+                ].join(','));
+                
+                // Data rows
+                State.holes.forEach(hole => {
+                    hole.shots.forEach((shot, shotIdx) => {
+                        const bagData = State.bag.data[shot.club];
+                        let bagCarry = '';
+                        let bagTotal = '';
+                        
+                        if (bagData && bagData[shot.shotType]) {
+                            bagCarry = bagData[shot.shotType].carry || '';
+                            bagTotal = bagData[shot.shotType].total || '';
+                        }
+                        
+                        rows.push([
+                            hole.hole,
+                            shotIdx + 1,
+                            shot.club || '',
+                            shot.shotType || '',
+                            shot.distance || 0,
+                            shot.distance || 0,
+                            bagCarry,
+                            bagTotal,
+                            shot.penalty ? 'YES' : 'NO',
+                            shot.timestamp || ''
+                        ].join(','));
+                    });
+                });
+                
+                return rows.join('\n');
+            },
+            
+            downloadCSV() {
+                const csv = this.generateCSV();
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                const date = new Date(State.round.startedAt);
+                const filename = `shot-tracker-${date.toISOString().split('T')[0]}.csv`;
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                Utils.toast('CSV exported');
+            },
+            
+            generateReport() {
+                const lines = [];
+                
+                lines.push('SHOT TRACKER REPORT');
+                lines.push('===================');
+                lines.push('');
+                lines.push(`Course: ${State.courseName || 'Unknown'}`);
+                lines.push(`Date: ${new Date(State.round.startedAt).toLocaleString()}`);
+                lines.push(`Total Shots: ${State.totalShots()}`);
+                lines.push('');
+                lines.push('HOLE-BY-HOLE BREAKDOWN');
+                lines.push('----------------------');
+                
+                State.holes.forEach(hole => {
+                    if (hole.shots.length === 0) return;
+                    
+                    lines.push('');
+                    lines.push(`Hole ${hole.hole} - Par ${hole.par || '?'} - ${hole.yards || '?'} yards`);
+                    lines.push(`Shots: ${hole.shots.length} - Fairway: ${hole.fwy ? 'Yes' : 'No'} - GIR: ${hole.gir ? 'Yes' : 'No'}`);
+                    
+                    hole.shots.forEach((shot, idx) => {
+                        const bagData = State.bag.data[shot.club];
+                        let bagInfo = '';
+                        
+                        if (bagData && bagData[shot.shotType]) {
+                            const dist = bagData[shot.shotType];
+                            bagInfo = ` (Bag: ${dist.carry}y/${dist.total}y)`;
+                        }
+                        
+                        lines.push(`  ${idx + 1}. ${shot.club} ${shot.shotType} - ${shot.distance}y${bagInfo}${shot.penalty ? ' [PENALTY]' : ''}`);
+                    });
+                });
+                
+                return lines.join('\n');
+            },
+            
+            showReport() {
+                const report = this.generateReport();
+                
+                // Create modal for report
+                const backdrop = document.createElement('div');
+                backdrop.className = 'backdrop active';
+                backdrop.style.zIndex = '300';
+                
+                const modal = document.createElement('div');
+                modal.className = 'sheet active';
+                modal.style.cssText = 'z-index: 301; max-height: 90vh;';
+                
+                const header = document.createElement('div');
+                header.className = 'sheet-header';
+                
+                const title = document.createElement('h3');
+                title.className = 'sheet-title';
+                title.textContent = 'Round Report';
+                
+                const actions = document.createElement('div');
+                actions.className = 'sheet-actions';
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'btn btn-sm btn-secondary';
+                closeBtn.textContent = 'Close';
+                closeBtn.onclick = () => {
+                    backdrop.remove();
+                    modal.remove();
+                };
+                
+                actions.appendChild(closeBtn);
+                header.appendChild(title);
+                header.appendChild(actions);
+                
+                const content = document.createElement('pre');
+                content.style.cssText = 'white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.6; color: var(--text-primary); overflow-x: auto; margin-top: var(--space-4);';
+                content.textContent = report;
+                
+                modal.appendChild(header);
+                modal.appendChild(content);
+                
+                document.body.appendChild(backdrop);
+                document.body.appendChild(modal);
+                
+                backdrop.onclick = () => {
+                    backdrop.remove();
+                    modal.remove();
+                };
+            }
+        };
+        
+        // ============================================
         // HOLE PICKER UI
         // ============================================
         
@@ -1868,6 +2382,35 @@
                         UI.els.caddyTarget.value = toFlag !== null ? String(toFlag) : '';
                     }
                     CaddyUI.render();
+                });
+                
+                // Bag Editor
+                this.on('btnBagEditor', 'click', () => {
+                    CaddyUI.close();
+                    BagEditorUI.open();
+                });
+                this.on('btnCloseBag', 'click', () => BagEditorUI.close());
+                this.on('bagBackdrop', 'click', () => BagEditorUI.close());
+                this.on('bagClub', 'change', () => BagEditorUI.loadCurrentSelection());
+                this.on('bagShotType', 'change', () => BagEditorUI.loadCurrentSelection());
+                this.on('btnSaveBag', 'click', () => BagEditorUI.saveEntry());
+                
+                // Course Setup
+                this.on('btnSettings', 'click', () => CourseSetupUI.open());
+                this.on('btnCloseCourse', 'click', () => CourseSetupUI.close());
+                this.on('courseBackdrop', 'click', () => CourseSetupUI.close());
+                this.on('btnSaveCourse', 'click', () => {
+                    CourseSetupUI.saveCourse();
+                    CourseSetupUI.close();
+                });
+                
+                // Export
+                this.on('btnExport', 'click', () => {
+                    if (confirm('Export as CSV or view Report?\n\nOK = CSV Download\nCancel = View Report')) {
+                        ExportData.downloadCSV();
+                    } else {
+                        ExportData.showReport();
+                    }
                 });
                 
                 // Hole picker
