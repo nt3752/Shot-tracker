@@ -2634,15 +2634,44 @@
                 });
                 this.on('btnCloseBag', 'click', () => BagEditorUI.close());
                 this.on('bagBackdrop', 'click', () => BagEditorUI.close());
-                this.on('bagClub', 'change', () => BagEditorUI.loadCurrentSelection());
-                this.on('bagShotType', 'change', () => BagEditorUI.loadCurrentSelection());
-                this.on('btnSaveBag', 'click', () => {
+                this.on('bagClub', 'change', (e) => {
+                    e.stopPropagation();
+                    BagEditorUI.loadCurrentSelection();
+                });
+                this.on('bagShotType', 'change', (e) => {
+                    e.stopPropagation();
+                    BagEditorUI.loadCurrentSelection();
+                });
+                this.on('btnSaveBag', 'click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('Save button clicked');
+                    
                     // Disable button temporarily to prevent double-clicks
                     if (UI.els.btnSaveBag) {
+                        if (UI.els.btnSaveBag.disabled) {
+                            console.log('Button already disabled, ignoring click');
+                            return; // Already processing
+                        }
+                        
+                        console.log('Processing save...');
                         UI.els.btnSaveBag.disabled = true;
-                        BagEditorUI.saveEntry();
+                        
+                        // Execute save
+                        try {
+                            BagEditorUI.saveEntry();
+                        } catch (err) {
+                            console.error('Save error:', err);
+                            Utils.toast('Save failed');
+                        }
+                        
+                        // Re-enable after delay
                         setTimeout(() => {
-                            if (UI.els.btnSaveBag) UI.els.btnSaveBag.disabled = false;
+                            if (UI.els.btnSaveBag) {
+                                UI.els.btnSaveBag.disabled = false;
+                                console.log('Button re-enabled');
+                            }
                         }, 500);
                     }
                 });
