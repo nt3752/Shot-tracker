@@ -184,3 +184,26 @@ html,body{overflow-x:hidden;margin:0;padding:0;background:var(--bg);color:var(--
   font-weight:800;
   font-size:16px;
 }
+
+
+/* v38_6 tweaks */
+#holeSheet{
+  max-height:100vh;
+  height:100vh;
+  border-radius:0;
+  padding:16px;
+}
+#holeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px;}
+#holeGrid button{min-height:84px;font-size:30px;border-radius:18px;}
+#shotsList{min-height:44px;}
+.shotRow select,.shotRow input{
+  background:rgba(255,255,255,0.06);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px;
+  font-size:16px;
+}
+
+.shotLeft{display:flex;gap:10px;align-items:center;}
+.shotRight{display:flex;gap:10px;align-items:center;}

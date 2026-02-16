@@ -2,7 +2,7 @@
 /* Shot Tracker rewrite (v38_5) - defensive boot, no modules */
 (function(){
   "use strict";
-  const VERSION = "v38_5";
+  const VERSION = "v38_7";
   const LS_KEY = "shotTracker.v38.state";
   const LS_BAG_KEY = "shotTracker.v38.bagOverride";
   const LS_COURSE_KEY = "shotTracker.v38.course";
