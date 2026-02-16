@@ -587,10 +587,12 @@
             -webkit-backdrop-filter: blur(4px);
             z-index: 200;
             display: none;
+            pointer-events: none; /* Don't intercept clicks when hidden */
         }
         
         .backdrop.active {
             display: block;
+            pointer-events: auto; /* Allow clicks when active */
         }
         
         .sheet {
@@ -607,10 +609,12 @@
             overflow-y: auto;
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none; /* Hidden by default */
         }
         
         .sheet.active {
             transform: translateY(0);
+            display: block; /* Show when active */
         }
         
         .sheet-header {
@@ -1967,6 +1971,9 @@
         
         const CaddyUI = {
             open() {
+                // Close all other sheets first
+                this.closeAllOtherSheets();
+                
                 // Use Attempt field value (user can override before opening Caddy)
                 const attemptVal = UI.els.attempt ? UI.els.attempt.value.trim() : '';
                 const toFlag = UI.getToFlagYards();
@@ -1987,6 +1994,13 @@
             
             close() {
                 this.hide();
+            },
+            
+            closeAllOtherSheets() {
+                // Hide all other sheets/backdrops
+                if (BagEditorUI) BagEditorUI.hide();
+                if (CourseSetupUI) CourseSetupUI.hide();
+                if (HolePickerUI) HolePickerUI.hide();
             },
             
             show() {
@@ -2073,6 +2087,9 @@
         
         const BagEditorUI = {
             open() {
+                // Close all other sheets first
+                this.closeAllOtherSheets();
+                
                 this.show();
                 this.populateSelects();
                 this.renderBagMatrix();
@@ -2081,6 +2098,13 @@
             
             close() {
                 this.hide();
+            },
+            
+            closeAllOtherSheets() {
+                // Hide all other sheets/backdrops
+                if (CaddyUI) CaddyUI.hide();
+                if (CourseSetupUI) CourseSetupUI.hide();
+                if (HolePickerUI) HolePickerUI.hide();
             },
             
             show() {
