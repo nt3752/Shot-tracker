@@ -3,200 +3,138 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Shot Tracker v37_29</title>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#061612" />
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Shot Tracker v38_0</title>
+  <link rel="stylesheet" href="styles.css?v=38_0" />
 </head>
 <body>
-<header class="header">
-  <div class="toprow">
-    <div class="title">Shot Tracker <span id="appVersionTag" class="version-tag">v37_32</span></div>
-    <button id="liveBadge" class="badge on" type="button" title="Tap to toggle live yardage">LIVE:—</button>
-  </div>
-  <div class="subrow">
-    <div class="pill">Hole <span id="holeNum">1</span></div>
-    <div class="pill">Shots <span id="shotCount">0</span></div>
-    <div class="pill">Total <span id="totalShots">0</span></div>
-    <div class="pill">Course <span id="courseName">—</span></div>
-    <div class="pill">Round <span id="roundName">—</span></div>
-  </div>
-</header>
-
-<main class="container">
-  
-<section class="section">
-  <h2>Course</h2>
-  <div class="row">
-    <button id="courseSetup" class="mini" type="button">⚙️ Course Setup</button>
-  </div>
-</section>
-
-
-
-
-  
-<section class="section">
-  <h2>This Hole</h2>
-  <div class="metaLine">
-    <div class="metaLabel">Par</div>
-    <input id="parInput" class="par-box" type="number" inputmode="numeric" placeholder="4" />
-    <div class="metaLabel" style="margin-left:12px;">Yds</div>
-    <input id="holeYards" class="yards-box" type="number" inputmode="numeric" placeholder="385" />
-  </div>
-</section>
-
-  <section class="section">
-    <h2>Rangefinder</h2>
-    <div class="row manualWrap" id="manualWrap" style="margin-top:10px;">
-      <input id="manualInput" type="number" inputmode="decimal" placeholder="e.g. 25" />
-      <div class="unit" id="manualUnit">yds</div>
-      <div class="pill" style="margin-left:auto;">Rangefinder</div>
-    </div>
-    <div class="rangefinder-row" style="margin-top:10px;">
-  <div class="pill" id="toFlag" style="margin-top:0;">To Flag:—</div>
-  <button id="openCaddyBtn" class="secondary caddy-open" type="button">CADDY</button>
-</div>
-<div class="attempted-row">
-  <div class="attempted-label">Attempt</div>
-  <input id="attemptedDistance" class="attempted-input" type="number" inputmode="numeric" min="0" placeholder="—" />
-  <div class="unit">yds</div>
-</div>
-  </section>
-
-  <section class="section">
-    <div class="grid2x2">
-      <button id="markTee" class="primary" type="button">🏁 Mark Tee</button>
-      <button id="markFlag" class="primary" type="button">🚩 Mark Flag</button>
-      <button id="markShot" class="primary" type="button" disabled>➕ Add Shot</button>
-    </div>
-  </section>
-
-  <section class="section row navrow">
-    <button id="prev" class="mini" type="button">◀ Prev</button>
-    <div class="spacer"></div>
-    <button id="next" class="mini" type="button">Next ▶</button>
-    <div class="spacer"></div>
-    <button id="export" class="mini" type="button">Export CSV</button>
-    <button id="resetRound" class="mini danger2" type="button">Reset</button>
-    <div class="spacer"></div>
-    <button id="newRound" class="mini" type="button">New/Load</button>
-  </section>
-
-    
-<section class="section" id="shotActions">
-  <div class="row actionRow">
-    <button id="addPenalty" class="mini danger" type="button">+ Pen</button>
-    <button id="deleteLast" class="mini danger2" type="button">DEL</button>
-    <button id="fw" class="mini" type="button">FWY</button>
-    <button id="gir" class="mini" type="button">GIR</button>
-  </div>
-</section>
-
-
-<section class="section shots" id="shotsList"></section>
-
-</main>
-
-<!-- Round modal -->
-<div class="modal" id="roundModal" aria-hidden="true">
-  <div class="modalCard">
-    <div class="modalTitle">Round</div>
-    <div class="modalText">Start a new round or continue an existing one.</div>
-
-    <div class="modalRow">
-      <input id="roundTitleInput" placeholder="Round name (optional)" />
-      <button id="startNewBtn" class="primaryBtn" type="button">Start New</button>
+  <header class="header">
+    <div class="headerTop">
+      <div class="brand">Shot Tracker <small>v38_0</small></div>
+      <button id="btnCourse" class="iconBtn" type="button">⚙️</button>
     </div>
 
-    <div class="modalText" style="margin-top:12px;">Continue recent:</div>
-    <div id="roundList" class="roundList"></div>
-
-    <div class="modalRow" style="justify-content:flex-end;margin-top:12px;">
-      <button id="closeModal" class="miniBtn" type="button">Close</button>
+    <div class="pills" aria-label="scoreboard">
+      <div class="pill"><div class="num" id="sbHole">1</div><div class="lab">Hole</div></div>
+      <div class="pill"><div class="num" id="sbShots">0</div><div class="lab">Shots</div></div>
+      <div class="pill"><div class="num" id="sbTotal">0</div><div class="lab">Total</div></div>
+      <div class="pill"><div class="num" id="sbCourse">--</div><div class="lab">Course</div></div>
     </div>
-  </div>
-</div>
+    <div class="roundInfo" id="roundInfo">Round</div>
+  </header>
 
+  <main class="main">
+    <section class="section">
+      <h2>Rangefinder</h2>
+      <div class="kv">
+        <div>
+          <div class="k">To Flag</div>
+          <div class="v"><span id="toFlag">--</span><span class="sub">y</span></div>
+        </div>
+        <div class="acc bad" id="accTag">acc --y</div>
+      </div>
+      <div style="height:10px"></div>
+      <div class="inputLine">
+        <label for="attempt">Attempt</label>
+        <input id="attempt" class="inp" inputmode="numeric" type="number" placeholder="--" />
+        <button id="btnCaddy" class="smallBtn" type="button">CADDY</button>
+      </div>
+      <div style="height:10px"></div>
+      <div class="row">
+        <button id="btnTee" class="bigBtn" type="button">TEE</button>
+        <button id="btnFlag" class="bigBtn" type="button">FLAG</button>
+        <button id="btnShot" class="bigBtn" type="button">SHOT</button>
+      </div>
+      <div style="height:10px"></div>
+      <div class="row">
+        <button id="btnPen" class="smallBtn danger" type="button">Pen</button>
+        <button id="btnDel" class="smallBtn danger" type="button">Del</button>
+        <button id="btnFwy" class="smallBtn" type="button">Fwy</button>
+        <button id="btnGir" class="smallBtn" type="button">GIR</button>
+      </div>
+    </section>
 
-<div id="caddyBackdrop" class="caddy-backdrop hidden" aria-hidden="true"></div>
-<div id="caddyPanel" class="caddy-panel hidden" role="dialog" aria-modal="true">
-  <div class="caddy-top">
-    <div id="caddyTarget" class="caddy-target">Target: —</div>
-    <button id="closeCaddyBtn" class="secondary caddy-close-inline" type="button">Close</button>
-    <button id="openBagBtn" class="secondary bag-open" type="button">BAG</button>
-    <div class="caddy-mode">
-      <button id="modeCarry" class="mode-btn active" type="button">CARRY</button>
-      <button id="modeTotal" class="mode-btn" type="button">TOTAL</button>
+    <section class="section">
+      <h2>This Hole</h2>
+      <div class="split">
+        <div class="inputLine" style="flex:1">
+          <label for="par">Par</label>
+          <input id="par" class="inp" inputmode="numeric" type="number" placeholder="4" />
+        </div>
+        <div class="inputLine" style="flex:1">
+          <label for="holeYds">Yds</label>
+          <input id="holeYds" class="inp" inputmode="numeric" type="number" placeholder="385" />
+        </div>
+      </div>
+      <div class="list" id="shotsList" aria-label="shots"></div>
+    </section>
+  </main>
+
+  <div id="caddyBackdrop" class="backdrop hidden"></div>
+  <div id="caddySheet" class="sheet hidden" role="dialog" aria-modal="true">
+    <div class="sheetHeader">
+      <h3>Caddy</h3>
+      <div class="right">
+        <button id="btnShowAll" class="smallBtn" type="button">Show All</button>
+        <button id="btnMode" class="smallBtn" type="button">Carry</button>
+        <button id="btnBag" class="smallBtn" type="button">Bag</button>
+        <button id="btnCloseCaddy" class="smallBtn" type="button">Close</button>
+      </div>
     </div>
-  </div>
-  <div class="caddy-adjust">
-    <button class="adj" data-adj="-10" type="button">-10</button>
-    <button class="adj" data-adj="-5" type="button">-5</button>
-    <button class="adj" data-adj="0" type="button">0</button>
-    <button class="adj" data-adj="5" type="button">+5</button>
-    <button class="adj" data-adj="10" type="button">+10</button>
-  </div>
-  <div id="caddySuggestions" class="caddy-suggestions"></div>
-</div>
-
-
-<div id="bagBackdrop" class="caddy-backdrop hidden" aria-hidden="true"></div>
-
-<div id="bagPanel" class="bag-panel hidden" role="dialog" aria-modal="true">
-  <div class="bag-top">
-    <div class="bag-title">Bag Matrix</div>
-    <button id="closeBagBtn" class="secondary bag-close" type="button">Close</button>
-  </div>
-
-  <div class="bag-controls">
-    <label class="bag-label" for="bagClubSelect">Club</label>
-    <select id="bagClubSelect" class="bag-select"></select>
-
-    <label class="bag-label" for="bagShotTypeSelect">Type</label>
-    <select id="bagShotTypeSelect" class="bag-select"></select>
-
-    <button id="bagClearBtn" class="secondary bag-reset" type="button">Clear</button>
-  </div>
-
-  <div class="bag-grid-single">
-    <div class="bag-header-single">
-      <div></div><div>Carry</div><div>Total</div>
+    <div style="height:10px"></div>
+    <div class="inputLine">
+      <label for="caddyTarget">Target</label>
+      <input id="caddyTarget" class="inp" inputmode="numeric" type="number" />
+      <button id="btnResetAdj" class="smallBtn" type="button">Reset</button>
     </div>
-    <div class="bag-row-single">
-      <div class="bag-type-chip" id="bagSelectedLabel">—</div>
-      <input class="bag-input" id="bagCarryInput" type="number" inputmode="numeric" min="0" placeholder="0" />
-      <input class="bag-input" id="bagTotalInput" type="number" inputmode="numeric" min="0" placeholder="0" />
-    </div>
+    <div id="caddyList"></div>
   </div>
 
-  <div class="bag-footnote">Edits save to your phone immediately. Update <b>config.js</b> later to make them permanent.</div>
-</div>
+  <div id="bagBackdrop" class="backdrop hidden"></div>
+  <div id="bagSheet" class="sheet hidden" role="dialog" aria-modal="true">
+    <div class="sheetHeader">
+      <h3>Bag</h3>
+      <div class="right">
+        <button id="btnCloseBag" class="smallBtn" type="button">Close</button>
+      </div>
+    </div>
+    <div style="height:10px"></div>
+    <div class="row rowWrap">
+      <div style="flex:1;min-width:140px">
+        <div class="inputLine">
+          <label for="bagClub">Club</label>
+          <select id="bagClub" class="inp"></select>
+        </div>
+      </div>
+      <div style="flex:1;min-width:140px">
+        <div class="inputLine">
+          <label for="bagType">Type</label>
+          <select id="bagType" class="inp"></select>
+        </div>
+      </div>
+    </div>
+    <div style="height:10px"></div>
+    <div class="row rowWrap">
+      <div style="flex:1;min-width:140px">
+        <div class="inputLine">
+          <label for="bagCarry">Carry</label>
+          <input id="bagCarry" class="inp" inputmode="numeric" type="number" />
+        </div>
+      </div>
+      <div style="flex:1;min-width:140px">
+        <div class="inputLine">
+          <label for="bagTotal">Total</label>
+          <input id="bagTotal" class="inp" inputmode="numeric" type="number" />
+        </div>
+      </div>
+      <button id="btnSaveBag" class="bigBtn" type="button" style="min-width:120px">SAVE</button>
+    </div>
+    <div style="height:6px"></div>
+    <div style="color:var(--muted);font-weight:850;font-size:12px">Changes save for this device.</div>
+  </div>
 
-
-<div class="toast" id="toast"></div>
-
-
-  
-<script>
-(function(){
-  function show(msg){
-    var t=document.getElementById('toast');
-    if(t){ t.textContent=msg; t.style.display='block'; }
-  }
-  window.addEventListener('error', function(e){
-    show('❌ JS error: ' + (e.message||'error') + (e.filename?(' @'+e.filename.split('/').pop()+':'+e.lineno):''));
-  });
-  window.addEventListener('unhandledrejection', function(e){
-    var r=e.reason;
-    show('❌ Promise: ' + (r && r.message ? r.message : String(r)));
-  });
-  window.__ST_BOOTED=false;
-  setTimeout(function(){ if(!window.__ST_BOOTED) show('❌ app.js did not boot (module failed to load/run)'); }, 1200);
-})();
-</script>
-<script src="config.js?v=37_32"></script>
-<script type="module" src="app.js?v=37_32"></script>
-<!-- Cache/SW reset helper: /reset.html -->
+  <script src="config.js?v=38_0"></script>
+  <script src="app.js?v=38_0" defer></script>
 </body>
 </html>
