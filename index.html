@@ -1976,6 +1976,11 @@
                     UI.els.caddyTarget.value = targetDistance;
                 }
                 
+                // Set button text based on current state
+                if (UI.els.btnShowAll) {
+                    UI.els.btnShowAll.textContent = State.ui.showAll ? 'Within 10' : 'Show All';
+                }
+                
                 this.show();
                 this.render();
             },
@@ -2150,6 +2155,7 @@
                     return;
                 }
                 
+                // Save to State
                 if (!State.bag.data[club]) {
                     State.bag.data[club] = {};
                 }
@@ -2159,9 +2165,18 @@
                     total: total || 0
                 };
                 
+                // Save to localStorage
                 State.saveBag();
-                this.renderBagMatrix();
+                
+                // Show immediate feedback
                 Utils.toast('Saved to bag');
+                
+                // Clear input fields for next entry
+                if (UI.els.bagCarry) UI.els.bagCarry.value = '';
+                if (UI.els.bagTotal) UI.els.bagTotal.value = '';
+                
+                // Re-render the matrix to show the update
+                this.renderBagMatrix();
             },
             
             renderBagMatrix() {
@@ -2594,6 +2609,8 @@
                 this.on('btnShowAll', 'click', () => {
                     State.ui.showAll = !State.ui.showAll;
                     if (UI.els.btnShowAll) {
+                        // When showAll is TRUE, button should say "Within 10" (to toggle back)
+                        // When showAll is FALSE, button should say "Show All" (to toggle to show all)
                         UI.els.btnShowAll.textContent = State.ui.showAll ? 'Within 10' : 'Show All';
                     }
                     State.save();
@@ -2619,7 +2636,16 @@
                 this.on('bagBackdrop', 'click', () => BagEditorUI.close());
                 this.on('bagClub', 'change', () => BagEditorUI.loadCurrentSelection());
                 this.on('bagShotType', 'change', () => BagEditorUI.loadCurrentSelection());
-                this.on('btnSaveBag', 'click', () => BagEditorUI.saveEntry());
+                this.on('btnSaveBag', 'click', () => {
+                    // Disable button temporarily to prevent double-clicks
+                    if (UI.els.btnSaveBag) {
+                        UI.els.btnSaveBag.disabled = true;
+                        BagEditorUI.saveEntry();
+                        setTimeout(() => {
+                            if (UI.els.btnSaveBag) UI.els.btnSaveBag.disabled = false;
+                        }, 500);
+                    }
+                });
                 
                 // Course Setup
                 this.on('btnSettings', 'click', () => CourseSetupUI.open());
