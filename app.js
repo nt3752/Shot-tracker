@@ -1,4 +1,4 @@
-window.SHOT_TRACKER_VERSION = "v37_30"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
+window.SHOT_TRACKER_VERSION = "v37_31"; console.log("Shot Tracker", window.SHOT_TRACKER_VERSION);
 window.__ST_BOOTED = true;
 
 
@@ -323,6 +323,10 @@ function updateMetaButtons(){
   els.par5 && els.par5.classList.toggle("on", h.par===5);
   els.fw && els.fw.classList.toggle("on", !!h.fairway);
   els.gir && els.gir.classList.toggle("on", !!h.gir);
+  try{
+    const fw2=document.getElementById("fw2"); if(fw2) fw2.classList.toggle("on", !!h.fairway);
+    const gir2=document.getElementById("gir2"); if(gir2) gir2.classList.toggle("on", !!h.gir);
+  }catch(e){}
   els.holeYards.value = (h.holeYards ?? "");
 }
 
@@ -1375,31 +1379,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 });
 
 
-/* v37_29 safeBind: prevent boot crashes when UI ids change */
-(function(){
-  function byId(id){ return document.getElementById(id); }
-  document.addEventListener("DOMContentLoaded", ()=>{
-    const del2 = byId("deleteLast2");
-    const fwy2 = byId("fw2");
-    const gir2 = byId("gir2");
-
-    const legacyDel = byId("deleteLast");
-    const legacyFwy = byId("fw");
-    const legacyGir = byId("gir");
-
-    if(del2){
-      del2.addEventListener("click", ()=>{ try{ if(legacyDel) legacyDel.click(); }catch(e){} });
-    }
-    if(fwy2){
-      fwy2.addEventListener("click", ()=>{ try{ if(legacyFwy) legacyFwy.click(); }catch(e){} });
-    }
-    if(gir2){
-      gir2.addEventListener("click", ()=>{ try{ if(legacyGir) legacyGir.click(); }catch(e){} });
-    }
-  });
-})();
-
-
+/* v37_29 safeBind: disabled in v37_31 */
 /* v37_30 saneYards clamp: ignore runaway GPS values */
 function saneYards(y) {
   const n = Number(y);
@@ -1410,23 +1390,60 @@ function saneYards(y) {
 }
 
 
-/* v37_30 fwBridge: create hidden alias buttons for legacy ids (#fw/#gir/#deleteLast) */
-document.addEventListener("DOMContentLoaded", ()=>{
-  try {
-    const fw2 = document.getElementById("fw2");
-    const gir2 = document.getElementById("gir2");
-    const del2 = document.getElementById("deleteLast2");
-    function ensureAlias(id, targetEl) {
-      if (document.getElementById(id) || !targetEl) return;
-      const a = document.createElement("button");
-      a.id = id;
-      a.type = "button";
-      a.style.display = "none";
-      a.addEventListener("click", ()=>{ try{ targetEl.click(); }catch(e){} });
-      document.body.appendChild(a);
+/* v37_30 fwBridge: disabled in v37_31 */
+document.body.appendChild(a);
     }
     ensureAlias("fw", fw2);
     ensureAlias("gir", gir2);
     ensureAlias("deleteLast", del2);
   } catch(e) {}
+});
+
+
+/* v37_31 directActionRow: make Pen/Del/Fwy/GIR buttons work directly */
+document.addEventListener("DOMContentLoaded", ()=>{
+  try{
+    const fw2=document.getElementById("fw2");
+    const gir2=document.getElementById("gir2");
+    const del2=document.getElementById("deleteLast2");
+
+    if(fw2){
+      fw2.addEventListener("click", ()=>{
+        try{
+          const h=holes[currentHole];
+          h.fairway = !h.fairway;
+          finalizeHoleSummary(currentHole);
+          save(); 
+          renderShots();
+        }catch(e){}
+      });
+    }
+
+    if(gir2){
+      gir2.addEventListener("click", ()=>{
+        try{
+          const h=holes[currentHole];
+          h.gir = !h.gir;
+          finalizeHoleSummary(currentHole);
+          save();
+          renderShots();
+        }catch(e){}
+      });
+    }
+
+    if(del2){
+      del2.addEventListener("click", ()=>{
+        try{
+          const h=holes[currentHole];
+          if(!h.shots.length) return toast("Nothing to delete",1500);
+          h.shots.pop();
+          syncRefForHole();
+          finalizeHoleSummary(currentHole);
+          save(); 
+          renderShots();
+          toast("🗑 Deleted last",1500);
+        }catch(e){}
+      });
+    }
+  }catch(e){}
 });
