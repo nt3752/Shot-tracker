@@ -401,12 +401,8 @@ select{
 .pill span {font-size:26px;font-weight:1000;letter-spacing:0.3px}
 
 
-/* v37_30 scoreboard2 - bigger TOP pills, keep Round info normal */
-.pills {display:flex;gap:10px;flex-wrap:nowrap}
-.pill {padding:8px 10px;border-radius:18px}
-.pill span {font-size:32px;font-weight:1000;letter-spacing:0.3px;line-height:1}
-#roundInfo, .roundInfo, .round-info {font-size:12px;font-weight:700;opacity:0.9}
-
-
-/* v37_31 roundOverride */
-#roundName {font-size:16px !important; font-weight:850 !important; letter-spacing:0.2px;}
+/* v37_32: scoreboard digits only; keep Course/Round small */
+#holeNum, #shotCount, #totalShots {font-size:34px;font-weight:1000;line-height:1}
+#courseName, #roundName {font-size:16px;font-weight:800;line-height:1.1}
+/* Ensure pill layout still tidy */
+.pill span {display:inline-block}
