@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v39</title>
+    <title>Shot Tracker v39.1.5</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -777,9 +777,10 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v39.1</span>
+                    <span class="brand-version">v39.1.5</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
+                    <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
                     <button class="header-icon-btn" id="btnExport" type="button" aria-label="Export">📊</button>
                     <button class="header-icon-btn" id="btnSettings" type="button" aria-label="Course Setup">⚙️</button>
                 </div>
@@ -859,6 +860,8 @@
                     <input type="text" class="input-field compact" id="par" placeholder="4" inputmode="numeric" maxlength="1" pattern="[0-9]*">
                     <span class="input-label">Yards</span>
                     <input type="text" class="input-field compact" id="holeYds" placeholder="385" inputmode="numeric" maxlength="3" pattern="[0-9]*">
+                    <span class="input-label">Hcp</span>
+                    <input type="text" class="input-field compact" id="holeHcp" placeholder="1" inputmode="numeric" maxlength="2" pattern="[0-9]*">
                 </div>
             </section>
             
@@ -965,6 +968,140 @@
         <div class="hole-picker-grid" id="holeGrid"></div>
     </div>
 
+    <!-- LIBRARY MANAGEMENT SHEET -->
+    <div class="backdrop" id="libraryBackdrop"></div>
+    <div class="sheet" id="librarySheet" role="dialog" aria-modal="true" aria-labelledby="libraryTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="libraryTitle">Library</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnNewRound" type="button">New Round</button>
+                <button class="btn btn-sm btn-secondary" id="btnCloseLibrary" type="button">Close</button>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: var(--space-4);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">Bag Library</h4>
+                <button class="btn btn-sm btn-secondary" id="btnAddBag" type="button">+ New Bag</button>
+            </div>
+            <div id="bagLibraryList" style="display: flex; flex-direction: column; gap: var(--space-2);"></div>
+        </div>
+        
+        <div style="margin-bottom: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">Course Library</h4>
+                <button class="btn btn-sm btn-secondary" id="btnAddCourse" type="button">+ New Course</button>
+            </div>
+            <div id="courseLibraryList" style="display: flex; flex-direction: column; gap: var(--space-2);"></div>
+        </div>
+        
+        <div style="padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: var(--space-3);">Import / Export</h4>
+            <div class="btn-row">
+                <button class="btn btn-secondary btn-sm" id="btnImportBag" type="button">Import Bag</button>
+                <button class="btn btn-secondary btn-sm" id="btnImportCourse" type="button">Import Course</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-secondary btn-sm" id="btnExportAllBags" type="button">Export All Bags</button>
+                <button class="btn btn-secondary btn-sm" id="btnExportAllCourses" type="button">Export All Courses</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW ROUND SETUP SHEET -->
+    <div class="backdrop" id="roundSetupBackdrop"></div>
+    <div class="sheet" id="roundSetupSheet" role="dialog" aria-modal="true" aria-labelledby="roundSetupTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="roundSetupTitle">New Round</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCancelRound" type="button">Cancel</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Select Bag</span>
+            <select class="input-field" id="roundBagSelect"></select>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Select Course</span>
+            <select class="input-field" id="roundCourseSelect"></select>
+        </div>
+        
+        <div class="btn-row" style="margin-top: var(--space-4);">
+            <button class="btn btn-primary" id="btnStartRound" type="button">Start Round</button>
+        </div>
+    </div>
+
+    <!-- EDIT BAG SHEET -->
+    <div class="backdrop" id="editBagBackdrop"></div>
+    <div class="sheet" id="editBagSheet" role="dialog" aria-modal="true" aria-labelledby="editBagTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="editBagTitle">Edit Bag</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnSaveEditBag" type="button">Save</button>
+                <button class="btn btn-sm btn-secondary" id="btnCancelEditBag" type="button">Cancel</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Bag Name</span>
+            <input type="text" class="input-field" id="editBagName" placeholder="e.g., Summer Bag">
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Club Distances</h4>
+            
+            <div class="input-row">
+                <span class="input-label">Club</span>
+                <select class="input-field" id="editBagClub"></select>
+            </div>
+            
+            <div class="input-row">
+                <span class="input-label">Shot Type</span>
+                <select class="input-field" id="editBagShotType"></select>
+            </div>
+            
+            <div class="input-row">
+                <span class="input-label">Carry</span>
+                <input type="number" class="input-field compact" id="editBagCarry" inputmode="numeric" placeholder="140">
+                <span class="input-label">Total</span>
+                <input type="number" class="input-field compact" id="editBagTotal" inputmode="numeric" placeholder="150">
+            </div>
+            
+            <div class="btn-row">
+                <button class="btn btn-secondary btn-sm" id="btnAddDistance" type="button">Add to Bag</button>
+            </div>
+            
+            <div id="editBagMatrix" style="margin-top: var(--space-4); max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- EDIT COURSE SHEET -->
+    <div class="backdrop" id="editCourseBackdrop"></div>
+    <div class="sheet" id="editCourseSheet" role="dialog" aria-modal="true" aria-labelledby="editCourseTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="editCourseTitle">Edit Course</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnSaveEditCourse" type="button">Save</button>
+                <button class="btn btn-sm btn-secondary" id="btnCancelEditCourse" type="button">Cancel</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Course Name</span>
+            <input type="text" class="input-field" id="editCourseName" placeholder="e.g., Pebble Beach">
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Holes</h4>
+            <div id="editCourseHoles" style="display: grid; gap: var(--space-3); max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- FILE INPUT (HIDDEN) -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
     <script>
     /* ===============================================
        SHOT TRACKER v39 - PRODUCTION JAVASCRIPT
@@ -978,10 +1115,12 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v39.1';
+        const VERSION = 'v39.1.5';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
+        const LS_BAG_LIBRARY_KEY = 'shotTracker.v39.bagLibrary';
+        const LS_COURSE_LIBRARY_KEY = 'shotTracker.v39.courseLibrary';
         
         // Default bag configuration
         const DEFAULT_CLUBS = ['Club?', 'D', '3W', '5W', '7W', '3H', '5H', '4I', '5I', '6I', '7I', '8I', '9I', 'PW', '46', '52', '56', '60', 'PT'];
@@ -1056,6 +1195,15 @@
             // ISO timestamp
             nowISO() {
                 return new Date().toISOString();
+            },
+            
+            // Generate UUID
+            uuid() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
             },
             
             // Toast notification
@@ -1231,6 +1379,7 @@
                     hole: i + 1,
                     par: 0,
                     yards: 0,
+                    hcp: 0,
                     tee: null,
                     flag: null,
                     teePending: false,
@@ -1275,6 +1424,13 @@
                                 this.holes[idx].par = ch.par || this.holes[idx].par;
                                 this.holes[idx].yards = ch.yards || this.holes[idx].yards;
                                 this.holes[idx].hcp = ch.hcp || this.holes[idx].hcp;
+                                // Load tee/flag GPS if available
+                                if (ch.teeGPS && !this.holes[idx].tee) {
+                                    this.holes[idx].tee = ch.teeGPS;
+                                }
+                                if (ch.flagGPS && !this.holes[idx].flag) {
+                                    this.holes[idx].flag = ch.flagGPS;
+                                }
                             }
                         });
                     }
@@ -1287,6 +1443,25 @@
                     holes: holesData
                 });
                 this.courseName = courseName;
+            },
+            
+            // Save tee/flag GPS to course for future rounds
+            saveTeeToCore(holeIndex, gps) {
+                const courseData = Storage.load(LS_COURSE_KEY) || { name: this.courseName || '', holes: [] };
+                if (!courseData.holes[holeIndex]) {
+                    courseData.holes[holeIndex] = { hole: holeIndex + 1, par: 0, yards: 0, hcp: 0 };
+                }
+                courseData.holes[holeIndex].teeGPS = gps;
+                Storage.save(LS_COURSE_KEY, courseData);
+            },
+            
+            saveFlagToCourse(holeIndex, gps) {
+                const courseData = Storage.load(LS_COURSE_KEY) || { name: this.courseName || '', holes: [] };
+                if (!courseData.holes[holeIndex]) {
+                    courseData.holes[holeIndex] = { hole: holeIndex + 1, par: 0, yards: 0, hcp: 0 };
+                }
+                courseData.holes[holeIndex].flagGPS = gps;
+                Storage.save(LS_COURSE_KEY, courseData);
             },
             
             save() {
@@ -1389,8 +1564,8 @@
                     'btnTee', 'btnFlag', 'btnShot',
                     'btnPrevHole', 'btnHolePick', 'btnNextHole',
                     'btnPen', 'btnDel', 'btnFwy', 'btnGir',
-                    'btnCaddy', 'btnSettings', 'btnExport',
-                    'par', 'holeYds', 'shotsList',
+                    'btnCaddy', 'btnSettings', 'btnExport', 'btnLibrary',
+                    'par', 'holeYds', 'holeHcp', 'shotsList',
                     'caddyBackdrop', 'caddySheet', 'btnCloseCaddy',
                     'btnCaddyMode', 'btnShowAll', 'caddyTarget', 'btnResetTarget',
                     'suggestionList', 'btnBagEditor',
@@ -1470,6 +1645,10 @@
                 
                 if (this.els.holeYds) {
                     this.els.holeYds.value = hole.yards ? String(hole.yards) : '';
+                }
+                
+                if (this.els.holeHcp) {
+                    this.els.holeHcp.value = hole.hcp ? String(hole.hcp) : '';
                 }
             },
             
@@ -1606,13 +1785,33 @@
             ensureAttempt() {
                 if (!this.els.attempt) return;
                 
+                // Always sync attempt with toFlag if empty
                 const current = this.els.attempt.value.trim();
-                if (current !== '') return;
-                
                 const toFlag = this.getToFlagYards();
-                if (toFlag !== null) {
+                
+                if (current === '' && toFlag !== null) {
                     this.els.attempt.value = String(toFlag);
                 }
+            },
+            
+            // Get distance from last shot position or tee to current position
+            getDistanceFromLastPosition() {
+                const hole = State.currentHole();
+                const currentPos = GPS.getCurrentPosition();
+                
+                if (!currentPos) return null;
+                
+                // If no shots yet, measure from tee
+                if (hole.shots.length === 0) {
+                    if (!hole.tee) return null;
+                    return Utils.distanceYards(hole.tee, currentPos);
+                }
+                
+                // Measure from last shot position
+                const lastShot = hole.shots[hole.shots.length - 1];
+                if (!lastShot.position) return null;
+                
+                return Utils.distanceYards(lastShot.position, currentPos);
             }
         };
         
@@ -1630,8 +1829,13 @@
                     hole.teePending = false;
                     Utils.toast('Tee cleared');
                 } else if (currentPos) {
-                    hole.tee = { lat: currentPos.lat, lon: currentPos.lon };
+                    const gps = { lat: currentPos.lat, lon: currentPos.lon };
+                    hole.tee = gps;
                     hole.teePending = false;
+                    
+                    // Save to course config for future rounds
+                    State.saveTeeToCore(State.holeIndex, gps);
+                    
                     Utils.toast('Tee set');
                 } else {
                     hole.teePending = true;
@@ -1651,8 +1855,13 @@
                     hole.flagPending = false;
                     Utils.toast('Flag cleared');
                 } else if (currentPos) {
-                    hole.flag = { lat: currentPos.lat, lon: currentPos.lon };
+                    const gps = { lat: currentPos.lat, lon: currentPos.lon };
+                    hole.flag = gps;
                     hole.flagPending = false;
+                    
+                    // Save to course config for future rounds
+                    State.saveFlagToCourse(State.holeIndex, gps);
+                    
                     Utils.toast('Flag set');
                 } else {
                     hole.flagPending = true;
@@ -1665,15 +1874,18 @@
             
             addShot(options = {}) {
                 const hole = State.currentHole();
-                const toFlag = UI.getToFlagYards();
+                const currentPos = GPS.getCurrentPosition();
+                
+                // Get distance from attempt field (user can override GPS)
                 const attemptVal = UI.els.attempt ? UI.els.attempt.value.trim() : '';
-                const distance = attemptVal ? Utils.saneYards(attemptVal) : toFlag;
+                const distance = attemptVal ? Utils.saneYards(attemptVal) : 0;
                 
                 const shot = {
                     club: options.club || 'Club?',
                     shotType: options.shotType || 'Type?',
                     distance: distance || 0,
                     penalty: !!options.penalty,
+                    position: currentPos ? { lat: currentPos.lat, lon: currentPos.lon } : null,
                     timestamp: Utils.nowISO()
                 };
                 
@@ -2348,6 +2560,13 @@
                     const val = Utils.clampInt(e.target.value, 0, 999);
                     const hole = State.currentHole();
                     hole.yards = val || 0;
+                    State.save();
+                });
+                
+                this.on('holeHcp', 'input', e => {
+                    const val = Utils.clampInt(e.target.value, 0, 18);
+                    const hole = State.currentHole();
+                    hole.hcp = val || 0;
                     State.save();
                 });
                 
