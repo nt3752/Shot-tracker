@@ -1,8 +1,8 @@
 
-/* Shot Tracker rewrite (v38_0) - defensive boot, no modules */
+/* Shot Tracker rewrite (v38_1) - defensive boot, no modules */
 (function(){
   "use strict";
-  const VERSION = "v38_0";
+  const VERSION = "v38_1";
   const LS_KEY = "shotTracker.v38.state";
   const LS_BAG_KEY = "shotTracker.v38.bagOverride";
   const LS_COURSE_KEY = "shotTracker.v38.course";
@@ -77,6 +77,9 @@
         hole: i+1,
         par: 0,
         yards: 0,
+        hcp: 0,
+        teePending: false,
+        flagPending: false,
         tee: null,
         flag: null,
         fwy: false,
@@ -108,6 +111,109 @@
   function saveCourseName(name) {
     saveJSON(LS_COURSE_KEY, { name: String(name||"") });
   }
+
+
+  function loadCourse() {
+    const o = loadJSON(LS_COURSE_KEY) || {};
+    if(!Array.isArray(o.holes)) o.holes = [];
+    // Normalize to 18 holes
+    const holes = [];
+    for(let i=0;i<18;i++){
+      const src = o.holes[i] || {};
+      holes.push({
+        hole: i+1,
+        hcp: clampInt(src.hcp, 0, 36) ?? 0,
+        par: clampInt(src.par, 0, 9) ?? 0,
+        yards: clampInt(src.yards, 0, 999) ?? 0
+      });
+    }
+    o.holes = holes;
+    if(typeof o.name !== "string") o.name = "";
+    return o;
+  }
+
+  function saveCourse(courseObj) {
+    const cur = loadCourse();
+    const next = {
+      name: (courseObj && typeof courseObj.name === "string") ? courseObj.name : cur.name,
+      holes: Array.isArray(courseObj && courseObj.holes) ? courseObj.holes : cur.holes
+    };
+    saveJSON(LS_COURSE_KEY, next);
+  }
+
+  function applyCourseToRound() {
+    const c = loadCourse();
+    if(!state) return;
+    state.holes.forEach((h, idx)=>{
+      const ch = c.holes[idx] || {};
+      h.par = ch.par || h.par || 0;
+      h.yards = ch.yards || h.yards || 0;
+      h.hcp = ch.hcp || h.hcp || 0;
+      h.hole = idx+1;
+    });
+    saveState();
+    uiRender();
+  }
+
+
+  function renderHolesGrid() {
+    if(!els.holesGrid) return;
+    const c = loadCourse();
+    els.holesGrid.innerHTML = "";
+    c.holes.forEach((h, idx)=>{
+      const card = document.createElement("div");
+      card.className = "holeCard";
+      const row = document.createElement("div");
+      row.className = "holeRow";
+      const tag = document.createElement("div");
+      tag.className = "tag";
+      tag.textContent = "Hole " + (idx+1);
+      row.appendChild(tag);
+
+      const mkLine = (label, val, cls) => {
+        const wrap = document.createElement("div");
+        wrap.className = "inputLine";
+        const lab = document.createElement("label");
+        lab.textContent = label;
+        const inp = document.createElement("input");
+        inp.className = "inp " + (cls||"");
+        inp.type = "number";
+        inp.inputMode = "numeric";
+        inp.value = (val||0);
+        wrap.appendChild(lab);
+        wrap.appendChild(inp);
+        return {wrap, inp};
+      };
+
+      const par = mkLine("Par", h.par, "small");
+      const yds = mkLine("Yds", h.yards, "");
+      const hcp = mkLine("HCP", h.hcp, "small");
+
+      par.inp.dataset.k="par"; yds.inp.dataset.k="yards"; hcp.inp.dataset.k="hcp";
+      [par.inp, yds.inp, hcp.inp].forEach(inp=>{ inp.dataset.i = String(idx); });
+
+      row.appendChild(par.wrap);
+      row.appendChild(yds.wrap);
+      row.appendChild(hcp.wrap);
+
+      card.appendChild(row);
+      els.holesGrid.appendChild(card);
+    });
+  }
+
+  function readHolesGridToCourse() {
+    const c = loadCourse();
+    if(!els.holesGrid) return c;
+    const inputs = els.holesGrid.querySelectorAll("input[data-i][data-k]");
+    inputs.forEach(inp=>{
+      const i = parseInt(inp.dataset.i,10);
+      const k = inp.dataset.k;
+      const v = clampInt(inp.value, 0, k==="hcp"?36: (k==="par"?9:999)) ?? 0;
+      if(c.holes[i]) c.holes[i][k] = v;
+    });
+    return c;
+  }
+
 
   function loadBagOverride() {
     const o = loadJSON(LS_BAG_KEY);
@@ -169,7 +275,7 @@
             });
           },
           (_err)=>cb(null),
-          { enableHighAccuracy:true, maximumAge:0, timeout:8000 }
+          { enableHighAccuracy:true, maximumAge:5000, timeout:5000 }
         );
       } catch(e) { cb(null); }
     }
@@ -182,12 +288,12 @@
     const ids = [
       "btnCourse","sbHole","sbShots","sbTotal","sbCourse","roundInfo",
       "toFlag","accTag","attempt","btnCaddy","btnTee","btnFlag","btnShot",
-      "btnPen","btnDel","btnFwy","btnGir",
+      "btnPrevHole","btnNextHole","btnPen","btnDel","btnFwy","btnGir",
       "par","holeYds","shotsList",
       "caddyBackdrop","caddySheet","btnCloseCaddy","btnShowAll","btnMode","btnBag",
       "caddyTarget","btnResetAdj","caddyList",
       "bagBackdrop","bagSheet","btnCloseBag","bagClub","bagType","bagCarry","bagTotal","btnSaveBag",
-      "courseName","btnSaveCourse"
+      "courseName","btnSaveCourse","holesGrid","btnSaveHoles"
     ];
     ids.forEach(id=>{ els[id] = $(id); });
   }
@@ -198,6 +304,26 @@
     if(!el) return;
     el.classList.toggle("lit", !!on);
   }
+
+  function clampHoleIndex(i) {
+    const n = state.holes.length;
+    if(i < 0) return 0;
+    if(i >= n) return n-1;
+    return i;
+  }
+
+  function gotoHole(i) {
+    state.holeIndex = clampHoleIndex(i);
+    state.holes[state.holeIndex].hole = state.holeIndex + 1;
+    ensureAttempt();
+    saveState();
+    uiRender();
+  }
+
+  function prevHole() { gotoHole(state.holeIndex - 1); }
+  function nextHole() { gotoHole(state.holeIndex + 1); }
+
+
 
   function accClass(accY) {
     if(accY == null) return "bad";
@@ -308,9 +434,14 @@
   function toggleTee() {
     const h = hole();
     if(h.tee && h.shots.length > 0) { toast("Tee locked after shots"); return; }
-    if(h.tee) { h.tee = null; saveState(); uiRender(); return; }
+    if(h.tee) { h.tee = null; h.teePending=false; saveState(); uiRender(); return; }
+    // Immediate visual feedback
+    h.teePending = true;
+    saveState();
+    uiRender();
     gps.snapshot((fix)=>{
-      if(!fix) { toast("No GPS yet"); return; }
+      h.teePending = false;
+      if(!fix) { toast("No GPS yet"); saveState(); uiRender(); return; }
       h.tee = {lat: fix.lat, lon: fix.lon};
       saveState();
       uiRender();
@@ -319,9 +450,14 @@
 
   function toggleFlag() {
     const h = hole();
-    if(h.flag) { h.flag = null; saveState(); uiRender(); return; }
+    if(h.flag) { h.flag = null; h.flagPending=false; saveState(); uiRender(); return; }
+    // Immediate visual feedback
+    h.flagPending = true;
+    saveState();
+    uiRender();
     gps.snapshot((fix)=>{
-      if(!fix) { toast("No GPS yet"); return; }
+      h.flagPending = false;
+      if(!fix) { toast("No GPS yet"); saveState(); uiRender(); return; }
       h.flag = {lat: fix.lat, lon: fix.lon};
       saveState();
       uiRender();
@@ -495,8 +631,10 @@
 
     ensureAttempt();
 
-    setLit(els.btnTee, !!h.tee);
-    setLit(els.btnFlag, !!h.flag);
+    setLit(els.btnTee, !!h.tee || !!h.teePending);
+    if(els.btnTee) els.btnTee.classList.toggle("pending", !!h.teePending);
+    setLit(els.btnFlag, !!h.flag || !!h.flagPending);
+    if(els.btnFlag) els.btnFlag.classList.toggle("pending", !!h.flagPending);
     if(els.btnFwy) els.btnFwy.classList.toggle("toggleOn", !!h.fwy);
     if(els.btnGir) els.btnGir.classList.toggle("toggleOn", !!h.gir);
 
@@ -521,11 +659,30 @@
           left.className = "left";
 
           const t1 = document.createElement("span"); t1.className="tag"; t1.textContent = "#" + (idx+1);
-          const t2 = document.createElement("span"); t2.className="tag"; t2.textContent = s.penalty ? "PEN" : (s.club || "Club?");
-          const t3 = document.createElement("span"); t3.className="tag"; t3.textContent = s.shotType || "Type?";
+          const clubSel = document.createElement("select");
+          clubSel.className = "miniSel";
+          const clubs = (cfg && Array.isArray(cfg.clubs)) ? cfg.clubs : ["Club?"];
+          clubs.forEach(c=>{ const o=document.createElement("option"); o.value=c; o.textContent=c; clubSel.appendChild(o); });
+          clubSel.value = s.club || "Club?";
+          clubSel.disabled = !!s.penalty;
+          clubSel.addEventListener("change", ()=>{
+            s.club = clubSel.value || "Club?";
+            saveState(); uiRender();
+          });
+
+          const typeSel = document.createElement("select");
+          typeSel.className = "miniSel";
+          const types = (cfg && Array.isArray(cfg.shotTypes)) ? cfg.shotTypes : ["Type?"];
+          types.forEach(t=>{ const o=document.createElement("option"); o.value=t; o.textContent=t; typeSel.appendChild(o); });
+          typeSel.value = s.shotType || "Type?";
+          typeSel.disabled = !!s.penalty;
+          typeSel.addEventListener("change", ()=>{
+            s.shotType = typeSel.value || "Type?";
+            saveState(); uiRender();
+          });
           const dist = document.createElement("span"); dist.className="dist"; dist.textContent = s.penalty ? "—" : (String(s.distance || 0) + "y");
 
-          left.appendChild(t1); left.appendChild(t2); left.appendChild(t3); left.appendChild(dist);
+          left.appendChild(t1); left.appendChild(clubSel); left.appendChild(typeSel); left.appendChild(dist);
 
           const right = document.createElement("div");
           const inp = document.createElement("input");
@@ -559,6 +716,9 @@
     if(els.btnTee) els.btnTee.addEventListener("click", toggleTee);
     if(els.btnFlag) els.btnFlag.addEventListener("click", toggleFlag);
     if(els.btnShot) els.btnShot.addEventListener("click", ()=>{ addShot({club:"Club?", shotType:"Type?", penalty:false}); });
+
+    if(els.btnPrevHole) els.btnPrevHole.addEventListener("click", prevHole);
+    if(els.btnNextHole) els.btnNextHole.addEventListener("click", nextHole);
 
     if(els.btnPen) els.btnPen.addEventListener("click", addPenalty);
     if(els.btnDel) els.btnDel.addEventListener("click", deleteLastShot);
@@ -615,9 +775,17 @@
 
     if(els.btnSaveCourse) els.btnSaveCourse.addEventListener("click", ()=>{
       const name = els.courseName ? els.courseName.value : "";
-      saveCourseName(name);
+      const c = loadCourse();
+      c.name = name;
+      saveCourse(c);
       toast("Saved");
       uiRender();
+    });
+
+    if(els.btnSaveHoles) els.btnSaveHoles.addEventListener("click", ()=>{
+      const c = readHolesGridToCourse();
+      saveCourse(c);
+      toast("Saved");
     });
   }
 
@@ -628,9 +796,14 @@
     saveState();
 
     cacheEls();
-    if(els.courseName) els.courseName.value = loadCourseName();
+    if(els.courseName) {
+      const c = loadCourse();
+      els.courseName.value = c.name || "";
+      renderHolesGrid();
+    }
 
     bindEvents();
+    if(!els.courseName) { applyCourseToRound(); }
     gps.start();
     uiRender();
   }

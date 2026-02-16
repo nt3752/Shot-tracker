@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Shot Tracker v38_0</title>
-  <link rel="stylesheet" href="styles.css?v=38_0" />
+  <title>Shot Tracker v38_1</title>
+  <link rel="stylesheet" href="styles.css?v=38_1" />
 </head>
 <body>
   <header class="header">
     <div class="headerTop">
-      <div class="brand">Shot Tracker <small>v38_0</small></div>
+      <div class="brand">Shot Tracker <small>v38_1</small></div>
       <button id="btnCourse" class="iconBtn" type="button">⚙️</button>
     </div>
 
@@ -46,6 +46,12 @@
         <button id="btnFlag" class="bigBtn" type="button">FLAG</button>
         <button id="btnShot" class="bigBtn" type="button">SHOT</button>
       </div>
+
+      <div style="height:10px"></div>
+      <div class="row">
+        <button id="btnPrevHole" class="smallBtn" type="button">◀ Hole</button>
+        <button id="btnNextHole" class="smallBtn" type="button">Hole ▶</button>
+      </div>
       <div style="height:10px"></div>
       <div class="row">
         <button id="btnPen" class="smallBtn danger" type="button">Pen</button>
@@ -57,16 +63,17 @@
 
     <section class="section">
       <h2>This Hole</h2>
-      <div class="split">
-        <div class="inputLine" style="flex:1">
+      <div class="split compact">
+        <div class="inputLine compact">
           <label for="par">Par</label>
-          <input id="par" class="inp" inputmode="numeric" type="number" placeholder="4" />
+          <input id="par" class="inp compactInp" inputmode="numeric" type="number" placeholder="4" />
         </div>
-        <div class="inputLine" style="flex:1">
+        <div class="inputLine compact">
           <label for="holeYds">Yds</label>
-          <input id="holeYds" class="inp" inputmode="numeric" type="number" placeholder="385" />
+          <input id="holeYds" class="inp compactInp" inputmode="numeric" type="number" placeholder="385" />
         </div>
       </div>
+
       <div class="list" id="shotsList" aria-label="shots"></div>
     </section>
   </main>
@@ -134,7 +141,7 @@
     <div style="color:var(--muted);font-weight:850;font-size:12px">Changes save for this device.</div>
   </div>
 
-  <script src="config.js?v=38_0"></script>
-  <script src="app.js?v=38_0" defer></script>
+  <script src="config.js?v=38_1"></script>
+  <script src="app.js?v=38_1" defer></script>
 </body>
 </html>

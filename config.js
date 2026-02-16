@@ -1,7 +1,7 @@
-/* Shot Tracker config (v38_0) */
+/* Shot Tracker config (v38_1) */
 
 window.SHOT_TRACKER_CONFIG = {
-  version: "v38_0",
+  version: "v38_1",
   clubs: ["Club?","D","MD","3W","5W","7W","3H","5H","4I","5I","6I","7I","8I","9I","PW","46","56","60","PT"],
   shotTypes: ["Type?","full","3/4","1/2","pitch","chip","putt","penalty"],
   bag: {

@@ -114,3 +114,23 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:
 .suggestRow .name{font-weight:1000;font-size:15px}
 .suggestRow .meta{color:var(--muted);font-weight:900;font-size:12px}
 .suggestRow button{min-width:90px}
+
+/* v38_1 additions */
+.split.compact { gap: 10px; align-items: flex-end; }
+.inputLine.compact { flex: 0 0 auto; }
+.inp.compactInp { width: 96px; max-width: 96px; }
+@media (max-width: 430px){
+  .inp.compactInp { width: 86px; max-width: 86px; }
+}
+.bigBtn.pending { opacity: 0.9; }
+.lit.pending { animation: pulse 0.9s ease-in-out infinite; }
+@keyframes pulse { 0%{ transform: scale(1); } 50%{ transform: scale(1.02);} 100%{ transform: scale(1);} }
+
+.holesGrid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.holeCard { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 10px; background: rgba(255,255,255,0.03); }
+.holeRow { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+.holeRow .tag { font-weight: 900; opacity: 0.9; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.05); }
+.holeRow .inputLine { margin:0; }
+.holeRow .inp { width: 96px; max-width: 96px; }
+.holeRow .inp.small { width: 80px; max-width: 80px; }
+.miniSel { appearance: none; -webkit-appearance: none; border: 1px solid rgba(255,255,255,0.10); background: rgba(0,0,0,0.25); color: var(--text); border-radius: 999px; padding: 6px 10px; font-weight: 900; font-size: 12px; }
