@@ -835,7 +835,7 @@
                 </div>
                 
                 <div class="input-row">
-                    <span class="input-label">Attempt</span>
+                    <span class="input-label">Target</span>
                     <input type="text" class="input-field compact" id="attempt" placeholder="--" inputmode="numeric" maxlength="3" pattern="[0-9]*">
                     <button class="btn btn-primary btn-sm" id="btnCaddy" type="button">Caddy</button>
                 </div>
@@ -1750,19 +1750,30 @@
                 left.appendChild(typeSelect);
                 
                 const right = document.createElement('div');
+                right.style.display = 'flex';
+                right.style.alignItems = 'center';
+                right.style.gap = 'var(--space-1)';
+                
                 const distInput = document.createElement('input');
                 distInput.className = 'shot-input';
                 distInput.type = 'number';
                 distInput.inputMode = 'numeric';
                 distInput.disabled = !!shot.penalty;
                 distInput.value = shot.penalty ? '' : String(shot.distance || 0);
-                distInput.placeholder = 'y';
+                distInput.placeholder = shot.shotType === 'putt' ? 'ft' : 'y';
                 distInput.addEventListener('change', () => {
                     const val = Utils.saneYards(distInput.value);
                     shot.distance = val !== null ? val : (shot.distance || 0);
                     State.save();
                     // Don't call UI.render() here - it rebuilds the dropdowns
                 });
+                
+                // Add unit label
+                const unitLabel = document.createElement('span');
+                unitLabel.style.fontSize = '0.75rem';
+                unitLabel.style.fontWeight = '600';
+                unitLabel.style.color = 'var(--text-muted)';
+                unitLabel.textContent = shot.shotType === 'putt' ? 'ft' : 'y';
                 
                 if (shot.penalty) {
                     const penaltyLabel = document.createElement('span');
@@ -1772,6 +1783,7 @@
                     right.appendChild(penaltyLabel);
                 } else {
                     right.appendChild(distInput);
+                    right.appendChild(unitLabel);
                 }
                 
                 item.appendChild(left);
@@ -2027,13 +2039,15 @@
                 const targetVal = UI.els.caddyTarget ? UI.els.caddyTarget.value.trim() : '';
                 const target = targetVal ? Utils.saneYards(targetVal) : 0;
                 
-                if (!target) {
+                // If showAll is true, show all clubs regardless of target
+                // If showAll is false and no target, prompt for target
+                if (!State.ui.showAll && !target) {
                     UI.els.suggestionList.innerHTML = '<div class="shot-list-empty">Enter a target distance</div>';
                     return;
                 }
                 
                 const suggestions = Caddy.getSuggestions(
-                    target,
+                    target || 999, // If showAll with no target, use high number to show everything
                     State.ui.caddyMode,
                     State.ui.showAll
                 );
@@ -2061,7 +2075,10 @@
                     
                     const meta = document.createElement('div');
                     meta.className = 'suggestion-meta';
-                    meta.textContent = `${sug.carry}y carry • ${sug.total}y total • ${sug.diff}y diff`;
+                    
+                    // Show diff as +/- to indicate over/under target
+                    const diffText = target ? (sug.distance > target ? `+${sug.diff}y` : (sug.distance < target ? `-${sug.diff}y` : '0y')) : '';
+                    meta.textContent = `${sug.carry}y carry • ${sug.total}y total${diffText ? ' • ' + diffText : ''}`;
                     
                     info.appendChild(clubName);
                     info.appendChild(meta);
@@ -2229,12 +2246,35 @@
                         label.style.fontWeight = '700';
                         label.textContent = `${club} • ${type}`;
                         
+                        const rightSide = document.createElement('div');
+                        rightSide.style.cssText = 'display: flex; align-items: center; gap: var(--space-2);';
+                        
                         const values = document.createElement('div');
                         values.style.cssText = 'font-family: var(--font-mono); color: var(--text-muted);';
                         values.textContent = `${distances.carry}y / ${distances.total}y`;
                         
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = '×';
+                        deleteBtn.style.cssText = 'background: rgba(230,69,69,0.15); border: 1px solid rgba(230,69,69,0.3); color: var(--red); border-radius: 6px; width: 28px; height: 28px; font-size: 1.25rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;';
+                        deleteBtn.title = 'Delete this club/shot combination';
+                        deleteBtn.addEventListener('click', () => {
+                            if (confirm(`Delete ${club} ${type}?`)) {
+                                delete State.bag.data[club][type];
+                                // If no more shot types for this club, remove the club entirely
+                                if (Object.keys(State.bag.data[club]).length === 0) {
+                                    delete State.bag.data[club];
+                                }
+                                State.saveBag();
+                                this.renderBagMatrix();
+                                Utils.toast('Deleted');
+                            }
+                        });
+                        
+                        rightSide.appendChild(values);
+                        rightSide.appendChild(deleteBtn);
+                        
                         row.appendChild(label);
-                        row.appendChild(values);
+                        row.appendChild(rightSide);
                         UI.els.bagMatrix.appendChild(row);
                     });
                 });
