@@ -37,7 +37,7 @@
       <div style="height:10px"></div>
       <div class="inputLine">
         <label for="attempt">Attempt</label>
-        <input id="attempt" class="inp" inputmode="numeric" type="number" placeholder="--" />
+        <input id="attempt" type="text" class="inp" placeholder="--" inputmode="numeric" maxlength="3" pattern="\d*">
         <button id="btnCaddy" class="smallBtn" type="button">CADDY</button>
       </div>
       <div style="height:10px"></div>
@@ -50,6 +50,7 @@
       <div style="height:10px"></div>
       <div class="row">
         <button id="btnPrevHole" class="smallBtn" type="button">◀ Hole</button>
+        <button id="btnJumpHole" class="btn sm">Hole 1</button>
         <button id="btnNextHole" class="smallBtn" type="button">Hole ▶</button>
       </div>
       <div style="height:10px"></div>
@@ -62,20 +63,21 @@
     </section>
 
     <section class="section">
+      <h2>Shots</h2>
+      <div class="list" id="shotsList" aria-label="shots"></div>
+
       <h2>This Hole</h2>
       <div class="split compact">
         <div class="inputLine compact">
           <label for="par">Par</label>
-          <input id="par" class="inp compactInp" inputmode="numeric" type="number" placeholder="4" />
+          <input id="par" type="text" class="inp compactInp" placeholder="4" inputmode="numeric" maxlength="1" pattern="\d*">
         </div>
         <div class="inputLine compact">
           <label for="holeYds">Yds</label>
-          <input id="holeYds" class="inp compactInp" inputmode="numeric" type="number" placeholder="385" />
+          <input id="holeYds" type="text" class="inp compactInp" placeholder="385" inputmode="numeric" maxlength="3" pattern="\d*">
         </div>
       </div>
-
-      <div class="list" id="shotsList" aria-label="shots"></div>
-    </section>
+</section>
   </main>
 
   <div id="caddyBackdrop" class="backdrop hidden"></div>
@@ -92,7 +94,7 @@
     <div style="height:10px"></div>
     <div class="inputLine">
       <label for="caddyTarget">Target</label>
-      <input id="caddyTarget" class="inp" inputmode="numeric" type="number" />
+      <input id="caddyTarget" type="text" class="inp" inputmode="numeric" maxlength="3" pattern="\d*">
       <button id="btnResetAdj" class="smallBtn" type="button">Reset</button>
     </div>
     <div id="caddyList"></div>
