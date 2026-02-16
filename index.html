@@ -1564,6 +1564,7 @@
         
         const UI = {
             els: {},
+            editingLock: false, // Prevents renders while user is editing
             
             cacheElements() {
                 const ids = [
@@ -1590,6 +1591,9 @@
             },
             
             render() {
+                // Don't render if user is actively editing an input
+                if (this.editingLock) return;
+                
                 this.renderScoreboard();
                 this.renderRangefinder();
                 this.renderHoleInfo();
@@ -1725,6 +1729,20 @@
                     clubSelect.appendChild(option);
                 });
                 clubSelect.value = shot.club || 'Club?';
+                
+                // Track focus to prevent interference
+                clubSelect.addEventListener('focus', () => {
+                    clubSelect.dataset.editing = 'true';
+                    UI.editingLock = true; // Lock UI renders
+                });
+                
+                clubSelect.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        delete clubSelect.dataset.editing;
+                        UI.editingLock = false; // Unlock UI renders
+                    }, 300);
+                });
+                
                 clubSelect.addEventListener('change', () => {
                     shot.club = clubSelect.value;
                     State.save();
@@ -1740,6 +1758,20 @@
                     typeSelect.appendChild(option);
                 });
                 typeSelect.value = shot.shotType || 'Type?';
+                
+                // Track focus to prevent interference
+                typeSelect.addEventListener('focus', () => {
+                    typeSelect.dataset.editing = 'true';
+                    UI.editingLock = true; // Lock UI renders
+                });
+                
+                typeSelect.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        delete typeSelect.dataset.editing;
+                        UI.editingLock = false; // Unlock UI renders
+                    }, 300);
+                });
+                
                 typeSelect.addEventListener('change', () => {
                     shot.shotType = typeSelect.value;
                     State.save();
@@ -1761,6 +1793,20 @@
                 distInput.disabled = !!shot.penalty;
                 distInput.value = shot.penalty ? '' : String(shot.distance || 0);
                 distInput.placeholder = shot.shotType === 'putt' ? 'ft' : 'y';
+                
+                // Track focus to keep input open
+                distInput.addEventListener('focus', () => {
+                    distInput.dataset.editing = 'true';
+                    UI.editingLock = true; // Lock UI renders
+                });
+                
+                distInput.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        delete distInput.dataset.editing;
+                        UI.editingLock = false; // Unlock UI renders
+                    }, 300);
+                });
+                
                 distInput.addEventListener('change', () => {
                     const val = Utils.saneYards(distInput.value);
                     shot.distance = val !== null ? val : (shot.distance || 0);
@@ -1995,9 +2041,9 @@
                     UI.els.caddyTarget.value = targetDistance;
                 }
                 
-                // Set button text based on current state
+                // Set button text based on current state (show current, not toggle)
                 if (UI.els.btnShowAll) {
-                    UI.els.btnShowAll.textContent = State.ui.showAll ? 'Within 10' : 'Show All';
+                    UI.els.btnShowAll.textContent = State.ui.showAll ? 'Show All' : 'Within 10';
                 }
                 
                 this.show();
@@ -2673,9 +2719,10 @@
                 this.on('btnShowAll', 'click', () => {
                     State.ui.showAll = !State.ui.showAll;
                     if (UI.els.btnShowAll) {
-                        // When showAll is TRUE, button should say "Within 10" (to toggle back)
-                        // When showAll is FALSE, button should say "Show All" (to toggle to show all)
-                        UI.els.btnShowAll.textContent = State.ui.showAll ? 'Within 10' : 'Show All';
+                        // Show CURRENT state, not next state
+                        // When showAll is TRUE, button says "Show All" (current state)
+                        // When showAll is FALSE, button says "Within 10" (current state)
+                        UI.els.btnShowAll.textContent = State.ui.showAll ? 'Show All' : 'Within 10';
                     }
                     State.save();
                     CaddyUI.render();
