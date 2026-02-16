@@ -1,8 +1,8 @@
 
-/* Shot Tracker rewrite (v38_4) - defensive boot, no modules */
+/* Shot Tracker rewrite (v38_5) - defensive boot, no modules */
 (function(){
   "use strict";
-  const VERSION = "v38_4";
+  const VERSION = "v38_5";
   const LS_KEY = "shotTracker.v38.state";
   const LS_BAG_KEY = "shotTracker.v38.bagOverride";
   const LS_COURSE_KEY = "shotTracker.v38.course";
@@ -289,7 +289,7 @@
     const ids = [
       "btnCourse","sbHole","sbShots","sbTotal","sbCourse","roundInfo",
       "toFlag","accTag","attempt","btnCaddy","btnTee","btnFlag","btnShot",
-      "btnPrevHole","btnNextHole","selHoleJump","btnPen","btnDel","btnFwy","btnGir",
+      "btnPrevHole","btnNextHole","btnHolePick","btnHoleClose","holeBackdrop","holeSheet","holeGrid","btnPen","btnDel","btnFwy","btnGir",
       "par","holeYds","shotsList",
       "caddyBackdrop","caddySheet","btnCloseCaddy","btnShowAll","btnMode","btnBag",
       "caddyTarget","btnResetAdj","caddyList",
@@ -613,7 +613,7 @@
     const course = loadCourseName();
 
     if(els.sbHole) els.sbHole.textContent = String(h.hole);
-    if(els.selHoleJump) els.selHoleJump.value = String(h.hole);
+    // Hole picker modal; scoreboard shows current hole.
     if(els.sbShots) els.sbShots.textContent = String(h.shots.length);
     const totalShots = state.holes.reduce((sum, hh)=> sum + (hh.shots ? hh.shots.length : 0), 0);
     if(els.sbTotal) els.sbTotal.textContent = String(totalShots);
@@ -726,12 +726,38 @@
     if(els.btnPrevHole) els.btnPrevHole.addEventListener("click", prevHole);
     if(els.btnNextHole) els.btnNextHole.addEventListener("click", nextHole);
 
-    if(els.selHoleJump) els.selHoleJump.addEventListener("change", ()=>{
-      const n = clampInt(els.selHoleJump.value, 1, state.holes.length);
-      if(!n) return;
-      gotoHole(n-1);
-    });
-    );
+    // Hole picker
+    const openHolePicker = ()=>{
+      if(!els.holeBackdrop || !els.holeSheet) return;
+      els.holeBackdrop.classList.remove("hidden");
+      els.holeSheet.classList.remove("hidden");
+      els.holeBackdrop.setAttribute("aria-hidden","false");
+    };
+    const closeHolePicker = ()=>{
+      if(!els.holeBackdrop || !els.holeSheet) return;
+      els.holeBackdrop.classList.add("hidden");
+      els.holeSheet.classList.add("hidden");
+      els.holeBackdrop.setAttribute("aria-hidden","true");
+    };
+    if(els.holeGrid && !els.holeGrid.dataset.built){
+      els.holeGrid.dataset.built = "1";
+      const frag = document.createDocumentFragment();
+      for(let i=1;i<=18;i++){
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "holePick";
+        b.textContent = String(i);
+        b.addEventListener("click", ()=>{
+          gotoHole(i-1);
+          closeHolePicker();
+        });
+        frag.appendChild(b);
+      }
+      els.holeGrid.appendChild(frag);
+    }
+    if(els.btnHolePick) els.btnHolePick.addEventListener("click", openHolePicker);
+    if(els.btnHoleClose) els.btnHoleClose.addEventListener("click", closeHolePicker);
+    if(els.holeBackdrop) els.holeBackdrop.addEventListener("click", closeHolePicker);
 
     if(els.btnPen) els.btnPen.addEventListener("click", addPenalty);
     if(els.btnDel) els.btnDel.addEventListener("click", deleteLastShot);
@@ -821,5 +847,9 @@
     uiRender();
   }
 
-  document.addEventListener("DOMContentLoaded", boot);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();

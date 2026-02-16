@@ -167,3 +167,20 @@ html,body{overflow-x:hidden;margin:0;padding:0;background:var(--bg);color:var(--
 
 
 #caddyTarget{max-width: 120px;}
+
+/* Hole picker */
+.holeGrid{
+  display:grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap:10px;
+  padding:12px;
+}
+.holePick{
+  height:46px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  font-weight:800;
+  font-size:16px;
+}
