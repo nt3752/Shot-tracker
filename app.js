@@ -288,7 +288,7 @@
     const ids = [
       "btnCourse","sbHole","sbShots","sbTotal","sbCourse","roundInfo",
       "toFlag","accTag","attempt","btnCaddy","btnTee","btnFlag","btnShot",
-      "btnPrevHole","btnNextHole","btnPen","btnDel","btnFwy","btnGir",
+      "btnPrevHole","btnNextHole","btnJumpHole","btnPen","btnDel","btnFwy","btnGir",
       "par","holeYds","shotsList",
       "caddyBackdrop","caddySheet","btnCloseCaddy","btnShowAll","btnMode","btnBag",
       "caddyTarget","btnResetAdj","caddyList",
@@ -307,8 +307,10 @@
 
   function clampHoleIndex(i) {
     const n = state.holes.length;
-    if(i < 0) return 0;
-    if(i >= n) return n-1;
+    if(n <= 0) return 0;
+    // Wrap navigation
+    if(i < 0) return n-1;
+    if(i >= n) return 0;
     return i;
   }
 
@@ -610,7 +612,8 @@
 
     if(els.sbHole) els.sbHole.textContent = String(h.hole);
     if(els.sbShots) els.sbShots.textContent = String(h.shots.length);
-    if(els.sbTotal) els.sbTotal.textContent = String(h.shots.length);
+    const totalShots = state.holes.reduce((sum, hh)=> sum + (hh.shots ? hh.shots.length : 0), 0);
+    if(els.sbTotal) els.sbTotal.textContent = String(totalShots);
     if(els.sbCourse) els.sbCourse.textContent = course ? "OK" : "--";
 
     if(els.roundInfo) {
@@ -719,6 +722,13 @@
 
     if(els.btnPrevHole) els.btnPrevHole.addEventListener("click", prevHole);
     if(els.btnNextHole) els.btnNextHole.addEventListener("click", nextHole);
+    if(els.btnJumpHole) els.btnJumpHole.addEventListener("click", ()=>{
+      const raw = prompt("Jump to hole (1-18):", String(state.holeIndex+1));
+      if(raw == null) return;
+      const n = clampInt(raw, 1, state.holes.length);
+      if(!n) return;
+      gotoHole(n-1);
+    });
 
     if(els.btnPen) els.btnPen.addEventListener("click", addPenalty);
     if(els.btnDel) els.btnDel.addEventListener("click", deleteLastShot);
