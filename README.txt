@@ -1,1 +1,0 @@
-Shot Tracker v38_0 rewrite\n\nUpload all files to repo root.\n

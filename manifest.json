@@ -1,9 +1,0 @@
-{
-  "name": "Shot Tracker",
-  "short_name": "Shots",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#061612",
-  "theme_color": "#061612",
-  "icons": []
-}
