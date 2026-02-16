@@ -1,11 +1,12 @@
 
-/* Shot Tracker rewrite (v38_1) - defensive boot, no modules */
+/* Shot Tracker rewrite (v38_4) - defensive boot, no modules */
 (function(){
   "use strict";
-  const VERSION = "v38_1";
+  const VERSION = "v38_4";
   const LS_KEY = "shotTracker.v38.state";
   const LS_BAG_KEY = "shotTracker.v38.bagOverride";
   const LS_COURSE_KEY = "shotTracker.v38.course";
+  const cfg = (window.SHOT_TRACKER_CONFIG || {});
 
   function $(id){ return document.getElementById(id); }
   function nowISO(){ return new Date().toISOString(); }
@@ -288,7 +289,7 @@
     const ids = [
       "btnCourse","sbHole","sbShots","sbTotal","sbCourse","roundInfo",
       "toFlag","accTag","attempt","btnCaddy","btnTee","btnFlag","btnShot",
-      "btnPrevHole","btnNextHole","btnJumpHole","btnPen","btnDel","btnFwy","btnGir",
+      "btnPrevHole","btnNextHole","selHoleJump","btnPen","btnDel","btnFwy","btnGir",
       "par","holeYds","shotsList",
       "caddyBackdrop","caddySheet","btnCloseCaddy","btnShowAll","btnMode","btnBag",
       "caddyTarget","btnResetAdj","caddyList",
@@ -322,16 +323,17 @@
     uiRender();
   }
 
-  function prevHole() { gotoHole(state.holeIndex - 1); }
-  function nextHole() { gotoHole(state.holeIndex + 1); }
+  function prevHole(){ 
+    const n = state.holes.length;
+    const i = (state.holeIndex - 1 + n) % n;
+    gotoHole(i);
+  }
 
 
-
-  function accClass(accY) {
-    if(accY == null) return "bad";
-    if(accY <= 8) return "good";
-    if(accY <= 18) return "warn";
-    return "bad";
+  function nextHole(){
+    const n = state.holes.length;
+    const i = (state.holeIndex + 1) % n;
+    gotoHole(i);
   }
 
   function expectedFor(club, shotType) {
@@ -611,6 +613,7 @@
     const course = loadCourseName();
 
     if(els.sbHole) els.sbHole.textContent = String(h.hole);
+    if(els.selHoleJump) els.selHoleJump.value = String(h.hole);
     if(els.sbShots) els.sbShots.textContent = String(h.shots.length);
     const totalShots = state.holes.reduce((sum, hh)=> sum + (hh.shots ? hh.shots.length : 0), 0);
     if(els.sbTotal) els.sbTotal.textContent = String(totalShots);
@@ -722,13 +725,13 @@
 
     if(els.btnPrevHole) els.btnPrevHole.addEventListener("click", prevHole);
     if(els.btnNextHole) els.btnNextHole.addEventListener("click", nextHole);
-    if(els.btnJumpHole) els.btnJumpHole.addEventListener("click", ()=>{
-      const raw = prompt("Jump to hole (1-18):", String(state.holeIndex+1));
-      if(raw == null) return;
-      const n = clampInt(raw, 1, state.holes.length);
+
+    if(els.selHoleJump) els.selHoleJump.addEventListener("change", ()=>{
+      const n = clampInt(els.selHoleJump.value, 1, state.holes.length);
       if(!n) return;
       gotoHole(n-1);
     });
+    );
 
     if(els.btnPen) els.btnPen.addEventListener("click", addPenalty);
     if(els.btnDel) els.btnDel.addEventListener("click", deleteLastShot);

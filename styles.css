@@ -141,8 +141,29 @@ html,body{overflow-x:hidden;margin:0;padding:0;background:var(--bg);color:var(--
 
 
 /* Compact numeric fields */
-#attempt{max-width:90px}
-#caddyTarget{max-width:90px}
+#attempt{max-width: 120px;}
 #par{max-width:64px}
 #holeYds{max-width:110px}
 
+
+
+/* v38_4 tweaks */
+.navBig{
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 14px 14px;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+.navSelect{
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: center;
+  text-align-last: center;
+}
+.container{
+  max-width: 520px;
+}
+
+
+#caddyTarget{max-width: 120px;}
