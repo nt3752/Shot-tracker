@@ -389,6 +389,10 @@
             max-width: 100px;
         }
         
+        .input-field.compact-sm {
+            max-width: 60px;
+        }
+        
         /* ===============================================
            BUTTONS
            =============================================== */
@@ -857,11 +861,11 @@
                 <h2 class="section-title">This Hole</h2>
                 <div class="input-row">
                     <span class="input-label">Par</span>
-                    <input type="text" class="input-field compact" id="par" placeholder="4" inputmode="numeric" maxlength="1" pattern="[0-9]*">
+                    <input type="text" class="input-field compact-sm" id="par" placeholder="4" inputmode="numeric" maxlength="1" pattern="[0-9]*">
                     <span class="input-label">Yards</span>
                     <input type="text" class="input-field compact" id="holeYds" placeholder="385" inputmode="numeric" maxlength="3" pattern="[0-9]*">
                     <span class="input-label">Hcp</span>
-                    <input type="text" class="input-field compact" id="holeHcp" placeholder="1" inputmode="numeric" maxlength="2" pattern="[0-9]*">
+                    <input type="text" class="input-field compact-sm" id="holeHcp" placeholder="1" inputmode="numeric" maxlength="2" pattern="[0-9]*">
                 </div>
             </section>
             
@@ -1753,7 +1757,7 @@
                     const val = Utils.saneYards(distInput.value);
                     shot.distance = val !== null ? val : (shot.distance || 0);
                     State.save();
-                    this.render();
+                    // Don't call UI.render() here - it rebuilds the dropdowns
                 });
                 
                 if (shot.penalty) {
@@ -1963,10 +1967,13 @@
         
         const CaddyUI = {
             open() {
+                // Use Attempt field value (user can override before opening Caddy)
+                const attemptVal = UI.els.attempt ? UI.els.attempt.value.trim() : '';
                 const toFlag = UI.getToFlagYards();
+                const targetDistance = attemptVal || (toFlag !== null ? String(toFlag) : '');
                 
                 if (UI.els.caddyTarget) {
-                    UI.els.caddyTarget.value = toFlag !== null ? String(toFlag) : '';
+                    UI.els.caddyTarget.value = targetDistance;
                 }
                 
                 this.show();
