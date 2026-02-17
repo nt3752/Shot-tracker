@@ -3673,11 +3673,21 @@
                 console.log('Shot Tracker v39 initialized');
             } catch (e) {
                 console.error('App initialization error:', e);
-                // Show error visibly for debugging
-                var errDiv = document.createElement('div');
-                errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#e64545;color:white;padding:12px;font-size:12px;z-index:99999;word-break:break-all;font-family:monospace';
-                errDiv.textContent = 'Init error: ' + (e && e.message ? e.message : String(e));
-                document.body.appendChild(errDiv);
+                // Show error in multiple ways
+                var msg = 'Init error: ' + (e && e.message ? e.message : String(e)) + ' | Stack: ' + (e && e.stack ? e.stack.substring(0, 200) : 'no stack');
+                
+                // Alert (works always)
+                alert(msg);
+                
+                // Try to show in DOM
+                setTimeout(function() {
+                    try {
+                        var errDiv = document.createElement('div');
+                        errDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#e64545;color:white;padding:12px;font-size:10px;z-index:99999;word-break:break-all;font-family:monospace;max-height:200px;overflow:auto';
+                        errDiv.textContent = msg;
+                        document.body.appendChild(errDiv);
+                    } catch(err2) {}
+                }, 100);
             }
         },
         
