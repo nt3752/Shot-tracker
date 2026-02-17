@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v39.1.5</title>
+    <title>Shot Tracker v39.2</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -785,7 +785,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v39.1.5</span>
+                    <span class="brand-version">v39.2</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
@@ -800,16 +800,16 @@
                     <div class="pill-label">Hole</div>
                 </div>
                 <div class="scoreboard-pill">
+                    <div class="pill-value" id="sbPar">-</div>
+                    <div class="pill-label">Par</div>
+                </div>
+                <div class="scoreboard-pill">
                     <div class="pill-value" id="sbShots">0</div>
                     <div class="pill-label">Shots</div>
                 </div>
                 <div class="scoreboard-pill">
                     <div class="pill-value" id="sbTotal">0</div>
                     <div class="pill-label">Total</div>
-                </div>
-                <div class="scoreboard-pill">
-                    <div class="pill-value" id="sbPar">-</div>
-                    <div class="pill-label">Par</div>
                 </div>
             </div>
             
@@ -843,6 +843,7 @@
                 <div class="btn-row">
                     <button class="btn btn-secondary" id="btnTee" type="button">Tee</button>
                     <button class="btn btn-secondary" id="btnFlag" type="button">Flag</button>
+                    <button class="btn btn-secondary" id="btnMark" type="button">📍 Mark</button>
                     <button class="btn btn-primary" id="btnShot" type="button">Shot</button>
                 </div>
                 
@@ -1109,6 +1110,124 @@
 
     <!-- FILE INPUT (HIDDEN) -->
     <input type="file" id="fileInput" accept=".json" style="display: none;">
+    <input type="file" id="fileInputLib" accept=".json" style="display: none;">
+
+    <!-- LIBRARY MANAGER SHEET -->
+    <div class="backdrop" id="libraryBackdrop"></div>
+    <div class="sheet" id="librarySheet" role="dialog" aria-modal="true">
+        <div class="sheet-header">
+            <h3 class="sheet-title">Library</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnNewRound" type="button">New Round</button>
+                <button class="btn btn-sm btn-secondary" id="btnCloseLibrary" type="button">Close</button>
+            </div>
+        </div>
+        <div style="margin-bottom:var(--space-4)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+                <h4 style="font-size:0.875rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary)">Bags</h4>
+                <div style="display:flex;gap:var(--space-2)">
+                    <button class="btn btn-sm btn-secondary" id="btnImportBagLib" type="button">Import</button>
+                    <button class="btn btn-sm btn-secondary" id="btnAddBagLib" type="button">+ New</button>
+                </div>
+            </div>
+            <div id="bagLibraryList" style="display:flex;flex-direction:column;gap:var(--space-2)"></div>
+        </div>
+        <div style="padding-top:var(--space-4);border-top:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+                <h4 style="font-size:0.875rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary)">Courses</h4>
+                <div style="display:flex;gap:var(--space-2)">
+                    <button class="btn btn-sm btn-secondary" id="btnImportCourseLib" type="button">Import</button>
+                    <button class="btn btn-sm btn-secondary" id="btnAddCourseLib" type="button">+ New</button>
+                </div>
+            </div>
+            <div id="courseLibraryList" style="display:flex;flex-direction:column;gap:var(--space-2)"></div>
+        </div>
+    </div>
+
+    <!-- NEW ROUND SETUP SHEET -->
+    <div class="backdrop" id="roundSetupBackdrop"></div>
+    <div class="sheet" id="roundSetupSheet" role="dialog" aria-modal="true">
+        <div class="sheet-header">
+            <h3 class="sheet-title">New Round</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCancelRoundSetup" type="button">Cancel</button>
+            </div>
+        </div>
+        <div class="input-row">
+            <span class="input-label">Bag</span>
+            <select class="input-field" id="roundBagSelect"></select>
+        </div>
+        <div class="input-row">
+            <span class="input-label">Course</span>
+            <select class="input-field" id="roundCourseSelect"></select>
+        </div>
+        <div class="btn-row" style="margin-top:var(--space-5)">
+            <button class="btn btn-primary" id="btnStartNewRound" type="button">Start Round</button>
+        </div>
+    </div>
+
+    <!-- EDIT BAG LIBRARY SHEET -->
+    <div class="backdrop" id="editBagLibBackdrop"></div>
+    <div class="sheet" id="editBagLibSheet" role="dialog" aria-modal="true">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="editBagLibTitle">Edit Bag</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnSaveEditBagLib" type="button">Save</button>
+                <button class="btn btn-sm btn-secondary" id="btnCancelEditBagLib" type="button">Cancel</button>
+            </div>
+        </div>
+        <input type="hidden" id="editBagLibId">
+        <div class="input-row">
+            <span class="input-label">Name</span>
+            <input type="text" class="input-field" id="editBagLibName" placeholder="e.g. Summer Bag">
+        </div>
+        <div style="margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--border)">
+            <h4 style="font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:var(--space-3)">Club Distances</h4>
+            <div class="input-row">
+                <span class="input-label">Club</span>
+                <select class="input-field" id="editBagLibClub"></select>
+            </div>
+            <div class="input-row">
+                <span class="input-label">Shot Type</span>
+                <select class="input-field" id="editBagLibShotType"></select>
+            </div>
+            <div class="input-row">
+                <span class="input-label">Carry</span>
+                <input type="number" class="input-field compact" id="editBagLibCarry" inputmode="numeric" placeholder="140">
+                <span class="input-label">Total</span>
+                <input type="number" class="input-field compact" id="editBagLibTotal" inputmode="numeric" placeholder="150">
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-secondary btn-sm" id="btnAddDistanceLib" type="button">Add Distance</button>
+                <button class="btn btn-sm" id="btnExportBagLib" type="button" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text-secondary);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:0.75rem;font-weight:700">Export JSON</button>
+            </div>
+            <div id="editBagLibMatrix" style="margin-top:var(--space-3);max-height:280px;overflow-y:auto"></div>
+        </div>
+    </div>
+
+    <!-- EDIT COURSE LIBRARY SHEET -->
+    <div class="backdrop" id="editCourseLibBackdrop"></div>
+    <div class="sheet" id="editCourseLibSheet" role="dialog" aria-modal="true">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="editCourseLibTitle">Edit Course</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnSaveEditCourseLib" type="button">Save</button>
+                <button class="btn btn-sm btn-secondary" id="btnCancelEditCourseLib" type="button">Cancel</button>
+            </div>
+        </div>
+        <input type="hidden" id="editCourseLibId">
+        <div class="input-row">
+            <span class="input-label">Name</span>
+            <input type="text" class="input-field" id="editCourseLibName" placeholder="e.g. Pebble Beach">
+        </div>
+        <div style="margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">
+                <h4 style="font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted)">Holes</h4>
+                <button class="btn btn-sm" id="btnExportCourseLib" type="button" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text-secondary);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:0.75rem;font-weight:700">Export JSON</button>
+            </div>
+            <div id="editCourseLibHoles" style="display:grid;gap:var(--space-3);max-height:420px;overflow-y:auto"></div>
+        </div>
+    </div>
 
     <script>
     /* ===============================================
@@ -1123,10 +1242,12 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v39.1.5';
+        const VERSION = 'v39.2';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
+        const LS_BAG_LIBRARY_KEY = 'shotTracker.v39.bagLibrary';
+        const LS_COURSE_LIBRARY_KEY = 'shotTracker.v39.courseLibrary';
         const LS_BAG_LIBRARY_KEY = 'shotTracker.v39.bagLibrary';
         const LS_COURSE_LIBRARY_KEY = 'shotTracker.v39.courseLibrary';
         
@@ -1263,6 +1384,125 @@
         };
         
         // ============================================
+        // LIBRARY MANAGER
+        // ============================================
+        
+        const Library = {
+            // ---- BAGS ----
+            getBags() {
+                let bags = Storage.load(LS_BAG_LIBRARY_KEY) || [];
+                if (!bags.length) {
+                    // Migrate existing bag from LS_BAG_KEY if present
+                    const existing = Storage.load(LS_BAG_KEY);
+                    bags.push({
+                        id: 'default-bag',
+                        name: 'My Bag',
+                        clubs: existing ? existing.clubs.slice() : DEFAULT_CLUBS.slice(),
+                        shotTypes: existing ? existing.shotTypes.slice() : DEFAULT_SHOT_TYPES.slice(),
+                        data: existing ? JSON.parse(JSON.stringify(existing.data)) : JSON.parse(JSON.stringify(DEFAULT_BAG)),
+                        created: Utils.nowISO()
+                    });
+                    Storage.save(LS_BAG_LIBRARY_KEY, bags);
+                }
+                return bags;
+            },
+            getBag(id) { return this.getBags().find(b => b.id === id) || null; },
+            saveBag(bag) {
+                const bags = this.getBags();
+                const i = bags.findIndex(b => b.id === bag.id);
+                if (i >= 0) bags[i] = bag; else bags.push(bag);
+                Storage.save(LS_BAG_LIBRARY_KEY, bags);
+            },
+            deleteBag(id) {
+                if (id === 'default-bag') { Utils.toast('Cannot delete default bag'); return false; }
+                Storage.save(LS_BAG_LIBRARY_KEY, this.getBags().filter(b => b.id !== id));
+                return true;
+            },
+            
+            // ---- COURSES ----
+            getCourses() {
+                let courses = Storage.load(LS_COURSE_LIBRARY_KEY) || [];
+                if (!courses.length) {
+                    // Migrate existing course from LS_COURSE_KEY if present
+                    const existing = Storage.load(LS_COURSE_KEY);
+                    courses.push({
+                        id: 'default-course',
+                        name: existing ? (existing.name || 'My Course') : 'My Course',
+                        holes: existing && existing.holes ? existing.holes.map((h, i) => ({
+                            hole: i + 1, par: h.par || 4, yards: h.yards || 0,
+                            hcp: h.hcp || (i + 1), teeGPS: h.teeGPS || null, flagGPS: h.flagGPS || null
+                        })) : Array.from({length:18}, (_,i) => ({hole:i+1,par:4,yards:0,hcp:i+1,teeGPS:null,flagGPS:null})),
+                        created: Utils.nowISO()
+                    });
+                    Storage.save(LS_COURSE_LIBRARY_KEY, courses);
+                }
+                return courses;
+            },
+            getCourse(id) { return this.getCourses().find(c => c.id === id) || null; },
+            saveCourse(course) {
+                const courses = this.getCourses();
+                const i = courses.findIndex(c => c.id === course.id);
+                if (i >= 0) courses[i] = course; else courses.push(course);
+                Storage.save(LS_COURSE_LIBRARY_KEY, courses);
+            },
+            deleteCourse(id) {
+                if (id === 'default-course') { Utils.toast('Cannot delete default course'); return false; }
+                Storage.save(LS_COURSE_LIBRARY_KEY, this.getCourses().filter(c => c.id !== id));
+                return true;
+            },
+            
+            // ---- EXPORT ----
+            exportJSON(data, filename) {
+                try {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = filename; a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                } catch(e) { Utils.toast('Export failed'); }
+            },
+            exportBag(id) {
+                const bag = this.getBag(id);
+                if (!bag) return;
+                this.exportJSON(bag, bag.name.replace(/\s+/g,'-').toLowerCase() + '-bag.json');
+                Utils.toast('Bag exported');
+            },
+            exportCourse(id) {
+                const course = this.getCourse(id);
+                if (!course) return;
+                this.exportJSON(course, course.name.replace(/\s+/g,'-').toLowerCase() + '-course.json');
+                Utils.toast('Course exported');
+            },
+            
+            // ---- IMPORT ----
+            importFile(file, type) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (type === 'bag') {
+                            if (!data.clubs || !data.shotTypes) { Utils.toast('Invalid bag file'); return; }
+                            if (!data.id) data.id = Utils.uuid();
+                            if (!data.name) data.name = 'Imported Bag';
+                            this.saveBag(data);
+                            Utils.toast('Bag "' + data.name + '" imported');
+                        } else {
+                            if (!data.holes || data.holes.length !== 18) { Utils.toast('Invalid course file'); return; }
+                            if (!data.id) data.id = Utils.uuid();
+                            if (!data.name) data.name = 'Imported Course';
+                            this.saveCourse(data);
+                            Utils.toast('Course "' + data.name + '" imported');
+                        }
+                        // Refresh library UI if open
+                        if (typeof LibraryUI !== 'undefined') LibraryUI.render();
+                    } catch(err) { Utils.toast('Import failed: ' + err.message); }
+                };
+                reader.onerror = () => Utils.toast('Could not read file');
+                reader.readAsText(file);
+            }
+        };
+        
+        // ============================================
         // GPS MANAGER
         // ============================================
         
@@ -1347,39 +1587,87 @@
         
         const State = {
             version: VERSION,
-            round: {
-                startedAt: Utils.nowISO()
-            },
+            round: { startedAt: Utils.nowISO() },
             holeIndex: 0,
             holes: [],
+            currentBagId: null,
+            currentCourseId: null,
             bag: {
                 clubs: DEFAULT_CLUBS.slice(),
                 shotTypes: DEFAULT_SHOT_TYPES.slice(),
                 data: JSON.parse(JSON.stringify(DEFAULT_BAG))
             },
-            ui: {
-                caddyMode: 'carry',
-                showAll: false
-            },
+            ui: { caddyMode: 'carry', showAll: false },
             
             init() {
-                // Try to load from storage
                 const saved = Storage.load(LS_STATE_KEY);
                 if (saved && saved.version === VERSION) {
                     Object.assign(this, saved);
                 } else {
-                    // Initialize fresh state
                     this.initHoles();
                 }
-                
-                // Load bag override if exists
-                this.loadBag();
-                
-                // Ensure state integrity
+                this.syncFromLibrary();
                 this.validate();
-                
-                // Save
                 this.save();
+            },
+            
+            syncFromLibrary() {
+                const bags = Library.getBags();
+                const courses = Library.getCourses();
+                
+                // Resolve currentBagId
+                if (!this.currentBagId || !Library.getBag(this.currentBagId)) {
+                    this.currentBagId = (bags[0] && bags[0].id) || 'default-bag';
+                }
+                // Resolve currentCourseId
+                if (!this.currentCourseId || !Library.getCourse(this.currentCourseId)) {
+                    this.currentCourseId = (courses[0] && courses[0].id) || 'default-course';
+                }
+                
+                // Load bag into active state
+                const activeBag = Library.getBag(this.currentBagId);
+                if (activeBag) {
+                    this.bag = {
+                        clubs: activeBag.clubs.slice(),
+                        shotTypes: activeBag.shotTypes.slice(),
+                        data: JSON.parse(JSON.stringify(activeBag.data))
+                    };
+                }
+            },
+            
+            startNewRound(bagId, courseId) {
+                this.currentBagId = bagId;
+                this.currentCourseId = courseId;
+                this.round = { startedAt: Utils.nowISO() };
+                this.holeIndex = 0;
+                this.initHoles();
+                
+                // Load bag
+                const bag = Library.getBag(bagId);
+                if (bag) {
+                    this.bag = {
+                        clubs: bag.clubs.slice(),
+                        shotTypes: bag.shotTypes.slice(),
+                        data: JSON.parse(JSON.stringify(bag.data))
+                    };
+                }
+                
+                // Load course data into holes
+                const course = Library.getCourse(courseId);
+                if (course && course.holes) {
+                    course.holes.forEach((ch, idx) => {
+                        if (this.holes[idx]) {
+                            this.holes[idx].par = ch.par || 4;
+                            this.holes[idx].yards = ch.yards || 0;
+                            this.holes[idx].hcp = ch.hcp || (idx + 1);
+                            if (ch.teeGPS) this.holes[idx].tee = ch.teeGPS;
+                            if (ch.flagGPS) this.holes[idx].flag = ch.flagGPS;
+                        }
+                    });
+                }
+                
+                this.save();
+                Utils.toast('New round started!');
             },
             
             initHoles() {
@@ -1478,31 +1766,39 @@
                     round: this.round,
                     holeIndex: this.holeIndex,
                     holes: this.holes,
+                    currentBagId: this.currentBagId,
+                    currentCourseId: this.currentCourseId,
                     ui: this.ui
                 });
             },
             
             loadBag() {
+                // Legacy: load from old key if library not yet populated
                 const savedBag = Storage.load(LS_BAG_KEY);
                 if (savedBag) {
-                    if (Array.isArray(savedBag.clubs)) {
-                        this.bag.clubs = savedBag.clubs.slice();
-                    }
-                    if (Array.isArray(savedBag.shotTypes)) {
-                        this.bag.shotTypes = savedBag.shotTypes.slice();
-                    }
-                    if (savedBag.data && typeof savedBag.data === 'object') {
-                        this.bag.data = savedBag.data;
-                    }
+                    if (Array.isArray(savedBag.clubs)) this.bag.clubs = savedBag.clubs.slice();
+                    if (Array.isArray(savedBag.shotTypes)) this.bag.shotTypes = savedBag.shotTypes.slice();
+                    if (savedBag.data && typeof savedBag.data === 'object') this.bag.data = savedBag.data;
                 }
             },
             
             saveBag() {
+                // Save to legacy key for backward compat
                 Storage.save(LS_BAG_KEY, {
                     clubs: this.bag.clubs,
                     shotTypes: this.bag.shotTypes,
                     data: this.bag.data
                 });
+                // Also update the library entry for current bag
+                if (this.currentBagId) {
+                    const bag = Library.getBag(this.currentBagId);
+                    if (bag) {
+                        bag.clubs = this.bag.clubs.slice();
+                        bag.shotTypes = this.bag.shotTypes.slice();
+                        bag.data = JSON.parse(JSON.stringify(this.bag.data));
+                        Library.saveBag(bag);
+                    }
+                }
             },
             
             currentHole() {
@@ -1570,7 +1866,7 @@
                 const ids = [
                     'sbHole', 'sbShots', 'sbTotal', 'sbPar',
                     'roundInfo', 'toFlag', 'accBadge', 'attempt',
-                    'btnTee', 'btnFlag', 'btnShot',
+                    'btnTee', 'btnFlag', 'btnShot', 'btnMark',
                     'btnPrevHole', 'btnHolePick', 'btnNextHole',
                     'btnPen', 'btnDel', 'btnFwy', 'btnGir',
                     'btnCaddy', 'btnSettings', 'btnExport', 'btnLibrary',
@@ -1582,12 +1878,25 @@
                     'bagBackdrop', 'bagSheet', 'btnCloseBag', 'bagClub', 'bagShotType',
                     'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix',
                     'courseBackdrop', 'courseSheet', 'btnCloseCourse', 'btnSaveCourse',
-                    'courseName', 'courseHoles'
+                    'courseName', 'courseHoles',
+                    // Library
+                    'libraryBackdrop', 'librarySheet', 'btnCloseLibrary', 'btnNewRound',
+                    'btnAddBagLib', 'btnAddCourseLib', 'btnImportBagLib', 'btnImportCourseLib',
+                    'bagLibraryList', 'courseLibraryList', 'fileInputLib',
+                    // Round setup
+                    'roundSetupBackdrop', 'roundSetupSheet', 'btnCancelRoundSetup',
+                    'roundBagSelect', 'roundCourseSelect', 'btnStartNewRound',
+                    // Edit bag lib
+                    'editBagLibBackdrop', 'editBagLibSheet', 'editBagLibId', 'editBagLibName',
+                    'editBagLibClub', 'editBagLibShotType', 'editBagLibCarry', 'editBagLibTotal',
+                    'btnAddDistanceLib', 'btnSaveEditBagLib', 'btnCancelEditBagLib',
+                    'btnExportBagLib', 'editBagLibMatrix',
+                    // Edit course lib
+                    'editCourseLibBackdrop', 'editCourseLibSheet', 'editCourseLibId',
+                    'editCourseLibName', 'editCourseLibHoles',
+                    'btnSaveEditCourseLib', 'btnCancelEditCourseLib', 'btnExportCourseLib'
                 ];
-                
-                ids.forEach(id => {
-                    this.els[id] = Utils.$(id);
-                });
+                ids.forEach(id => { this.els[id] = Utils.$(id); });
             },
             
             render() {
@@ -1608,13 +1917,18 @@
                 const totalShots = State.totalShots();
                 
                 if (this.els.sbHole) this.els.sbHole.textContent = holeNum;
+                if (this.els.sbPar) this.els.sbPar.textContent = hole.par || '-';
                 if (this.els.sbShots) this.els.sbShots.textContent = shotsThisHole;
                 if (this.els.sbTotal) this.els.sbTotal.textContent = totalShots;
-                if (this.els.sbPar) this.els.sbPar.textContent = hole.par || '-';
                 
                 if (this.els.roundInfo) {
                     const date = new Date(State.round.startedAt);
-                    this.els.roundInfo.textContent = `Round • ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+                    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+                    const bag = State.currentBagId ? Library.getBag(State.currentBagId) : null;
+                    const course = State.currentCourseId ? Library.getCourse(State.currentCourseId) : null;
+                    const bagName = bag ? bag.name : 'My Bag';
+                    const courseName = course ? course.name : (State.courseName || 'My Course');
+                    this.els.roundInfo.textContent = `${courseName} · ${bagName} · ${dateStr}`;
                 }
             },
             
@@ -1821,6 +2135,12 @@
                 unitLabel.style.color = 'var(--text-muted)';
                 unitLabel.textContent = shot.shotType === 'putt' ? 'ft' : 'y';
                 
+                // Position indicator
+                const posIndicator = document.createElement('span');
+                posIndicator.style.fontSize = '0.875rem';
+                posIndicator.title = shot.positionPending ? 'Awaiting Mark Landing' : (shot.position ? 'GPS recorded' : 'No GPS');
+                posIndicator.textContent = shot.positionPending ? '⏳' : (shot.position ? '📍' : '');
+                
                 if (shot.penalty) {
                     const penaltyLabel = document.createElement('span');
                     penaltyLabel.className = 'shot-distance';
@@ -1830,6 +2150,7 @@
                 } else {
                     right.appendChild(distInput);
                     right.appendChild(unitLabel);
+                    right.appendChild(posIndicator);
                 }
                 
                 item.appendChild(left);
@@ -1950,21 +2271,100 @@
                     club: options.club || 'Club?',
                     shotType: options.shotType || 'Type?',
                     distance: distance || 0,
+                    targetDistance: distance || 0,
+                    actualDistance: null,
                     penalty: !!options.penalty,
                     position: currentPos ? { lat: currentPos.lat, lon: currentPos.lon } : null,
+                    positionPending: !currentPos, // True if no GPS yet - awaiting Mark Landing
                     timestamp: Utils.nowISO()
                 };
                 
                 hole.shots.push(shot);
                 
                 // Clear attempt field
-                if (UI.els.attempt) {
-                    UI.els.attempt.value = '';
-                }
+                if (UI.els.attempt) UI.els.attempt.value = '';
                 
                 State.save();
                 UI.render();
                 Utils.toast('Shot added');
+            },
+            
+            markLanding() {
+                const hole = State.currentHole();
+                const currentPos = GPS.getCurrentPosition();
+                
+                if (!currentPos) {
+                    Utils.toast('No GPS signal');
+                    return;
+                }
+                
+                const gps = { lat: currentPos.lat, lon: currentPos.lon };
+                
+                // Get previous position (last shot or tee)
+                const getPrevPos = () => {
+                    const shots = hole.shots;
+                    if (shots.length >= 2) return shots[shots.length - 2].position;
+                    return hole.tee || null;
+                };
+                
+                // --- Check for pending shot (created by Caddy) ---
+                const lastShot = hole.shots.length ? hole.shots[hole.shots.length - 1] : null;
+                if (lastShot && lastShot.positionPending) {
+                    lastShot.position = gps;
+                    lastShot.positionPending = false;
+                    const prev = getPrevPos();
+                    if (prev) {
+                        const dist = Utils.distanceYards(prev, currentPos);
+                        if (dist !== null) lastShot.actualDistance = dist;
+                    }
+                    State.save();
+                    UI.render();
+                    Utils.toast('Landing marked ✅');
+                    return;
+                }
+                
+                // --- No pending shot: check if tee is set ---
+                if (!hole.tee) {
+                    // Option B: treat this as setting tee + recording shot #1
+                    hole.tee = gps;
+                    State.saveTeeToCore(State.holeIndex, gps);
+                    
+                    const shot = {
+                        club: 'Club?', shotType: 'Type?',
+                        distance: 0, targetDistance: 0, actualDistance: 0,
+                        penalty: false,
+                        position: gps,
+                        positionPending: false,
+                        timestamp: Utils.nowISO()
+                    };
+                    hole.shots.push(shot);
+                    
+                    State.save();
+                    UI.render();
+                    Utils.toast('Tee set → Shot #1 recorded. Enter distance manually.');
+                    return;
+                }
+                
+                // --- Normal case: create new shot at landing position ---
+                const prevPos = getPrevPos();
+                const dist = prevPos ? Utils.distanceYards(prevPos, currentPos) : 0;
+                
+                const shot = {
+                    club: 'Club?', shotType: 'Type?',
+                    distance: dist || 0,
+                    targetDistance: null,
+                    actualDistance: dist || 0,
+                    penalty: false,
+                    position: gps,
+                    positionPending: false,
+                    timestamp: Utils.nowISO()
+                };
+                
+                hole.shots.push(shot);
+                
+                State.save();
+                UI.render();
+                Utils.toast(`Shot recorded 📍${dist ? ' · ' + dist + 'y' : ''}`);
             },
             
             addPenalty() {
@@ -2657,15 +3057,376 @@
         };
         
         // ============================================
+        // LIBRARY UI
+        // ============================================
+        
+        const LibraryUI = {
+            _currentImportType: null,
+            
+            open() {
+                this.closeAll();
+                this.render();
+                if (UI.els.libraryBackdrop) UI.els.libraryBackdrop.classList.add('active');
+                if (UI.els.librarySheet) UI.els.librarySheet.classList.add('active');
+            },
+            close() {
+                if (UI.els.libraryBackdrop) UI.els.libraryBackdrop.classList.remove('active');
+                if (UI.els.librarySheet) UI.els.librarySheet.classList.remove('active');
+            },
+            closeAll() {
+                ['libraryBackdrop','librarySheet','roundSetupBackdrop','roundSetupSheet',
+                 'editBagLibBackdrop','editBagLibSheet','editCourseLibBackdrop','editCourseLibSheet'].forEach(id => {
+                    if (UI.els[id]) UI.els[id].classList.remove('active');
+                });
+            },
+            
+            render() {
+                this.renderBagList();
+                this.renderCourseList();
+            },
+            
+            renderBagList() {
+                const el = UI.els.bagLibraryList;
+                if (!el) return;
+                el.innerHTML = '';
+                Library.getBags().forEach(bag => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:var(--space-3);background:var(--bg-card-light);border-radius:var(--radius-sm);border:1px solid var(--border)';
+                    
+                    const isActive = bag.id === State.currentBagId;
+                    const info = document.createElement('div');
+                    info.innerHTML = `<div style="font-weight:700;font-size:0.875rem;color:${isActive?'var(--green-400)':'var(--text-primary)'}">${bag.id==='default-bag'?'⭐ ':''} ${bag.name}${isActive?' ✓':''}</div><div style="font-size:0.75rem;color:var(--text-muted)">${Object.keys(bag.data||{}).length} clubs configured</div>`;
+                    
+                    const btns = document.createElement('div');
+                    btns.style.cssText = 'display:flex;gap:var(--space-1)';
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = 'Edit';
+                    editBtn.style.cssText = 'background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);padding:4px 10px;font-size:0.75rem;font-weight:700;cursor:pointer';
+                    editBtn.onclick = () => EditBagLibUI.open(bag.id);
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = '×';
+                    delBtn.style.cssText = 'background:rgba(230,69,69,0.15);border:1px solid rgba(230,69,69,0.3);color:var(--red);border-radius:var(--radius-sm);width:28px;height:28px;font-size:1rem;font-weight:900;cursor:pointer';
+                    delBtn.onclick = () => {
+                        if (confirm(`Delete bag "${bag.name}"?`)) {
+                            if (Library.deleteBag(bag.id)) { this.renderBagList(); Utils.toast('Bag deleted'); }
+                        }
+                    };
+                    
+                    btns.appendChild(editBtn);
+                    if (bag.id !== 'default-bag') btns.appendChild(delBtn);
+                    row.appendChild(info); row.appendChild(btns);
+                    el.appendChild(row);
+                });
+            },
+            
+            renderCourseList() {
+                const el = UI.els.courseLibraryList;
+                if (!el) return;
+                el.innerHTML = '';
+                Library.getCourses().forEach(course => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:var(--space-3);background:var(--bg-card-light);border-radius:var(--radius-sm);border:1px solid var(--border)';
+                    
+                    const isActive = course.id === State.currentCourseId;
+                    const info = document.createElement('div');
+                    info.innerHTML = `<div style="font-weight:700;font-size:0.875rem;color:${isActive?'var(--green-400)':'var(--text-primary)'}">${course.id==='default-course'?'⭐ ':''} ${course.name}${isActive?' ✓':''}</div><div style="font-size:0.75rem;color:var(--text-muted)">18 holes</div>`;
+                    
+                    const btns = document.createElement('div');
+                    btns.style.cssText = 'display:flex;gap:var(--space-1)';
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.textContent = 'Edit';
+                    editBtn.style.cssText = 'background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--text-primary);border-radius:var(--radius-sm);padding:4px 10px;font-size:0.75rem;font-weight:700;cursor:pointer';
+                    editBtn.onclick = () => EditCourseLibUI.open(course.id);
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = '×';
+                    delBtn.style.cssText = 'background:rgba(230,69,69,0.15);border:1px solid rgba(230,69,69,0.3);color:var(--red);border-radius:var(--radius-sm);width:28px;height:28px;font-size:1rem;font-weight:900;cursor:pointer';
+                    delBtn.onclick = () => {
+                        if (confirm(`Delete course "${course.name}"?`)) {
+                            if (Library.deleteCourse(course.id)) { this.renderCourseList(); Utils.toast('Course deleted'); }
+                        }
+                    };
+                    
+                    btns.appendChild(editBtn);
+                    if (course.id !== 'default-course') btns.appendChild(delBtn);
+                    row.appendChild(info); row.appendChild(btns);
+                    el.appendChild(row);
+                });
+            },
+            
+            openImport(type) {
+                this._currentImportType = type;
+                if (UI.els.fileInputLib) { UI.els.fileInputLib.value = ''; UI.els.fileInputLib.click(); }
+            },
+            
+            handleImport(file) {
+                if (!file || !this._currentImportType) return;
+                Library.importFile(file, this._currentImportType);
+                // render() called inside importFile after success
+            }
+        };
+        
+        // ============================================
+        // ROUND SETUP UI
+        // ============================================
+        
+        const RoundSetupUI = {
+            open() {
+                LibraryUI.closeAll();
+                // Populate selects
+                const bagSel = UI.els.roundBagSelect;
+                const courseSel = UI.els.roundCourseSelect;
+                if (bagSel) {
+                    bagSel.innerHTML = '';
+                    Library.getBags().forEach(b => {
+                        const o = document.createElement('option');
+                        o.value = b.id; o.textContent = b.name;
+                        if (b.id === State.currentBagId) o.selected = true;
+                        bagSel.appendChild(o);
+                    });
+                }
+                if (courseSel) {
+                    courseSel.innerHTML = '';
+                    Library.getCourses().forEach(c => {
+                        const o = document.createElement('option');
+                        o.value = c.id; o.textContent = c.name;
+                        if (c.id === State.currentCourseId) o.selected = true;
+                        courseSel.appendChild(o);
+                    });
+                }
+                if (UI.els.roundSetupBackdrop) UI.els.roundSetupBackdrop.classList.add('active');
+                if (UI.els.roundSetupSheet) UI.els.roundSetupSheet.classList.add('active');
+            },
+            close() {
+                if (UI.els.roundSetupBackdrop) UI.els.roundSetupBackdrop.classList.remove('active');
+                if (UI.els.roundSetupSheet) UI.els.roundSetupSheet.classList.remove('active');
+            },
+            start() {
+                const bagId = UI.els.roundBagSelect ? UI.els.roundBagSelect.value : null;
+                const courseId = UI.els.roundCourseSelect ? UI.els.roundCourseSelect.value : null;
+                if (!bagId || !courseId) { Utils.toast('Select bag and course'); return; }
+                State.startNewRound(bagId, courseId);
+                this.close();
+                LibraryUI.close();
+                UI.render();
+            }
+        };
+        
+        // ============================================
+        // EDIT BAG LIBRARY UI
+        // ============================================
+        
+        const EditBagLibUI = {
+            _bagId: null,
+            _bagData: null,
+            
+            open(bagId) {
+                LibraryUI.closeAll();
+                this._bagId = bagId;
+                const bag = Library.getBag(bagId) || {
+                    id: Utils.uuid(), name: 'New Bag',
+                    clubs: DEFAULT_CLUBS.slice(), shotTypes: DEFAULT_SHOT_TYPES.slice(), data: {}
+                };
+                this._bagData = JSON.parse(JSON.stringify(bag));
+                
+                if (UI.els.editBagLibId) UI.els.editBagLibId.value = this._bagData.id;
+                if (UI.els.editBagLibName) UI.els.editBagLibName.value = this._bagData.name;
+                
+                // Populate club/shotType selects
+                if (UI.els.editBagLibClub) {
+                    UI.els.editBagLibClub.innerHTML = '';
+                    (this._bagData.clubs || DEFAULT_CLUBS).forEach(c => {
+                        if (c === 'Club?') return;
+                        const o = document.createElement('option'); o.value = c; o.textContent = c;
+                        UI.els.editBagLibClub.appendChild(o);
+                    });
+                }
+                if (UI.els.editBagLibShotType) {
+                    UI.els.editBagLibShotType.innerHTML = '';
+                    (this._bagData.shotTypes || DEFAULT_SHOT_TYPES).forEach(t => {
+                        if (t === 'Type?') return;
+                        const o = document.createElement('option'); o.value = t; o.textContent = t;
+                        UI.els.editBagLibShotType.appendChild(o);
+                    });
+                }
+                
+                this.renderMatrix();
+                if (UI.els.editBagLibBackdrop) UI.els.editBagLibBackdrop.classList.add('active');
+                if (UI.els.editBagLibSheet) UI.els.editBagLibSheet.classList.add('active');
+            },
+            
+            close() {
+                if (UI.els.editBagLibBackdrop) UI.els.editBagLibBackdrop.classList.remove('active');
+                if (UI.els.editBagLibSheet) UI.els.editBagLibSheet.classList.remove('active');
+                this._bagId = null; this._bagData = null;
+            },
+            
+            addDistance() {
+                const club = UI.els.editBagLibClub ? UI.els.editBagLibClub.value : null;
+                const type = UI.els.editBagLibShotType ? UI.els.editBagLibShotType.value : null;
+                const carry = Utils.saneYards(UI.els.editBagLibCarry ? UI.els.editBagLibCarry.value : null);
+                const total = Utils.saneYards(UI.els.editBagLibTotal ? UI.els.editBagLibTotal.value : null);
+                if (!club || !type) { Utils.toast('Select club and type'); return; }
+                if (!this._bagData.data) this._bagData.data = {};
+                if (!this._bagData.data[club]) this._bagData.data[club] = {};
+                this._bagData.data[club][type] = { carry: carry||0, total: total||0 };
+                if (UI.els.editBagLibCarry) UI.els.editBagLibCarry.value = '';
+                if (UI.els.editBagLibTotal) UI.els.editBagLibTotal.value = '';
+                this.renderMatrix();
+                Utils.toast('Distance added');
+            },
+            
+            renderMatrix() {
+                const el = UI.els.editBagLibMatrix;
+                if (!el) return;
+                el.innerHTML = '';
+                const data = (this._bagData && this._bagData.data) || {};
+                const clubs = Object.keys(data).sort();
+                if (!clubs.length) { el.innerHTML = '<div style="color:var(--text-muted);padding:var(--space-2)">No distances yet</div>'; return; }
+                clubs.forEach(club => {
+                    Object.keys(data[club]).forEach(type => {
+                        const d = data[club][type];
+                        const row = document.createElement('div');
+                        row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.04)';
+                        row.innerHTML = `<span style="font-weight:700;font-size:0.75rem">${club} • ${type}</span>`;
+                        const right = document.createElement('div');
+                        right.style.cssText = 'display:flex;align-items:center;gap:var(--space-2)';
+                        right.innerHTML = `<span style="font-family:var(--font-mono);color:var(--text-muted);font-size:0.75rem">${d.carry}y / ${d.total}y</span>`;
+                        const del = document.createElement('button');
+                        del.textContent = '×';
+                        del.style.cssText = 'background:rgba(230,69,69,0.15);border:1px solid rgba(230,69,69,0.3);color:var(--red);border-radius:4px;width:24px;height:24px;font-size:0.875rem;font-weight:900;cursor:pointer';
+                        del.onclick = () => { delete this._bagData.data[club][type]; if(!Object.keys(this._bagData.data[club]).length) delete this._bagData.data[club]; this.renderMatrix(); };
+                        right.appendChild(del); row.appendChild(right); el.appendChild(row);
+                    });
+                });
+            },
+            
+            save() {
+                const name = UI.els.editBagLibName ? UI.els.editBagLibName.value.trim() : '';
+                if (!name) { Utils.toast('Enter a bag name'); return; }
+                this._bagData.name = name;
+                this._bagData.id = (UI.els.editBagLibId && UI.els.editBagLibId.value) || Utils.uuid();
+                Library.saveBag(this._bagData);
+                // If editing active bag, sync to state
+                if (this._bagData.id === State.currentBagId) {
+                    State.bag = { clubs: this._bagData.clubs.slice(), shotTypes: this._bagData.shotTypes.slice(), data: JSON.parse(JSON.stringify(this._bagData.data)) };
+                    State.save();
+                }
+                Utils.toast(`Bag "${name}" saved`);
+                this.close();
+                LibraryUI.open();
+            }
+        };
+        
+        // ============================================
+        // EDIT COURSE LIBRARY UI
+        // ============================================
+        
+        const EditCourseLibUI = {
+            _courseId: null,
+            _courseData: null,
+            
+            open(courseId) {
+                LibraryUI.closeAll();
+                this._courseId = courseId;
+                const course = Library.getCourse(courseId) || {
+                    id: Utils.uuid(), name: 'New Course',
+                    holes: Array.from({length:18},(_,i)=>({hole:i+1,par:4,yards:0,hcp:i+1,teeGPS:null,flagGPS:null}))
+                };
+                this._courseData = JSON.parse(JSON.stringify(course));
+                
+                if (UI.els.editCourseLibId) UI.els.editCourseLibId.value = this._courseData.id;
+                if (UI.els.editCourseLibName) UI.els.editCourseLibName.value = this._courseData.name;
+                
+                this.renderHoles();
+                if (UI.els.editCourseLibBackdrop) UI.els.editCourseLibBackdrop.classList.add('active');
+                if (UI.els.editCourseLibSheet) UI.els.editCourseLibSheet.classList.add('active');
+            },
+            
+            close() {
+                if (UI.els.editCourseLibBackdrop) UI.els.editCourseLibBackdrop.classList.remove('active');
+                if (UI.els.editCourseLibSheet) UI.els.editCourseLibSheet.classList.remove('active');
+                this._courseId = null; this._courseData = null;
+            },
+            
+            renderHoles() {
+                const el = UI.els.editCourseLibHoles;
+                if (!el || !this._courseData) return;
+                el.innerHTML = '';
+                this._courseData.holes.forEach((hole, idx) => {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:grid;grid-template-columns:32px 1fr 1fr 1fr;gap:var(--space-2);align-items:center;padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.04)';
+                    
+                    const num = document.createElement('div');
+                    num.style.cssText = 'font-size:0.75rem;font-weight:900;color:var(--text-muted)';
+                    num.textContent = hole.hole;
+                    
+                    const makeInput = (val, placeholder, min, max) => {
+                        const inp = document.createElement('input');
+                        inp.type = 'number'; inp.value = val || ''; inp.placeholder = placeholder;
+                        inp.inputMode = 'numeric'; inp.min = min; inp.max = max;
+                        inp.style.cssText = 'background:var(--bg-card-light);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);color:var(--text-primary);font-size:0.75rem;width:100%';
+                        return inp;
+                    };
+                    
+                    const parInp = makeInput(hole.par, 'Par', 3, 6);
+                    parInp.onchange = () => { this._courseData.holes[idx].par = parseInt(parInp.value)||4; };
+                    
+                    const yardsInp = makeInput(hole.yards, 'Yards', 0, 700);
+                    yardsInp.onchange = () => { this._courseData.holes[idx].yards = parseInt(yardsInp.value)||0; };
+                    
+                    const hcpInp = makeInput(hole.hcp, 'Hcp', 1, 18);
+                    hcpInp.onchange = () => { this._courseData.holes[idx].hcp = parseInt(hcpInp.value)||idx+1; };
+                    
+                    const parLabel = document.createElement('div');
+                    parLabel.style.cssText = 'font-size:0.625rem;color:var(--text-muted);text-align:center';
+                    parLabel.textContent = 'Par';
+                    const yardsLabel = document.createElement('div');
+                    yardsLabel.style.cssText = 'font-size:0.625rem;color:var(--text-muted);text-align:center';
+                    yardsLabel.textContent = 'Yards';
+                    const hcpLabel = document.createElement('div');
+                    hcpLabel.style.cssText = 'font-size:0.625rem;color:var(--text-muted);text-align:center';
+                    hcpLabel.textContent = 'Hcp';
+                    
+                    const headerRow = document.createElement('div');
+                    headerRow.style.cssText = 'display:grid;grid-template-columns:32px 1fr 1fr 1fr;gap:var(--space-2)';
+                    
+                    row.appendChild(num); row.appendChild(parInp); row.appendChild(yardsInp); row.appendChild(hcpInp);
+                    el.appendChild(row);
+                });
+            },
+            
+            save() {
+                const name = UI.els.editCourseLibName ? UI.els.editCourseLibName.value.trim() : '';
+                if (!name) { Utils.toast('Enter a course name'); return; }
+                this._courseData.name = name;
+                this._courseData.id = (UI.els.editCourseLibId && UI.els.editCourseLibId.value) || Utils.uuid();
+                Library.saveCourse(this._courseData);
+                // If editing active course, update course name
+                if (this._courseData.id === State.currentCourseId) {
+                    State.courseName = name;
+                    State.save();
+                }
+                Utils.toast(`Course "${name}" saved`);
+                this.close();
+                LibraryUI.open();
+            }
+        };
+        
+        // ============================================
         // EVENT BINDING
         // ============================================
         
         const Events = {
             bind() {
-                // Tee / Flag / Shot
+                // Tee / Flag / Shot / Mark Landing
                 this.on('btnTee', 'click', () => Actions.toggleTee());
                 this.on('btnFlag', 'click', () => Actions.toggleFlag());
                 this.on('btnShot', 'click', () => Actions.addShot());
+                this.on('btnMark', 'click', () => Actions.markLanding());
                 
                 // Navigation
                 this.on('btnPrevHole', 'click', () => Actions.prevHole());
@@ -2804,6 +3565,43 @@
                         ExportData.showReport();
                     }
                 });
+                
+                // Library
+                this.on('btnLibrary', 'click', () => LibraryUI.open());
+                this.on('btnCloseLibrary', 'click', () => LibraryUI.close());
+                this.on('libraryBackdrop', 'click', () => LibraryUI.close());
+                this.on('btnNewRound', 'click', () => RoundSetupUI.open());
+                this.on('btnAddBagLib', 'click', () => EditBagLibUI.open(Utils.uuid()));
+                this.on('btnAddCourseLib', 'click', () => EditCourseLibUI.open(Utils.uuid()));
+                this.on('btnImportBagLib', 'click', () => LibraryUI.openImport('bag'));
+                this.on('btnImportCourseLib', 'click', () => LibraryUI.openImport('course'));
+                
+                // File import handler
+                if (UI.els.fileInputLib) {
+                    UI.els.fileInputLib.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file) LibraryUI.handleImport(file);
+                        UI.els.fileInputLib.value = '';
+                    });
+                }
+                
+                // Round setup
+                this.on('btnCancelRoundSetup', 'click', () => RoundSetupUI.close());
+                this.on('roundSetupBackdrop', 'click', () => RoundSetupUI.close());
+                this.on('btnStartNewRound', 'click', () => RoundSetupUI.start());
+                
+                // Edit bag library
+                this.on('btnSaveEditBagLib', 'click', () => EditBagLibUI.save());
+                this.on('btnCancelEditBagLib', 'click', () => { EditBagLibUI.close(); LibraryUI.open(); });
+                this.on('editBagLibBackdrop', 'click', () => { EditBagLibUI.close(); LibraryUI.open(); });
+                this.on('btnAddDistanceLib', 'click', () => EditBagLibUI.addDistance());
+                this.on('btnExportBagLib', 'click', () => { if (EditBagLibUI._bagId) Library.exportBag(EditBagLibUI._bagId); });
+                
+                // Edit course library
+                this.on('btnSaveEditCourseLib', 'click', () => EditCourseLibUI.save());
+                this.on('btnCancelEditCourseLib', 'click', () => { EditCourseLibUI.close(); LibraryUI.open(); });
+                this.on('editCourseLibBackdrop', 'click', () => { EditCourseLibUI.close(); LibraryUI.open(); });
+                this.on('btnExportCourseLib', 'click', () => { if (EditCourseLibUI._courseId) Library.exportCourse(EditCourseLibUI._courseId); });
                 
                 // Hole picker
                 this.on('btnCloseHole', 'click', () => HolePickerUI.close());
