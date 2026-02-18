@@ -3150,9 +3150,27 @@
             renameBag(id) {
                 const bag = Library.getBag(id);
                 if (!bag) return;
-                const newName = window.prompt('Rename bag:', bag.name);
-                if (!newName || !newName.trim()) return;
-                bag.name = newName.trim();
+                // Show inline rename input
+                const inputId = 'rename-input-' + id;
+                const existing = document.getElementById(inputId);
+                if (existing) { existing.focus(); return; }
+                const row = document.getElementById('bag-row-' + id);
+                if (!row) return;
+                const div = document.createElement('div');
+                div.style.cssText = 'display:flex;gap:6px;margin-top:6px;';
+                div.innerHTML = '<input id="' + inputId + '" type="text" value="' + Utils.escHtml(bag.name) + '" style="flex:1;padding:4px 8px;font-size:0.85rem;border-radius:4px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);"><button style="padding:4px 10px;font-size:0.75rem;font-weight:700;border-radius:4px;border:1px solid var(--green-500);background:var(--green-700);color:white;" onclick="LibraryActions.confirmRenameBag(\'' + id + '\')">Save</button>';
+                row.appendChild(div);
+                document.getElementById(inputId).focus();
+            },
+            
+            confirmRenameBag(id) {
+                const bag = Library.getBag(id);
+                if (!bag) return;
+                const input = document.getElementById('rename-input-' + id);
+                if (!input) return;
+                const newName = input.value.trim();
+                if (!newName) { Utils.toast('Name cannot be empty'); return; }
+                bag.name = newName;
                 Library.saveBag(bag);
                 LibraryUI.render();
                 Utils.toast('Renamed');
@@ -3163,12 +3181,28 @@
                     Utils.toast('Cannot delete active bag');
                     return;
                 }
-                const bag = Library.getBag(id);
-                if (!bag) return;
-                if (!window.confirm('Delete "' + bag.name + '"?')) return;
-                Library.deleteBag(id);
-                LibraryUI.render();
-                Utils.toast('Deleted');
+                const btn = document.getElementById('del-bag-' + id);
+                if (!btn) return;
+                if (btn.dataset.confirm === '1') {
+                    const bag = Library.getBag(id);
+                    if (!bag) return;
+                    Library.deleteBag(id);
+                    LibraryUI.render();
+                    Utils.toast('Deleted');
+                } else {
+                    btn.dataset.confirm = '1';
+                    btn.textContent = 'Sure?';
+                    btn.style.borderColor = '#e64545';
+                    btn.style.color = '#e64545';
+                    setTimeout(function() {
+                        if (btn && btn.dataset.confirm === '1') {
+                            btn.dataset.confirm = '';
+                            btn.textContent = 'Delete';
+                            btn.style.borderColor = '';
+                            btn.style.color = '';
+                        }
+                    }, 3000);
+                }
             },
             
             exportBag(id) {
@@ -3212,9 +3246,26 @@
             renameCourse(id) {
                 const course = Library.getCourse(id);
                 if (!course) return;
-                const newName = window.prompt('Rename course:', course.name);
-                if (!newName || !newName.trim()) return;
-                course.name = newName.trim();
+                const inputId = 'rename-input-' + id;
+                const existing = document.getElementById(inputId);
+                if (existing) { existing.focus(); return; }
+                const row = document.getElementById('course-row-' + id);
+                if (!row) return;
+                const div = document.createElement('div');
+                div.style.cssText = 'display:flex;gap:6px;margin-top:6px;';
+                div.innerHTML = '<input id="' + inputId + '" type="text" value="' + Utils.escHtml(course.name) + '" style="flex:1;padding:4px 8px;font-size:0.85rem;border-radius:4px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);"><button style="padding:4px 10px;font-size:0.75rem;font-weight:700;border-radius:4px;border:1px solid var(--green-500);background:var(--green-700);color:white;" onclick="LibraryActions.confirmRenameCourse(\'' + id + '\')">Save</button>';
+                row.appendChild(div);
+                document.getElementById(inputId).focus();
+            },
+            
+            confirmRenameCourse(id) {
+                const course = Library.getCourse(id);
+                if (!course) return;
+                const input = document.getElementById('rename-input-' + id);
+                if (!input) return;
+                const newName = input.value.trim();
+                if (!newName) { Utils.toast('Name cannot be empty'); return; }
+                course.name = newName;
                 Library.saveCourse(course);
                 LibraryUI.render();
                 Utils.toast('Renamed');
@@ -3225,12 +3276,28 @@
                     Utils.toast('Cannot delete active course');
                     return;
                 }
-                const course = Library.getCourse(id);
-                if (!course) return;
-                if (!window.confirm('Delete "' + course.name + '"?')) return;
-                Library.deleteCourse(id);
-                LibraryUI.render();
-                Utils.toast('Deleted');
+                const btn = document.getElementById('del-course-' + id);
+                if (!btn) return;
+                if (btn.dataset.confirm === '1') {
+                    const course = Library.getCourse(id);
+                    if (!course) return;
+                    Library.deleteCourse(id);
+                    LibraryUI.render();
+                    Utils.toast('Deleted');
+                } else {
+                    btn.dataset.confirm = '1';
+                    btn.textContent = 'Sure?';
+                    btn.style.borderColor = '#e64545';
+                    btn.style.color = '#e64545';
+                    setTimeout(function() {
+                        if (btn && btn.dataset.confirm === '1') {
+                            btn.dataset.confirm = '';
+                            btn.textContent = 'Delete';
+                            btn.style.borderColor = '';
+                            btn.style.color = '';
+                        }
+                    }, 3000);
+                }
             },
             
             exportCourse(id) {
@@ -3293,14 +3360,14 @@
                     const clubCount = bag.clubs ? bag.clubs.length : 0;
                     const dateStr = Utils.formatShortDate(bag.created);
                     const id = Utils.escHtml(bag.id);
-                    return '<div style="padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + '; margin-bottom: var(--space-1);">' +
+                    return '<div id="bag-row-' + id + '" style="padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + '; margin-bottom: var(--space-1);">' +
                         '<div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 2px;">' + Utils.escHtml(bag.name) + (isActive ? ' <span style="color: var(--green-400); font-size: 0.75rem;">✓ Active</span>' : '') + '</div>' +
                         '<div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: var(--space-2);">' + clubCount + ' clubs' + (dateStr ? ' · Created: ' + dateStr : '') + '</div>' +
                         '<div style="display: flex; gap: var(--space-1); flex-wrap: wrap;">' +
                             '<button style="' + (isActive ? btnGreenStyle : btnStyle) + '" onclick="LibraryActions.activateBag(\'' + id + '\')">' + (isActive ? '✓ Active' : 'Activate') + '</button>' +
                             '<button style="' + btnStyle + '" onclick="LibraryActions.copyBag(\'' + id + '\')">Copy</button>' +
                             '<button style="' + btnStyle + '" onclick="LibraryActions.renameBag(\'' + id + '\')">Rename</button>' +
-                            '<button style="' + btnStyle + '" onclick="LibraryActions.deleteBag(\'' + id + '\')">Delete</button>' +
+                            '<button id="del-bag-' + id + '" style="' + btnStyle + '" onclick="LibraryActions.deleteBag(\'' + id + '\')">Delete</button>' +
                             '<button style="' + btnStyle + '" onclick="LibraryActions.exportBag(\'' + id + '\')">Export</button>' +
                         '</div>' +
                     '</div>';
@@ -3329,14 +3396,14 @@
                     const flagCount = holes.filter(h => h.flagGPS).length;
                     const dateStr = Utils.formatShortDate(course.created);
                     const id = Utils.escHtml(course.id);
-                    return '<div style="padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + '; margin-bottom: var(--space-1);">' +
+                    return '<div id="course-row-' + id + '" style="padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + '; margin-bottom: var(--space-1);">' +
                         '<div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 2px;">' + Utils.escHtml(course.name) + (isActive ? ' <span style="color: var(--green-400); font-size: 0.75rem;">✓ Active</span>' : '') + '</div>' +
                         '<div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: var(--space-2);">' + teeCount + ' tee · ' + flagCount + ' flag GPS' + (dateStr ? ' · Created: ' + dateStr : '') + '</div>' +
                         '<div style="display: flex; gap: var(--space-1); flex-wrap: wrap;">' +
                             '<button style="' + (isActive ? btnGreenStyle : btnStyle) + '" onclick="LibraryActions.activateCourse(\'' + id + '\')">' + (isActive ? '✓ Active' : 'Activate') + '</button>' +
                             '<button style="' + btnStyle + '" onclick="LibraryActions.copyCourse(\'' + id + '\')">Copy</button>' +
                             '<button style="' + btnStyle + '" onclick="LibraryActions.renameCourse(\'' + id + '\')">Rename</button>' +
-                            '<button style="' + btnStyle + '" onclick="LibraryActions.deleteCourse(\'' + id + '\')">Delete</button>' +
+                            '<button id="del-course-' + id + '" style="' + btnStyle + '" onclick="LibraryActions.deleteCourse(\'' + id + '\')">Delete</button>' +
                             '<button style="' + btnStyle + '" onclick="LibraryActions.exportCourse(\'' + id + '\')">Export</button>' +
                         '</div>' +
                     '</div>';
@@ -3597,8 +3664,10 @@
                     // Initial render
                     UI.render();
                     
-                    // Expose for GPS callbacks
+                    // Expose for GPS callbacks and inline onclick handlers
                     window.App = this;
+                    window.LibraryActions = LibraryActions;
+                    window.LibraryUI = LibraryUI;
                     
                     console.log('Shot Tracker v39 initialized');
                 } catch (e) {
