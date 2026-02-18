@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v40.5</title>
+    <title>Shot Tracker v40.6</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -803,7 +803,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v40.5</span>
+                    <span class="brand-version">v40.6</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
@@ -826,8 +826,8 @@
                     <div class="pill-label">Shots</div>
                 </div>
                 <div class="scoreboard-pill">
-                    <div class="pill-value" id="sbTotal">0</div>
-                    <div class="pill-label">Total</div>
+                    <div class="pill-value" id="sbTotal">E</div>
+                    <div class="pill-label">vs Par</div>
                 </div>
             </div>
             
@@ -1142,7 +1142,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v40.5';
+        const VERSION = 'v40.6';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -1872,16 +1872,33 @@
                 const hole = State.currentHole();
                 const holeNum = State.holeIndex + 1;
                 const shotsThisHole = hole.shots.length;
-                const totalShots = State.totalShots();
+                
+                // Calculate score relative to par for holes played
+                let relPar = 0;
+                State.holes.forEach(function(h, i) {
+                    if (h.shots.length > 0) {
+                        const par = (State.course && State.course.holes && State.course.holes[i]) ? (State.course.holes[i].par || 4) : 4;
+                        relPar += h.shots.length - par;
+                    }
+                });
+                const relParText = relPar === 0 ? 'E' : (relPar > 0 ? '+' + relPar : '' + relPar);
                 
                 if (this.els.sbHole) this.els.sbHole.textContent = holeNum;
                 if (this.els.sbShots) this.els.sbShots.textContent = shotsThisHole;
-                if (this.els.sbTotal) this.els.sbTotal.textContent = totalShots;
                 if (this.els.sbPar) this.els.sbPar.textContent = hole.par || '-';
+                
+                if (this.els.sbTotal) {
+                    this.els.sbTotal.textContent = relParText;
+                    this.els.sbTotal.style.color = relPar < 0 ? 'var(--red)' : (relPar > 0 ? '' : '');
+                }
                 
                 if (this.els.roundInfo) {
                     const date = new Date(State.round.startedAt);
-                    this.els.roundInfo.textContent = `Round • ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+                    const mm = String(date.getMonth() + 1).padStart(2, '0');
+                    const dd = String(date.getDate()).padStart(2, '0');
+                    const time = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                    const courseName = (State.course && State.course.name) ? State.course.name : 'No Course';
+                    this.els.roundInfo.textContent = courseName + ' · ' + mm + '/' + dd + ' ' + time;
                 }
             },
             
