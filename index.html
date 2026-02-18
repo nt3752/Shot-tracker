@@ -2975,15 +2975,15 @@
                 this.render();
                 const backdrop = Utils.$('libraryBackdrop');
                 const sheet = Utils.$('librarySheet');
-                if (backdrop) backdrop.classList.add('open');
-                if (sheet) sheet.classList.add('open');
+                if (backdrop) backdrop.classList.add('active');
+                if (sheet) sheet.classList.add('active');
             },
             
             close() {
                 const backdrop = Utils.$('libraryBackdrop');
                 const sheet = Utils.$('librarySheet');
-                if (backdrop) backdrop.classList.remove('open');
-                if (sheet) sheet.classList.remove('open');
+                if (backdrop) backdrop.classList.remove('active');
+                if (sheet) sheet.classList.remove('active');
             },
             
             render() {
