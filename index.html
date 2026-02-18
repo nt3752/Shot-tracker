@@ -1897,7 +1897,7 @@
                     const mm = String(date.getMonth() + 1).padStart(2, '0');
                     const dd = String(date.getDate()).padStart(2, '0');
                     const time = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-                    const courseName = (State.course && State.course.name) ? State.course.name : 'No Course';
+                    const courseName = State.courseName ? State.courseName : ((State.course && State.course.name) ? State.course.name : 'No Course');
                     this.els.roundInfo.textContent = courseName + ' · ' + mm + '/' + dd + ' ' + time;
                 }
             },
