@@ -800,16 +800,16 @@
                     <div class="pill-label">Hole</div>
                 </div>
                 <div class="scoreboard-pill">
+                    <div class="pill-value" id="sbPar">-</div>
+                    <div class="pill-label">Par</div>
+                </div>
+                <div class="scoreboard-pill">
                     <div class="pill-value" id="sbShots">0</div>
                     <div class="pill-label">Shots</div>
                 </div>
                 <div class="scoreboard-pill">
                     <div class="pill-value" id="sbTotal">0</div>
                     <div class="pill-label">Total</div>
-                </div>
-                <div class="scoreboard-pill">
-                    <div class="pill-value" id="sbPar">-</div>
-                    <div class="pill-label">Par</div>
                 </div>
             </div>
             
@@ -1992,30 +1992,36 @@
                 
                 const gps = { lat: currentPos.lat, lon: currentPos.lon };
                 
-                // Helper: get previous position (last shot or tee)
-                const getPrevPos = () => {
-                    const shots = hole.shots;
-                    if (shots.length >= 2) return shots[shots.length - 2].position;
-                    return hole.tee || null;
-                };
+                // --- Check for pending shots (FIFO - mark FIRST pending) ---
+                const pendingShots = hole.shots.filter(s => s.positionPending);
+                const firstPending = hole.shots.find(s => s.positionPending);
                 
-                // --- Check for pending shot (created by Caddy/Shot button) ---
-                const lastShot = hole.shots.length ? hole.shots[hole.shots.length - 1] : null;
-                if (lastShot && lastShot.positionPending) {
-                    // Update existing shot with GPS position
-                    lastShot.position = gps;
-                    lastShot.positionPending = false;
+                if (firstPending) {
+                    // Find index of this shot to calculate distance from previous
+                    const shotIndex = hole.shots.indexOf(firstPending);
                     
-                    // Calculate actual distance
-                    const prev = getPrevPos();
-                    if (prev) {
-                        const dist = Utils.distanceYards(prev, currentPos);
-                        if (dist !== null) lastShot.actualDistance = dist;
+                    // Update with GPS position
+                    firstPending.position = gps;
+                    firstPending.positionPending = false;
+                    
+                    // Calculate actual distance from previous shot or tee
+                    const prevShot = shotIndex > 0 ? hole.shots[shotIndex - 1] : null;
+                    const prevPos = prevShot ? prevShot.position : hole.tee;
+                    
+                    if (prevPos) {
+                        const dist = Utils.distanceYards(prevPos, currentPos);
+                        if (dist !== null) firstPending.actualDistance = dist;
                     }
                     
                     State.save();
                     UI.render();
-                    Utils.toast('Landing marked ✅');
+                    
+                    // Toast with count of remaining pending shots
+                    const remainingCount = pendingShots.length - 1;
+                    const msg = remainingCount > 0 
+                        ? `Shot #${shotIndex + 1} marked ✅ (${remainingCount} more pending)`
+                        : `Shot #${shotIndex + 1} marked ✅`;
+                    Utils.toast(msg);
                     return;
                 }
                 
@@ -2045,7 +2051,12 @@
                 }
                 
                 // --- Normal case: create new shot at landing position ---
-                const prevPos = getPrevPos();
+                // Get previous position (last shot or tee)
+                const shots = hole.shots;
+                const prevPos = shots.length > 0 
+                    ? shots[shots.length - 1].position 
+                    : hole.tee;
+                
                 const dist = prevPos ? Utils.distanceYards(prevPos, currentPos) : 0;
                 
                 const shot = {
