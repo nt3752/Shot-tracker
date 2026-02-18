@@ -1,149 +1,2882 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Shot Tracker v38_1</title>
-  <link rel="stylesheet" href="styles.css?v=38_1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Shot Tracker v39.1.5</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===============================================
+           SHOT TRACKER v39 - PRODUCTION STYLESHEET
+           Mobile-first, defensive, robust
+           =============================================== */
+        
+        :root {
+            /* Core palette - golf course inspired */
+            --green-900: #0d3b2f;
+            --green-800: #14543f;
+            --green-700: #1a6d4f;
+            --green-600: #21875f;
+            --green-500: #27a06f;
+            --green-400: #51b385;
+            --green-300: #7bc69b;
+            --green-200: #a5d9b1;
+            --green-100: #cfecc7;
+            
+            /* Neutrals */
+            --gray-950: #0a0f14;
+            --gray-900: #141a21;
+            --gray-800: #1e262f;
+            --gray-700: #28333d;
+            --gray-600: #4a5763;
+            --gray-500: #6c7a89;
+            --gray-400: #8e9daf;
+            --gray-300: #b0c0d5;
+            --gray-200: #d2e3fb;
+            --gray-100: #e8f1ff;
+            
+            /* Accents */
+            --gold: #f4a61b;
+            --red: #e64545;
+            --blue: #4a9eff;
+            
+            /* Functional colors */
+            --bg-app: var(--gray-950);
+            --bg-card: var(--gray-900);
+            --bg-card-light: var(--gray-800);
+            --text-primary: var(--gray-100);
+            --text-secondary: var(--gray-400);
+            --text-muted: var(--gray-500);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-strong: rgba(255, 255, 255, 0.12);
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
+            
+            /* Spacing scale */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 24px;
+            --space-6: 32px;
+            --space-7: 48px;
+            
+            /* Border radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+            
+            /* Typography */
+            --font-base: 'Barlow', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Monaco', 'Courier New', monospace;
+        }
+        
+        /* ===============================================
+           BASE STYLES
+           =============================================== */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        body {
+            font-family: var(--font-base);
+            background: var(--bg-app);
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            overflow-x: hidden;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        
+        button {
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: inherit;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        input, select {
+            font-family: inherit;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        /* ===============================================
+           LAYOUT
+           =============================================== */
+        
+        .app {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(to bottom, 
+                rgba(10, 15, 20, 0.98) 0%,
+                rgba(10, 15, 20, 0.95) 70%,
+                rgba(10, 15, 20, 0.85) 100%
+            );
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: var(--space-3) var(--space-4);
+        }
+        
+        .app-main {
+            flex: 1;
+            padding: var(--space-4);
+            padding-bottom: var(--space-7);
+        }
+        
+        /* ===============================================
+           HEADER COMPONENTS
+           =============================================== */
+        
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+        }
+        
+        .brand {
+            font-size: 1.125rem;
+            font-weight: 900;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        
+        .brand-version {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-left: var(--space-2);
+        }
+        
+        .header-icon-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 1.25rem;
+            transition: all 0.15s ease;
+        }
+        
+        .header-icon-btn:active {
+            transform: scale(0.95);
+            background: var(--bg-card-light);
+        }
+        
+        /* Scoreboard Pills */
+        .scoreboard {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-2);
+        }
+        
+        .scoreboard-pill {
+            background: linear-gradient(135deg, var(--green-800) 0%, var(--green-700) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--space-3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .pill-value {
+            font-size: 2rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            line-height: 1;
+            letter-spacing: -0.5px;
+        }
+        
+        .pill-label {
+            font-size: 0.625rem;
+            font-weight: 700;
+            color: var(--green-200);
+            margin-top: var(--space-1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .round-info {
+            margin-top: var(--space-2);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        
+        /* ===============================================
+           SECTIONS
+           =============================================== */
+        
+        .section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+        
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: var(--space-3);
+        }
+        
+        /* ===============================================
+           RANGEFINDER DISPLAY
+           =============================================== */
+        
+        .rangefinder-display {
+            background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-900) 100%);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
+        }
+        
+        .distance-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: var(--space-3);
+        }
+        
+        .distance-main {
+            flex: 1;
+        }
+        
+        .distance-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--space-1);
+        }
+        
+        .distance-value {
+            font-size: 2.5rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+        
+        .distance-unit {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-left: var(--space-1);
+        }
+        
+        .accuracy-badge {
+            padding: var(--space-1) var(--space-2);
+            border-radius: var(--radius-full);
+            font-size: 0.625rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid;
+            white-space: nowrap;
+        }
+        
+        .accuracy-badge.good {
+            color: var(--green-300);
+            border-color: var(--green-600);
+            background: rgba(39, 160, 111, 0.15);
+        }
+        
+        .accuracy-badge.warn {
+            color: var(--gold);
+            border-color: rgba(244, 166, 27, 0.4);
+            background: rgba(244, 166, 27, 0.15);
+        }
+        
+        .accuracy-badge.bad {
+            color: var(--red);
+            border-color: rgba(230, 69, 69, 0.4);
+            background: rgba(230, 69, 69, 0.15);
+        }
+        
+        /* ===============================================
+           INPUTS
+           =============================================== */
+        
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+        }
+        
+        .input-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        
+        .input-field {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            text-align: center;
+        }
+        
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--green-500);
+            box-shadow: 0 0 0 3px rgba(39, 160, 111, 0.15);
+        }
+        
+        .input-field.compact {
+            max-width: 100px;
+        }
+        
+        .input-field.compact-sm {
+            max-width: 60px;
+        }
+        
+        /* ===============================================
+           BUTTONS
+           =============================================== */
+        
+        .btn-row {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+        }
+        
+        .btn-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 0;
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.15s ease;
+            border: 1px solid var(--border);
+            background: var(--bg-card-light);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn:active::before {
+            opacity: 1;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
+            border-color: var(--green-500);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-card-light);
+            border-color: var(--border);
+        }
+        
+        .btn-danger {
+            background: rgba(230, 69, 69, 0.15);
+            border-color: rgba(230, 69, 69, 0.3);
+            color: var(--red);
+        }
+        
+        .btn.lit {
+            background: linear-gradient(135deg, var(--green-600) 0%, var(--green-500) 100%);
+            border-color: var(--green-400);
+            box-shadow: 0 0 0 2px rgba(39, 160, 111, 0.2);
+        }
+        
+        .btn.pending {
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.02); }
+        }
+        
+        .btn-sm {
+            padding: var(--space-2) var(--space-3);
+            font-size: 0.75rem;
+        }
+        
+        .btn-toggle {
+            background: var(--bg-card-light);
+        }
+        
+        .btn-toggle.active {
+            background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
+            border-color: var(--green-500);
+        }
+        
+        /* ===============================================
+           SHOT LIST
+           =============================================== */
+        
+        .shot-list {
+            border-top: 1px solid var(--border);
+            padding-top: var(--space-3);
+        }
+        
+        .shot-list-empty {
+            padding: var(--space-4) 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .shot-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+            padding: var(--space-3) 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        
+        .shot-item:last-child {
+            border-bottom: none;
+        }
+        
+        .shot-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .shot-number {
+            font-size: 0.75rem;
+            font-weight: 900;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: var(--space-1) var(--space-2);
+            flex-shrink: 0;
+        }
+        
+        .shot-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: var(--space-2);
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            font-weight: 700;
+            min-width: 0;
+        }
+        
+        .shot-select:disabled {
+            opacity: 0.5;
+        }
+        
+        .shot-distance {
+            font-size: 1rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+        
+        .shot-input {
+            width: 80px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: var(--space-2);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            text-align: center;
+        }
+        
+        .shot-input:disabled {
+            opacity: 0.5;
+        }
+        
+        /* ===============================================
+           MODAL / SHEET
+           =============================================== */
+        
+        .backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 200;
+            display: none;
+            pointer-events: none; /* Don't intercept clicks when hidden */
+        }
+        
+        .backdrop.active {
+            display: block;
+            pointer-events: auto; /* Allow clicks when active */
+        }
+        
+        .sheet {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-strong);
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            z-index: 201;
+            padding: var(--space-4);
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none; /* Hidden by default */
+        }
+        
+        .sheet.active {
+            transform: translateY(0);
+            display: block; /* Show when active */
+        }
+        
+        .sheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .sheet-title {
+            font-size: 1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .sheet-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+        
+        /* ===============================================
+           CADDY SUGGESTIONS
+           =============================================== */
+        
+        .suggestion-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+        
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+            padding: var(--space-3);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+        }
+        
+        .suggestion-info {
+            flex: 1;
+        }
+        
+        .suggestion-club {
+            font-size: 1rem;
+            font-weight: 900;
+            margin-bottom: var(--space-1);
+        }
+        
+        .suggestion-meta {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .suggestion-btn {
+            padding: var(--space-2) var(--space-4);
+            background: var(--green-700);
+            border: 1px solid var(--green-500);
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        
+        /* ===============================================
+           HOLE PICKER
+           =============================================== */
+        
+        .hole-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-3);
+        }
+        
+        .hole-picker-btn {
+            height: 80px;
+            background: var(--bg-card-light);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            font-size: 2rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            transition: all 0.15s ease;
+        }
+        
+        .hole-picker-btn:active {
+            transform: scale(0.95);
+            background: var(--green-700);
+        }
+        
+        /* ===============================================
+           UTILITIES
+           =============================================== */
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 300;
+            background: rgba(10, 15, 20, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-lg);
+            padding: var(--space-3) var(--space-4);
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-lg);
+            pointer-events: none;
+            animation: toastSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes toastSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        /* ===============================================
+           RESPONSIVE
+           =============================================== */
+        
+        @media (max-width: 380px) {
+            .scoreboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .pill-value {
+                font-size: 1.75rem;
+            }
+            
+            .distance-value {
+                font-size: 2rem;
+            }
+            
+            .btn {
+                font-size: 0.75rem;
+                padding: var(--space-2) var(--space-3);
+            }
+        }
+    </style>
 </head>
 <body>
-  <header class="header">
-    <div class="headerTop">
-      <div class="brand">Shot Tracker <small>v38_1</small></div>
-      <button id="btnCourse" class="iconBtn" type="button">⚙️</button>
+    <div class="app" id="app">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-top">
+                <div class="brand">
+                    Shot Tracker
+                    <span class="brand-version">v39.1.5</span>
+                </div>
+                <div style="display: flex; gap: var(--space-2);">
+                    <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
+                    <button class="header-icon-btn" id="btnExport" type="button" aria-label="Export">📊</button>
+                    <button class="header-icon-btn" id="btnSettings" type="button" aria-label="Course Setup">⚙️</button>
+                </div>
+            </div>
+            
+            <div class="scoreboard">
+                <div class="scoreboard-pill">
+                    <div class="pill-value" id="sbHole">1</div>
+                    <div class="pill-label">Hole</div>
+                </div>
+                <div class="scoreboard-pill">
+                    <div class="pill-value" id="sbShots">0</div>
+                    <div class="pill-label">Shots</div>
+                </div>
+                <div class="scoreboard-pill">
+                    <div class="pill-value" id="sbTotal">0</div>
+                    <div class="pill-label">Total</div>
+                </div>
+                <div class="scoreboard-pill">
+                    <div class="pill-value" id="sbPar">-</div>
+                    <div class="pill-label">Par</div>
+                </div>
+            </div>
+            
+            <div class="round-info" id="roundInfo">Round in progress</div>
+        </header>
+        
+        <!-- MAIN CONTENT -->
+        <main class="app-main">
+            <!-- RANGEFINDER SECTION -->
+            <section class="section">
+                <h2 class="section-title">Rangefinder</h2>
+                
+                <div class="rangefinder-display">
+                    <div class="distance-row">
+                        <div class="distance-main">
+                            <div class="distance-label">To Flag</div>
+                            <div class="distance-value">
+                                <span id="toFlag">--</span><span class="distance-unit">y</span>
+                            </div>
+                        </div>
+                        <div class="accuracy-badge bad" id="accBadge">ACC --</div>
+                    </div>
+                </div>
+                
+                <div class="input-row">
+                    <span class="input-label">Target</span>
+                    <input type="text" class="input-field compact" id="attempt" placeholder="--" inputmode="numeric" maxlength="3" pattern="[0-9]*">
+                    <button class="btn btn-primary btn-sm" id="btnCaddy" type="button">Caddy</button>
+                </div>
+                
+                <div class="btn-row">
+                    <button class="btn btn-secondary" id="btnTee" type="button">Tee</button>
+                    <button class="btn btn-secondary" id="btnFlag" type="button">Flag</button>
+                    <button class="btn btn-primary" id="btnShot" type="button">Shot</button>
+                </div>
+                
+                <div class="btn-row">
+                    <button class="btn btn-secondary" id="btnPrevHole" type="button">◀ Hole</button>
+                    <button class="btn btn-secondary" id="btnHolePick" type="button">Hole</button>
+                    <button class="btn btn-secondary" id="btnNextHole" type="button">Hole ▶</button>
+                </div>
+                
+                <div class="btn-row">
+                    <button class="btn btn-danger btn-sm" id="btnPen" type="button">Pen</button>
+                    <button class="btn btn-danger btn-sm" id="btnDel" type="button">Del</button>
+                    <button class="btn btn-toggle btn-sm" id="btnFwy" type="button">Fwy</button>
+                    <button class="btn btn-toggle btn-sm" id="btnGir" type="button">GIR</button>
+                </div>
+            </section>
+            
+            <!-- HOLE INFO SECTION -->
+            <section class="section">
+                <h2 class="section-title">This Hole</h2>
+                <div class="input-row">
+                    <span class="input-label">Par</span>
+                    <input type="text" class="input-field compact-sm" id="par" placeholder="4" inputmode="numeric" maxlength="1" pattern="[0-9]*">
+                    <span class="input-label">Yards</span>
+                    <input type="text" class="input-field compact" id="holeYds" placeholder="385" inputmode="numeric" maxlength="3" pattern="[0-9]*">
+                    <span class="input-label">Hcp</span>
+                    <input type="text" class="input-field compact-sm" id="holeHcp" placeholder="1" inputmode="numeric" maxlength="2" pattern="[0-9]*">
+                </div>
+            </section>
+            
+            <!-- SHOTS SECTION -->
+            <section class="section">
+                <h2 class="section-title">Shots</h2>
+                <div class="shot-list" id="shotsList">
+                    <div class="shot-list-empty">No shots yet</div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- CADDY SHEET -->
+    <div class="backdrop" id="caddyBackdrop"></div>
+    <div class="sheet" id="caddySheet" role="dialog" aria-modal="true" aria-labelledby="caddyTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="caddyTitle">Caddy</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnBagEditor" type="button">Bag</button>
+                <button class="btn btn-sm btn-secondary" id="btnCaddyMode" type="button">Carry</button>
+                <button class="btn btn-sm btn-secondary" id="btnShowAll" type="button">Show All</button>
+                <button class="btn btn-sm btn-secondary" id="btnCloseCaddy" type="button">Close</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Target</span>
+            <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" maxlength="3" pattern="[0-9]*">
+            <button class="btn btn-sm btn-secondary" id="btnResetTarget" type="button">Reset</button>
+        </div>
+        
+        <div class="suggestion-list" id="suggestionList"></div>
+    </div>
+    
+    <!-- BAG EDITOR SHEET -->
+    <div class="backdrop" id="bagBackdrop"></div>
+    <div class="sheet" id="bagSheet" role="dialog" aria-modal="true" aria-labelledby="bagTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="bagTitle">Bag Editor</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCloseBag" type="button">Close</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Club</span>
+            <select class="input-field" id="bagClub"></select>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Shot Type</span>
+            <select class="input-field" id="bagShotType"></select>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Carry</span>
+            <input type="number" class="input-field compact" id="bagCarry" inputmode="numeric" placeholder="140">
+            <span class="input-label">Total</span>
+            <input type="number" class="input-field compact" id="bagTotal" inputmode="numeric" placeholder="150">
+        </div>
+        
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btnSaveBag" type="button">Save to Bag</button>
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Current Bag</h4>
+            <div id="bagMatrix" style="font-size: 0.75rem; color: var(--text-secondary); max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+    
+    <!-- COURSE SETUP SHEET -->
+    <div class="backdrop" id="courseBackdrop"></div>
+    <div class="sheet" id="courseSheet" role="dialog" aria-modal="true" aria-labelledby="courseTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="courseTitle">Course Setup</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnSaveCourse" type="button">Save</button>
+                <button class="btn btn-sm btn-secondary" id="btnCloseCourse" type="button">Close</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Course Name</span>
+            <input type="text" class="input-field" id="courseName" placeholder="Enter course name">
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Holes</h4>
+            <div id="courseHoles" style="display: grid; gap: var(--space-3); max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+    
+    <!-- HOLE PICKER SHEET -->
+    <div class="backdrop" id="holeBackdrop"></div>
+    <div class="sheet" id="holeSheet" role="dialog" aria-modal="true" aria-labelledby="holeTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="holeTitle">Select Hole</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCloseHole" type="button">Close</button>
+            </div>
+        </div>
+        <div class="hole-picker-grid" id="holeGrid"></div>
     </div>
 
-    <div class="pills" aria-label="scoreboard">
-      <div class="pill"><div class="num" id="sbHole">1</div><div class="lab">Hole</div></div>
-      <div class="pill"><div class="num" id="sbShots">0</div><div class="lab">Shots</div></div>
-      <div class="pill"><div class="num" id="sbTotal">0</div><div class="lab">Total</div></div>
-      <div class="pill"><div class="num" id="sbCourse">--</div><div class="lab">Course</div></div>
+    <!-- LIBRARY MANAGEMENT SHEET -->
+    <div class="backdrop" id="libraryBackdrop"></div>
+    <div class="sheet" id="librarySheet" role="dialog" aria-modal="true" aria-labelledby="libraryTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="libraryTitle">Library</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnNewRound" type="button">New Round</button>
+                <button class="btn btn-sm btn-secondary" id="btnCloseLibrary" type="button">Close</button>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: var(--space-4);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">Bag Library</h4>
+                <button class="btn btn-sm btn-secondary" id="btnAddBag" type="button">+ New Bag</button>
+            </div>
+            <div id="bagLibraryList" style="display: flex; flex-direction: column; gap: var(--space-2);"></div>
+        </div>
+        
+        <div style="margin-bottom: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">Course Library</h4>
+                <button class="btn btn-sm btn-secondary" id="btnAddCourse" type="button">+ New Course</button>
+            </div>
+            <div id="courseLibraryList" style="display: flex; flex-direction: column; gap: var(--space-2);"></div>
+        </div>
+        
+        <div style="padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: var(--space-3);">Import / Export</h4>
+            <div class="btn-row">
+                <button class="btn btn-secondary btn-sm" id="btnImportBag" type="button">Import Bag</button>
+                <button class="btn btn-secondary btn-sm" id="btnImportCourse" type="button">Import Course</button>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-secondary btn-sm" id="btnExportAllBags" type="button">Export All Bags</button>
+                <button class="btn btn-secondary btn-sm" id="btnExportAllCourses" type="button">Export All Courses</button>
+            </div>
+        </div>
     </div>
-    <div class="roundInfo" id="roundInfo">Round</div>
-  </header>
 
-  <main class="main">
-    <section class="section">
-      <h2>Rangefinder</h2>
-      <div class="kv">
-        <div>
-          <div class="k">To Flag</div>
-          <div class="v"><span id="toFlag">--</span><span class="sub">y</span></div>
+    <!-- NEW ROUND SETUP SHEET -->
+    <div class="backdrop" id="roundSetupBackdrop"></div>
+    <div class="sheet" id="roundSetupSheet" role="dialog" aria-modal="true" aria-labelledby="roundSetupTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="roundSetupTitle">New Round</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCancelRound" type="button">Cancel</button>
+            </div>
         </div>
-        <div class="acc bad" id="accTag">acc --y</div>
-      </div>
-      <div style="height:10px"></div>
-      <div class="inputLine">
-        <label for="attempt">Attempt</label>
-        <input id="attempt" type="text" class="inp" placeholder="--" inputmode="numeric" maxlength="3" pattern="\d*">
-        <button id="btnCaddy" class="smallBtn" type="button">CADDY</button>
-      </div>
-      <div style="height:10px"></div>
-      <div class="row">
-        <button id="btnTee" class="bigBtn" type="button">TEE</button>
-        <button id="btnFlag" class="bigBtn" type="button">FLAG</button>
-        <button id="btnShot" class="bigBtn" type="button">SHOT</button>
-      </div>
-
-      <div style="height:10px"></div>
-      <div class="row">
-        <button id="btnPrevHole" class="smallBtn" type="button">◀ Hole</button>
-        <button id="btnJumpHole" class="btn sm">Hole 1</button>
-        <button id="btnNextHole" class="smallBtn" type="button">Hole ▶</button>
-      </div>
-      <div style="height:10px"></div>
-      <div class="row">
-        <button id="btnPen" class="smallBtn danger" type="button">Pen</button>
-        <button id="btnDel" class="smallBtn danger" type="button">Del</button>
-        <button id="btnFwy" class="smallBtn" type="button">Fwy</button>
-        <button id="btnGir" class="smallBtn" type="button">GIR</button>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>Shots</h2>
-      <div class="list" id="shotsList" aria-label="shots"></div>
-
-      <h2>This Hole</h2>
-      <div class="split compact">
-        <div class="inputLine compact">
-          <label for="par">Par</label>
-          <input id="par" type="text" class="inp compactInp" placeholder="4" inputmode="numeric" maxlength="1" pattern="\d*">
+        
+        <div class="input-row">
+            <span class="input-label">Select Bag</span>
+            <select class="input-field" id="roundBagSelect"></select>
         </div>
-        <div class="inputLine compact">
-          <label for="holeYds">Yds</label>
-          <input id="holeYds" type="text" class="inp compactInp" placeholder="385" inputmode="numeric" maxlength="3" pattern="\d*">
+        
+        <div class="input-row">
+            <span class="input-label">Select Course</span>
+            <select class="input-field" id="roundCourseSelect"></select>
         </div>
-      </div>
-</section>
-  </main>
-
-  <div id="caddyBackdrop" class="backdrop hidden"></div>
-  <div id="caddySheet" class="sheet hidden" role="dialog" aria-modal="true">
-    <div class="sheetHeader">
-      <h3>Caddy</h3>
-      <div class="right">
-        <button id="btnShowAll" class="smallBtn" type="button">Show All</button>
-        <button id="btnMode" class="smallBtn" type="button">Carry</button>
-        <button id="btnBag" class="smallBtn" type="button">Bag</button>
-        <button id="btnCloseCaddy" class="smallBtn" type="button">Close</button>
-      </div>
+        
+        <div class="btn-row" style="margin-top: var(--space-4);">
+            <button class="btn btn-primary" id="btnStartRound" type="button">Start Round</button>
+        </div>
     </div>
-    <div style="height:10px"></div>
-    <div class="inputLine">
-      <label for="caddyTarget">Target</label>
-      <input id="caddyTarget" type="text" class="inp" inputmode="numeric" maxlength="3" pattern="\d*">
-      <button id="btnResetAdj" class="smallBtn" type="button">Reset</button>
-    </div>
-    <div id="caddyList"></div>
-  </div>
 
-  <div id="bagBackdrop" class="backdrop hidden"></div>
-  <div id="bagSheet" class="sheet hidden" role="dialog" aria-modal="true">
-    <div class="sheetHeader">
-      <h3>Bag</h3>
-      <div class="right">
-        <button id="btnCloseBag" class="smallBtn" type="button">Close</button>
-      </div>
+    <!-- EDIT BAG SHEET -->
+    <div class="backdrop" id="editBagBackdrop"></div>
+    <div class="sheet" id="editBagSheet" role="dialog" aria-modal="true" aria-labelledby="editBagTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="editBagTitle">Edit Bag</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnSaveEditBag" type="button">Save</button>
+                <button class="btn btn-sm btn-secondary" id="btnCancelEditBag" type="button">Cancel</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Bag Name</span>
+            <input type="text" class="input-field" id="editBagName" placeholder="e.g., Summer Bag">
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Club Distances</h4>
+            
+            <div class="input-row">
+                <span class="input-label">Club</span>
+                <select class="input-field" id="editBagClub"></select>
+            </div>
+            
+            <div class="input-row">
+                <span class="input-label">Shot Type</span>
+                <select class="input-field" id="editBagShotType"></select>
+            </div>
+            
+            <div class="input-row">
+                <span class="input-label">Carry</span>
+                <input type="number" class="input-field compact" id="editBagCarry" inputmode="numeric" placeholder="140">
+                <span class="input-label">Total</span>
+                <input type="number" class="input-field compact" id="editBagTotal" inputmode="numeric" placeholder="150">
+            </div>
+            
+            <div class="btn-row">
+                <button class="btn btn-secondary btn-sm" id="btnAddDistance" type="button">Add to Bag</button>
+            </div>
+            
+            <div id="editBagMatrix" style="margin-top: var(--space-4); max-height: 300px; overflow-y: auto;"></div>
+        </div>
     </div>
-    <div style="height:10px"></div>
-    <div class="row rowWrap">
-      <div style="flex:1;min-width:140px">
-        <div class="inputLine">
-          <label for="bagClub">Club</label>
-          <select id="bagClub" class="inp"></select>
-        </div>
-      </div>
-      <div style="flex:1;min-width:140px">
-        <div class="inputLine">
-          <label for="bagType">Type</label>
-          <select id="bagType" class="inp"></select>
-        </div>
-      </div>
-    </div>
-    <div style="height:10px"></div>
-    <div class="row rowWrap">
-      <div style="flex:1;min-width:140px">
-        <div class="inputLine">
-          <label for="bagCarry">Carry</label>
-          <input id="bagCarry" class="inp" inputmode="numeric" type="number" />
-        </div>
-      </div>
-      <div style="flex:1;min-width:140px">
-        <div class="inputLine">
-          <label for="bagTotal">Total</label>
-          <input id="bagTotal" class="inp" inputmode="numeric" type="number" />
-        </div>
-      </div>
-      <button id="btnSaveBag" class="bigBtn" type="button" style="min-width:120px">SAVE</button>
-    </div>
-    <div style="height:6px"></div>
-    <div style="color:var(--muted);font-weight:850;font-size:12px">Changes save for this device.</div>
-  </div>
 
-  <script src="config.js?v=38_1"></script>
-  <script src="app.js?v=38_1" defer></script>
+    <!-- EDIT COURSE SHEET -->
+    <div class="backdrop" id="editCourseBackdrop"></div>
+    <div class="sheet" id="editCourseSheet" role="dialog" aria-modal="true" aria-labelledby="editCourseTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="editCourseTitle">Edit Course</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-primary" id="btnSaveEditCourse" type="button">Save</button>
+                <button class="btn btn-sm btn-secondary" id="btnCancelEditCourse" type="button">Cancel</button>
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <span class="input-label">Course Name</span>
+            <input type="text" class="input-field" id="editCourseName" placeholder="e.g., Pebble Beach">
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Holes</h4>
+            <div id="editCourseHoles" style="display: grid; gap: var(--space-3); max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- FILE INPUT (HIDDEN) -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+    <script>
+    /* ===============================================
+       SHOT TRACKER v39 - PRODUCTION JAVASCRIPT
+       Defensive architecture with clean separation
+       =============================================== */
+    
+    (function() {
+        'use strict';
+        
+        // ============================================
+        // CONSTANTS
+        // ============================================
+        
+        const VERSION = 'v39.1.5';
+        const LS_STATE_KEY = 'shotTracker.v39.state';
+        const LS_BAG_KEY = 'shotTracker.v39.bag';
+        const LS_COURSE_KEY = 'shotTracker.v39.course';
+        const LS_BAG_LIBRARY_KEY = 'shotTracker.v39.bagLibrary';
+        const LS_COURSE_LIBRARY_KEY = 'shotTracker.v39.courseLibrary';
+        
+        // Default bag configuration
+        const DEFAULT_CLUBS = ['Club?', 'D', '3W', '5W', '7W', '3H', '5H', '4I', '5I', '6I', '7I', '8I', '9I', 'PW', '46', '52', '56', '60', 'PT'];
+        const DEFAULT_SHOT_TYPES = ['Type?', 'full', '3/4', '1/2', 'pitch', 'chip', 'putt', 'penalty'];
+        const DEFAULT_BAG = {
+            'D': { 'full': { carry: 220, total: 240 } },
+            '7I': { 'full': { carry: 140, total: 150 }, '3/4': { carry: 125, total: 135 } },
+            'PT': { 'putt': { carry: 0, total: 0 } }
+        };
+        
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        
+        const Utils = {
+            // Safe DOM element getter
+            $(id) {
+                try {
+                    return document.getElementById(id);
+                } catch (e) {
+                    console.error(`Element not found: ${id}`, e);
+                    return null;
+                }
+            },
+            
+            // Clamp integer value
+            clampInt(val, min, max) {
+                const n = Number(val);
+                if (!isFinite(n)) return null;
+                const rounded = Math.round(n);
+                if (rounded < min) return min;
+                if (rounded > max) return max;
+                return rounded;
+            },
+            
+            // Validate yards value
+            saneYards(val) {
+                const n = Number(val);
+                if (!isFinite(n) || n < 0 || n > 1200) return null;
+                return Math.round(n);
+            },
+            
+            // Meters to yards conversion
+            metersToYards(meters) {
+                const n = Number(meters);
+                if (!isFinite(n)) return null;
+                return n * 1.0936132983;
+            },
+            
+            // Calculate distance between two GPS points
+            distanceYards(pointA, pointB) {
+                if (!pointA || !pointB) return null;
+                
+                const R = 6371000; // Earth radius in meters
+                const toRad = deg => deg * Math.PI / 180;
+                
+                const dLat = toRad(pointB.lat - pointA.lat);
+                const dLon = toRad(pointB.lon - pointA.lon);
+                const lat1 = toRad(pointA.lat);
+                const lat2 = toRad(pointB.lat);
+                
+                const a = Math.sin(dLat / 2) ** 2 + 
+                         Math.cos(lat1) * Math.cos(lat2) * 
+                         Math.sin(dLon / 2) ** 2;
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const meters = R * c;
+                
+                const yards = this.metersToYards(meters);
+                return this.saneYards(yards);
+            },
+            
+            // ISO timestamp
+            nowISO() {
+                return new Date().toISOString();
+            },
+            
+            // Generate UUID
+            uuid() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            },
+            
+            // Toast notification
+            toast(message, duration = 1000) {
+                try {
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        try {
+                            toast.remove();
+                        } catch (e) {
+                            // Ignore removal errors
+                        }
+                    }, duration);
+                } catch (e) {
+                    console.error('Toast error:', e);
+                }
+            }
+        };
+        
+        // ============================================
+        // STORAGE MANAGER
+        // ============================================
+        
+        const Storage = {
+            load(key) {
+                try {
+                    const raw = localStorage.getItem(key);
+                    if (!raw) return null;
+                    return JSON.parse(raw);
+                } catch (e) {
+                    console.error(`Storage load error for ${key}:`, e);
+                    return null;
+                }
+            },
+            
+            save(key, value) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(value));
+                    return true;
+                } catch (e) {
+                    console.error(`Storage save error for ${key}:`, e);
+                    return false;
+                }
+            }
+        };
+        
+        // ============================================
+        // GPS MANAGER
+        // ============================================
+        
+        const GPS = {
+            watchId: null,
+            lastFix: null,
+            
+            start() {
+                if (!navigator.geolocation) {
+                    console.warn('Geolocation not supported');
+                    return;
+                }
+                
+                try {
+                    this.watchId = navigator.geolocation.watchPosition(
+                        position => this.onSuccess(position),
+                        error => this.onError(error),
+                        {
+                            enableHighAccuracy: true,
+                            maximumAge: 5000,
+                            timeout: 10000
+                        }
+                    );
+                } catch (e) {
+                    console.error('GPS start error:', e);
+                }
+            },
+            
+            stop() {
+                if (this.watchId !== null) {
+                    try {
+                        navigator.geolocation.clearWatch(this.watchId);
+                        this.watchId = null;
+                    } catch (e) {
+                        console.error('GPS stop error:', e);
+                    }
+                }
+            },
+            
+            onSuccess(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                const acc = position.coords.accuracy;
+                
+                // Sanity check
+                if (!isFinite(lat) || !isFinite(lon) || !isFinite(acc)) {
+                    return;
+                }
+                
+                const accY = Utils.saneYards(Utils.metersToYards(acc));
+                
+                this.lastFix = {
+                    lat,
+                    lon,
+                    acc,
+                    accY,
+                    timestamp: Date.now()
+                };
+                
+                // Trigger UI update
+                if (window.App && window.App.render) {
+                    window.App.render();
+                }
+            },
+            
+            onError(error) {
+                console.warn('GPS error:', error.message);
+            },
+            
+            getCurrentPosition() {
+                if (!this.lastFix) return null;
+                return {
+                    lat: this.lastFix.lat,
+                    lon: this.lastFix.lon
+                };
+            }
+        };
+        
+        // ============================================
+        // STATE MANAGER
+        // ============================================
+        
+        const State = {
+            version: VERSION,
+            round: {
+                startedAt: Utils.nowISO()
+            },
+            holeIndex: 0,
+            holes: [],
+            bag: {
+                clubs: DEFAULT_CLUBS.slice(),
+                shotTypes: DEFAULT_SHOT_TYPES.slice(),
+                data: JSON.parse(JSON.stringify(DEFAULT_BAG))
+            },
+            ui: {
+                caddyMode: 'carry',
+                showAll: false
+            },
+            
+            init() {
+                // Try to load from storage
+                const saved = Storage.load(LS_STATE_KEY);
+                if (saved && saved.version === VERSION) {
+                    Object.assign(this, saved);
+                } else {
+                    // Initialize fresh state
+                    this.initHoles();
+                }
+                
+                // Load bag override if exists
+                this.loadBag();
+                
+                // Ensure state integrity
+                this.validate();
+                
+                // Save
+                this.save();
+            },
+            
+            initHoles() {
+                this.holes = Array.from({ length: 18 }, (_, i) => ({
+                    hole: i + 1,
+                    par: 0,
+                    yards: 0,
+                    hcp: 0,
+                    tee: null,
+                    flag: null,
+                    teePending: false,
+                    flagPending: false,
+                    fwy: false,
+                    gir: false,
+                    shots: []
+                }));
+            },
+            
+            validate() {
+                // Ensure holes array
+                if (!Array.isArray(this.holes) || this.holes.length !== 18) {
+                    this.initHoles();
+                }
+                
+                // Ensure hole index in bounds
+                if (this.holeIndex < 0 || this.holeIndex >= 18) {
+                    this.holeIndex = 0;
+                }
+                
+                // Ensure bag structure
+                if (!this.bag || !Array.isArray(this.bag.clubs)) {
+                    this.bag = {
+                        clubs: DEFAULT_CLUBS.slice(),
+                        shotTypes: DEFAULT_SHOT_TYPES.slice(),
+                        data: JSON.parse(JSON.stringify(DEFAULT_BAG))
+                    };
+                }
+                
+                // Load course data if exists
+                this.loadCourseData();
+            },
+            
+            loadCourseData() {
+                const courseData = Storage.load(LS_COURSE_KEY);
+                if (courseData) {
+                    this.courseName = courseData.name || '';
+                    if (courseData.holes && Array.isArray(courseData.holes)) {
+                        courseData.holes.forEach((ch, idx) => {
+                            if (this.holes[idx]) {
+                                this.holes[idx].par = ch.par || this.holes[idx].par;
+                                this.holes[idx].yards = ch.yards || this.holes[idx].yards;
+                                this.holes[idx].hcp = ch.hcp || this.holes[idx].hcp;
+                                // Load tee/flag GPS if available
+                                if (ch.teeGPS && !this.holes[idx].tee) {
+                                    this.holes[idx].tee = ch.teeGPS;
+                                }
+                                if (ch.flagGPS && !this.holes[idx].flag) {
+                                    this.holes[idx].flag = ch.flagGPS;
+                                }
+                            }
+                        });
+                    }
+                }
+            },
+            
+            saveCourseData(courseName, holesData) {
+                Storage.save(LS_COURSE_KEY, {
+                    name: courseName,
+                    holes: holesData
+                });
+                this.courseName = courseName;
+            },
+            
+            // Save tee/flag GPS to course for future rounds
+            saveTeeToCore(holeIndex, gps) {
+                const courseData = Storage.load(LS_COURSE_KEY) || { name: this.courseName || '', holes: [] };
+                if (!courseData.holes[holeIndex]) {
+                    courseData.holes[holeIndex] = { hole: holeIndex + 1, par: 0, yards: 0, hcp: 0 };
+                }
+                courseData.holes[holeIndex].teeGPS = gps;
+                Storage.save(LS_COURSE_KEY, courseData);
+            },
+            
+            saveFlagToCourse(holeIndex, gps) {
+                const courseData = Storage.load(LS_COURSE_KEY) || { name: this.courseName || '', holes: [] };
+                if (!courseData.holes[holeIndex]) {
+                    courseData.holes[holeIndex] = { hole: holeIndex + 1, par: 0, yards: 0, hcp: 0 };
+                }
+                courseData.holes[holeIndex].flagGPS = gps;
+                Storage.save(LS_COURSE_KEY, courseData);
+            },
+            
+            save() {
+                Storage.save(LS_STATE_KEY, {
+                    version: this.version,
+                    round: this.round,
+                    holeIndex: this.holeIndex,
+                    holes: this.holes,
+                    ui: this.ui
+                });
+            },
+            
+            loadBag() {
+                const savedBag = Storage.load(LS_BAG_KEY);
+                if (savedBag) {
+                    if (Array.isArray(savedBag.clubs)) {
+                        this.bag.clubs = savedBag.clubs.slice();
+                    }
+                    if (Array.isArray(savedBag.shotTypes)) {
+                        this.bag.shotTypes = savedBag.shotTypes.slice();
+                    }
+                    if (savedBag.data && typeof savedBag.data === 'object') {
+                        this.bag.data = savedBag.data;
+                    }
+                }
+            },
+            
+            saveBag() {
+                Storage.save(LS_BAG_KEY, {
+                    clubs: this.bag.clubs,
+                    shotTypes: this.bag.shotTypes,
+                    data: this.bag.data
+                });
+            },
+            
+            currentHole() {
+                return this.holes[this.holeIndex] || this.holes[0];
+            },
+            
+            totalShots() {
+                return this.holes.reduce((sum, hole) => sum + hole.shots.length, 0);
+            }
+        };
+        
+        // ============================================
+        // CADDY ENGINE
+        // ============================================
+        
+        const Caddy = {
+            getSuggestions(targetYards, mode = 'carry', showAll = false) {
+                const suggestions = [];
+                const bag = State.bag.data;
+                const clubs = State.bag.clubs;
+                
+                for (const club of clubs) {
+                    if (club === 'Club?') continue;
+                    if (!bag[club]) continue;
+                    
+                    const shotTypes = bag[club];
+                    for (const shotType in shotTypes) {
+                        const distances = shotTypes[shotType];
+                        if (!distances) continue;
+                        
+                        const dist = mode === 'carry' ? distances.carry : distances.total;
+                        if (!dist) continue;
+                        
+                        const diff = Math.abs(dist - targetYards);
+                        
+                        if (showAll || diff <= 10) {
+                            suggestions.push({
+                                club,
+                                shotType,
+                                carry: distances.carry,
+                                total: distances.total,
+                                distance: dist,
+                                diff
+                            });
+                        }
+                    }
+                }
+                
+                // Sort by difference
+                suggestions.sort((a, b) => a.diff - b.diff);
+                
+                return suggestions;
+            }
+        };
+        
+        // ============================================
+        // UI MANAGER
+        // ============================================
+        
+        const UI = {
+            els: {},
+            editingLock: false, // Prevents renders while user is editing
+            
+            cacheElements() {
+                const ids = [
+                    'sbHole', 'sbShots', 'sbTotal', 'sbPar',
+                    'roundInfo', 'toFlag', 'accBadge', 'attempt',
+                    'btnTee', 'btnFlag', 'btnShot',
+                    'btnPrevHole', 'btnHolePick', 'btnNextHole',
+                    'btnPen', 'btnDel', 'btnFwy', 'btnGir',
+                    'btnCaddy', 'btnSettings', 'btnExport', 'btnLibrary',
+                    'par', 'holeYds', 'holeHcp', 'shotsList',
+                    'caddyBackdrop', 'caddySheet', 'btnCloseCaddy',
+                    'btnCaddyMode', 'btnShowAll', 'caddyTarget', 'btnResetTarget',
+                    'suggestionList', 'btnBagEditor',
+                    'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid',
+                    'bagBackdrop', 'bagSheet', 'btnCloseBag', 'bagClub', 'bagShotType',
+                    'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix',
+                    'courseBackdrop', 'courseSheet', 'btnCloseCourse', 'btnSaveCourse',
+                    'courseName', 'courseHoles'
+                ];
+                
+                ids.forEach(id => {
+                    this.els[id] = Utils.$(id);
+                });
+            },
+            
+            render() {
+                // Don't render if user is actively editing an input
+                if (this.editingLock) return;
+                
+                this.renderScoreboard();
+                this.renderRangefinder();
+                this.renderHoleInfo();
+                this.renderButtons();
+                this.renderShots();
+            },
+            
+            renderScoreboard() {
+                const hole = State.currentHole();
+                const holeNum = State.holeIndex + 1;
+                const shotsThisHole = hole.shots.length;
+                const totalShots = State.totalShots();
+                
+                if (this.els.sbHole) this.els.sbHole.textContent = holeNum;
+                if (this.els.sbShots) this.els.sbShots.textContent = shotsThisHole;
+                if (this.els.sbTotal) this.els.sbTotal.textContent = totalShots;
+                if (this.els.sbPar) this.els.sbPar.textContent = hole.par || '-';
+                
+                if (this.els.roundInfo) {
+                    const date = new Date(State.round.startedAt);
+                    this.els.roundInfo.textContent = `Round • ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}`;
+                }
+            },
+            
+            renderRangefinder() {
+                const toFlagYards = this.getToFlagYards();
+                
+                if (this.els.toFlag) {
+                    this.els.toFlag.textContent = toFlagYards !== null ? toFlagYards : '--';
+                }
+                
+                if (this.els.accBadge) {
+                    const accY = GPS.lastFix ? GPS.lastFix.accY : null;
+                    this.els.accBadge.classList.remove('good', 'warn', 'bad');
+                    
+                    if (accY !== null) {
+                        this.els.accBadge.textContent = `±${accY}y`;
+                        if (accY <= 10) {
+                            this.els.accBadge.classList.add('good');
+                        } else if (accY <= 30) {
+                            this.els.accBadge.classList.add('warn');
+                        } else {
+                            this.els.accBadge.classList.add('bad');
+                        }
+                    } else {
+                        this.els.accBadge.textContent = 'ACC --';
+                        this.els.accBadge.classList.add('bad');
+                    }
+                }
+                
+                // Ensure attempt field has current distance
+                this.ensureAttempt();
+            },
+            
+            renderHoleInfo() {
+                const hole = State.currentHole();
+                
+                if (this.els.par) {
+                    this.els.par.value = hole.par ? String(hole.par) : '';
+                }
+                
+                if (this.els.holeYds) {
+                    this.els.holeYds.value = hole.yards ? String(hole.yards) : '';
+                }
+                
+                if (this.els.holeHcp) {
+                    this.els.holeHcp.value = hole.hcp ? String(hole.hcp) : '';
+                }
+            },
+            
+            renderButtons() {
+                const hole = State.currentHole();
+                
+                // Tee button
+                if (this.els.btnTee) {
+                    this.els.btnTee.classList.toggle('lit', !!hole.tee || !!hole.teePending);
+                    this.els.btnTee.classList.toggle('pending', !!hole.teePending);
+                }
+                
+                // Flag button
+                if (this.els.btnFlag) {
+                    this.els.btnFlag.classList.toggle('lit', !!hole.flag || !!hole.flagPending);
+                    this.els.btnFlag.classList.toggle('pending', !!hole.flagPending);
+                }
+                
+                // Fairway / GIR toggles
+                if (this.els.btnFwy) {
+                    this.els.btnFwy.classList.toggle('active', !!hole.fwy);
+                }
+                if (this.els.btnGir) {
+                    this.els.btnGir.classList.toggle('active', !!hole.gir);
+                }
+            },
+            
+            renderShots() {
+                if (!this.els.shotsList) return;
+                
+                const hole = State.currentHole();
+                this.els.shotsList.innerHTML = '';
+                
+                if (!hole.shots.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'shot-list-empty';
+                    empty.textContent = 'No shots yet';
+                    this.els.shotsList.appendChild(empty);
+                    return;
+                }
+                
+                hole.shots.forEach((shot, idx) => {
+                    const item = this.createShotItem(shot, idx);
+                    this.els.shotsList.appendChild(item);
+                });
+            },
+            
+            createShotItem(shot, idx) {
+                const item = document.createElement('div');
+                item.className = 'shot-item';
+                
+                const left = document.createElement('div');
+                left.className = 'shot-left';
+                
+                const number = document.createElement('div');
+                number.className = 'shot-number';
+                number.textContent = `#${idx + 1}`;
+                
+                const clubSelect = document.createElement('select');
+                clubSelect.className = 'shot-select';
+                clubSelect.disabled = !!shot.penalty;
+                State.bag.clubs.forEach(club => {
+                    const option = document.createElement('option');
+                    option.value = club;
+                    option.textContent = club;
+                    clubSelect.appendChild(option);
+                });
+                clubSelect.value = shot.club || 'Club?';
+                
+                // Track focus to prevent interference
+                clubSelect.addEventListener('focus', () => {
+                    clubSelect.dataset.editing = 'true';
+                    UI.editingLock = true; // Lock UI renders
+                });
+                
+                clubSelect.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        delete clubSelect.dataset.editing;
+                        UI.editingLock = false; // Unlock UI renders
+                    }, 300);
+                });
+                
+                clubSelect.addEventListener('change', () => {
+                    shot.club = clubSelect.value;
+                    State.save();
+                });
+                
+                const typeSelect = document.createElement('select');
+                typeSelect.className = 'shot-select';
+                typeSelect.disabled = !!shot.penalty;
+                State.bag.shotTypes.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    typeSelect.appendChild(option);
+                });
+                typeSelect.value = shot.shotType || 'Type?';
+                
+                // Track focus to prevent interference
+                typeSelect.addEventListener('focus', () => {
+                    typeSelect.dataset.editing = 'true';
+                    UI.editingLock = true; // Lock UI renders
+                });
+                
+                typeSelect.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        delete typeSelect.dataset.editing;
+                        UI.editingLock = false; // Unlock UI renders
+                    }, 300);
+                });
+                
+                typeSelect.addEventListener('change', () => {
+                    shot.shotType = typeSelect.value;
+                    State.save();
+                });
+                
+                left.appendChild(number);
+                left.appendChild(clubSelect);
+                left.appendChild(typeSelect);
+                
+                const right = document.createElement('div');
+                right.style.display = 'flex';
+                right.style.alignItems = 'center';
+                right.style.gap = 'var(--space-1)';
+                
+                const distInput = document.createElement('input');
+                distInput.className = 'shot-input';
+                distInput.type = 'number';
+                distInput.inputMode = 'numeric';
+                distInput.disabled = !!shot.penalty;
+                distInput.value = shot.penalty ? '' : String(shot.distance || 0);
+                distInput.placeholder = shot.shotType === 'putt' ? 'ft' : 'y';
+                
+                // Track focus to keep input open
+                distInput.addEventListener('focus', () => {
+                    distInput.dataset.editing = 'true';
+                    UI.editingLock = true; // Lock UI renders
+                });
+                
+                distInput.addEventListener('blur', () => {
+                    setTimeout(() => {
+                        delete distInput.dataset.editing;
+                        UI.editingLock = false; // Unlock UI renders
+                    }, 300);
+                });
+                
+                distInput.addEventListener('change', () => {
+                    const val = Utils.saneYards(distInput.value);
+                    shot.distance = val !== null ? val : (shot.distance || 0);
+                    State.save();
+                    // Don't call UI.render() here - it rebuilds the dropdowns
+                });
+                
+                // Add unit label
+                const unitLabel = document.createElement('span');
+                unitLabel.style.fontSize = '0.75rem';
+                unitLabel.style.fontWeight = '600';
+                unitLabel.style.color = 'var(--text-muted)';
+                unitLabel.textContent = shot.shotType === 'putt' ? 'ft' : 'y';
+                
+                if (shot.penalty) {
+                    const penaltyLabel = document.createElement('span');
+                    penaltyLabel.className = 'shot-distance';
+                    penaltyLabel.style.color = 'var(--red)';
+                    penaltyLabel.textContent = 'PENALTY';
+                    right.appendChild(penaltyLabel);
+                } else {
+                    right.appendChild(distInput);
+                    right.appendChild(unitLabel);
+                }
+                
+                item.appendChild(left);
+                item.appendChild(right);
+                
+                return item;
+            },
+            
+            getToFlagYards() {
+                const hole = State.currentHole();
+                if (!hole.flag) return null;
+                
+                const currentPos = GPS.getCurrentPosition();
+                if (!currentPos) return null;
+                
+                return Utils.distanceYards(currentPos, hole.flag);
+            },
+            
+            ensureAttempt() {
+                if (!this.els.attempt) return;
+                
+                // Always sync attempt with toFlag if empty
+                const current = this.els.attempt.value.trim();
+                const toFlag = this.getToFlagYards();
+                
+                if (current === '' && toFlag !== null) {
+                    this.els.attempt.value = String(toFlag);
+                }
+            },
+            
+            // Get distance from last shot position or tee to current position
+            getDistanceFromLastPosition() {
+                const hole = State.currentHole();
+                const currentPos = GPS.getCurrentPosition();
+                
+                if (!currentPos) return null;
+                
+                // If no shots yet, measure from tee
+                if (hole.shots.length === 0) {
+                    if (!hole.tee) return null;
+                    return Utils.distanceYards(hole.tee, currentPos);
+                }
+                
+                // Measure from last shot position
+                const lastShot = hole.shots[hole.shots.length - 1];
+                if (!lastShot.position) return null;
+                
+                return Utils.distanceYards(lastShot.position, currentPos);
+            }
+        };
+        
+        // ============================================
+        // ACTIONS
+        // ============================================
+        
+        const Actions = {
+            toggleTee() {
+                const hole = State.currentHole();
+                const currentPos = GPS.getCurrentPosition();
+                
+                if (hole.tee) {
+                    hole.tee = null;
+                    hole.teePending = false;
+                    Utils.toast('Tee cleared');
+                } else if (currentPos) {
+                    const gps = { lat: currentPos.lat, lon: currentPos.lon };
+                    hole.tee = gps;
+                    hole.teePending = false;
+                    
+                    // Save to course config for future rounds
+                    State.saveTeeToCore(State.holeIndex, gps);
+                    
+                    Utils.toast('Tee set');
+                } else {
+                    hole.teePending = true;
+                    Utils.toast('Waiting for GPS...');
+                }
+                
+                State.save();
+                UI.render();
+            },
+            
+            toggleFlag() {
+                const hole = State.currentHole();
+                const currentPos = GPS.getCurrentPosition();
+                
+                if (hole.flag) {
+                    hole.flag = null;
+                    hole.flagPending = false;
+                    Utils.toast('Flag cleared');
+                } else if (currentPos) {
+                    const gps = { lat: currentPos.lat, lon: currentPos.lon };
+                    hole.flag = gps;
+                    hole.flagPending = false;
+                    
+                    // Save to course config for future rounds
+                    State.saveFlagToCourse(State.holeIndex, gps);
+                    
+                    Utils.toast('Flag set');
+                } else {
+                    hole.flagPending = true;
+                    Utils.toast('Waiting for GPS...');
+                }
+                
+                State.save();
+                UI.render();
+            },
+            
+            addShot(options = {}) {
+                const hole = State.currentHole();
+                const currentPos = GPS.getCurrentPosition();
+                
+                // Get distance from attempt field (user can override GPS)
+                const attemptVal = UI.els.attempt ? UI.els.attempt.value.trim() : '';
+                const distance = attemptVal ? Utils.saneYards(attemptVal) : 0;
+                
+                const shot = {
+                    club: options.club || 'Club?',
+                    shotType: options.shotType || 'Type?',
+                    distance: distance || 0,
+                    penalty: !!options.penalty,
+                    position: currentPos ? { lat: currentPos.lat, lon: currentPos.lon } : null,
+                    timestamp: Utils.nowISO()
+                };
+                
+                hole.shots.push(shot);
+                
+                // Clear attempt field
+                if (UI.els.attempt) {
+                    UI.els.attempt.value = '';
+                }
+                
+                State.save();
+                UI.render();
+                Utils.toast('Shot added');
+            },
+            
+            addPenalty() {
+                this.addShot({ club: 'Penalty', shotType: 'penalty', penalty: true });
+            },
+            
+            deleteLastShot() {
+                const hole = State.currentHole();
+                if (!hole.shots.length) {
+                    Utils.toast('No shots to delete');
+                    return;
+                }
+                
+                hole.shots.pop();
+                State.save();
+                UI.render();
+                Utils.toast('Shot deleted');
+            },
+            
+            toggleFwy() {
+                const hole = State.currentHole();
+                hole.fwy = !hole.fwy;
+                State.save();
+                UI.render();
+            },
+            
+            toggleGir() {
+                const hole = State.currentHole();
+                hole.gir = !hole.gir;
+                State.save();
+                UI.render();
+            },
+            
+            prevHole() {
+                if (State.holeIndex > 0) {
+                    State.holeIndex--;
+                    State.save();
+                    UI.render();
+                }
+            },
+            
+            nextHole() {
+                if (State.holeIndex < 17) {
+                    State.holeIndex++;
+                    State.save();
+                    UI.render();
+                }
+            },
+            
+            gotoHole(index) {
+                if (index >= 0 && index < 18) {
+                    State.holeIndex = index;
+                    State.save();
+                    UI.render();
+                }
+            }
+        };
+        
+        // ============================================
+        // CADDY UI
+        // ============================================
+        
+        const CaddyUI = {
+            open() {
+                // Close all other sheets first
+                this.closeAllOtherSheets();
+                
+                // Use Attempt field value (user can override before opening Caddy)
+                const attemptVal = UI.els.attempt ? UI.els.attempt.value.trim() : '';
+                const toFlag = UI.getToFlagYards();
+                const targetDistance = attemptVal || (toFlag !== null ? String(toFlag) : '');
+                
+                if (UI.els.caddyTarget) {
+                    UI.els.caddyTarget.value = targetDistance;
+                }
+                
+                // Set button text based on current state (show current, not toggle)
+                if (UI.els.btnShowAll) {
+                    UI.els.btnShowAll.textContent = State.ui.showAll ? 'Show All' : 'Within 10';
+                }
+                
+                this.show();
+                this.render();
+            },
+            
+            close() {
+                this.hide();
+            },
+            
+            closeAllOtherSheets() {
+                // Hide all other sheets/backdrops
+                if (BagEditorUI) BagEditorUI.hide();
+                if (CourseSetupUI) CourseSetupUI.hide();
+                if (HolePickerUI) HolePickerUI.hide();
+            },
+            
+            show() {
+                if (UI.els.caddyBackdrop) {
+                    UI.els.caddyBackdrop.classList.add('active');
+                }
+                if (UI.els.caddySheet) {
+                    UI.els.caddySheet.classList.add('active');
+                }
+            },
+            
+            hide() {
+                if (UI.els.caddyBackdrop) {
+                    UI.els.caddyBackdrop.classList.remove('active');
+                }
+                if (UI.els.caddySheet) {
+                    UI.els.caddySheet.classList.remove('active');
+                }
+            },
+            
+            render() {
+                if (!UI.els.suggestionList) return;
+                
+                const targetVal = UI.els.caddyTarget ? UI.els.caddyTarget.value.trim() : '';
+                const target = targetVal ? Utils.saneYards(targetVal) : 0;
+                
+                // If showAll is true, show all clubs regardless of target
+                // If showAll is false and no target, prompt for target
+                if (!State.ui.showAll && !target) {
+                    UI.els.suggestionList.innerHTML = '<div class="shot-list-empty">Enter a target distance</div>';
+                    return;
+                }
+                
+                const suggestions = Caddy.getSuggestions(
+                    target || 999, // If showAll with no target, use high number to show everything
+                    State.ui.caddyMode,
+                    State.ui.showAll
+                );
+                
+                UI.els.suggestionList.innerHTML = '';
+                
+                if (!suggestions.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'shot-list-empty';
+                    empty.textContent = 'No clubs match';
+                    UI.els.suggestionList.appendChild(empty);
+                    return;
+                }
+                
+                suggestions.forEach(sug => {
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    
+                    const info = document.createElement('div');
+                    info.className = 'suggestion-info';
+                    
+                    const clubName = document.createElement('div');
+                    clubName.className = 'suggestion-club';
+                    clubName.textContent = `${sug.club} • ${sug.shotType}`;
+                    
+                    const meta = document.createElement('div');
+                    meta.className = 'suggestion-meta';
+                    
+                    // Show diff as +/- to indicate over/under target
+                    const diffText = target ? (sug.distance > target ? `+${sug.diff}y` : (sug.distance < target ? `-${sug.diff}y` : '0y')) : '';
+                    meta.textContent = `${sug.carry}y carry • ${sug.total}y total${diffText ? ' • ' + diffText : ''}`;
+                    
+                    info.appendChild(clubName);
+                    info.appendChild(meta);
+                    
+                    const btn = document.createElement('button');
+                    btn.className = 'suggestion-btn';
+                    btn.textContent = 'Select';
+                    btn.addEventListener('click', () => {
+                        Actions.addShot({ club: sug.club, shotType: sug.shotType });
+                        this.close();
+                    });
+                    
+                    item.appendChild(info);
+                    item.appendChild(btn);
+                    UI.els.suggestionList.appendChild(item);
+                });
+            }
+        };
+        
+        // ============================================
+        // BAG EDITOR UI
+        // ============================================
+        
+        const BagEditorUI = {
+            open() {
+                // Close all other sheets first
+                this.closeAllOtherSheets();
+                
+                this.show();
+                this.populateSelects();
+                this.renderBagMatrix();
+                this.loadCurrentSelection();
+            },
+            
+            close() {
+                this.hide();
+            },
+            
+            closeAllOtherSheets() {
+                // Hide all other sheets/backdrops
+                if (CaddyUI) CaddyUI.hide();
+                if (CourseSetupUI) CourseSetupUI.hide();
+                if (HolePickerUI) HolePickerUI.hide();
+            },
+            
+            show() {
+                if (UI.els.bagBackdrop) {
+                    UI.els.bagBackdrop.classList.add('active');
+                }
+                if (UI.els.bagSheet) {
+                    UI.els.bagSheet.classList.add('active');
+                }
+            },
+            
+            hide() {
+                if (UI.els.bagBackdrop) {
+                    UI.els.bagBackdrop.classList.remove('active');
+                }
+                if (UI.els.bagSheet) {
+                    UI.els.bagSheet.classList.remove('active');
+                }
+            },
+            
+            populateSelects() {
+                // Populate club select
+                if (UI.els.bagClub) {
+                    UI.els.bagClub.innerHTML = '';
+                    State.bag.clubs.forEach(club => {
+                        if (club === 'Club?') return;
+                        const option = document.createElement('option');
+                        option.value = club;
+                        option.textContent = club;
+                        UI.els.bagClub.appendChild(option);
+                    });
+                }
+                
+                // Populate shot type select
+                if (UI.els.bagShotType) {
+                    UI.els.bagShotType.innerHTML = '';
+                    State.bag.shotTypes.forEach(type => {
+                        if (type === 'Type?') return;
+                        const option = document.createElement('option');
+                        option.value = type;
+                        option.textContent = type;
+                        UI.els.bagShotType.appendChild(option);
+                    });
+                }
+            },
+            
+            loadCurrentSelection() {
+                const club = UI.els.bagClub ? UI.els.bagClub.value : null;
+                const shotType = UI.els.bagShotType ? UI.els.bagShotType.value : null;
+                
+                if (!club || !shotType) return;
+                
+                const bagData = State.bag.data[club];
+                if (bagData && bagData[shotType]) {
+                    const distances = bagData[shotType];
+                    if (UI.els.bagCarry) UI.els.bagCarry.value = distances.carry || '';
+                    if (UI.els.bagTotal) UI.els.bagTotal.value = distances.total || '';
+                } else {
+                    if (UI.els.bagCarry) UI.els.bagCarry.value = '';
+                    if (UI.els.bagTotal) UI.els.bagTotal.value = '';
+                }
+            },
+            
+            saveEntry() {
+                const club = UI.els.bagClub ? UI.els.bagClub.value : null;
+                const shotType = UI.els.bagShotType ? UI.els.bagShotType.value : null;
+                const carry = UI.els.bagCarry ? Utils.saneYards(UI.els.bagCarry.value) : null;
+                const total = UI.els.bagTotal ? Utils.saneYards(UI.els.bagTotal.value) : null;
+                
+                if (!club || !shotType) {
+                    Utils.toast('Select club and shot type');
+                    return;
+                }
+                
+                // Save to State
+                if (!State.bag.data[club]) {
+                    State.bag.data[club] = {};
+                }
+                
+                State.bag.data[club][shotType] = {
+                    carry: carry || 0,
+                    total: total || 0
+                };
+                
+                // Save to localStorage
+                State.saveBag();
+                
+                // Show immediate feedback
+                Utils.toast('Saved to bag');
+                
+                // Clear input fields for next entry
+                if (UI.els.bagCarry) UI.els.bagCarry.value = '';
+                if (UI.els.bagTotal) UI.els.bagTotal.value = '';
+                
+                // Re-render the matrix to show the update
+                this.renderBagMatrix();
+            },
+            
+            renderBagMatrix() {
+                if (!UI.els.bagMatrix) return;
+                
+                UI.els.bagMatrix.innerHTML = '';
+                
+                const bagData = State.bag.data;
+                const clubs = Object.keys(bagData).sort();
+                
+                if (!clubs.length) {
+                    UI.els.bagMatrix.innerHTML = '<div style="color: var(--text-muted); padding: var(--space-2);">No clubs configured</div>';
+                    return;
+                }
+                
+                clubs.forEach(club => {
+                    const shotTypes = bagData[club];
+                    const types = Object.keys(shotTypes);
+                    
+                    types.forEach(type => {
+                        const distances = shotTypes[type];
+                        const row = document.createElement('div');
+                        row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid rgba(255,255,255,0.04);';
+                        
+                        const label = document.createElement('div');
+                        label.style.fontWeight = '700';
+                        label.textContent = `${club} • ${type}`;
+                        
+                        const rightSide = document.createElement('div');
+                        rightSide.style.cssText = 'display: flex; align-items: center; gap: var(--space-2);';
+                        
+                        const values = document.createElement('div');
+                        values.style.cssText = 'font-family: var(--font-mono); color: var(--text-muted);';
+                        values.textContent = `${distances.carry}y / ${distances.total}y`;
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = '×';
+                        deleteBtn.style.cssText = 'background: rgba(230,69,69,0.15); border: 1px solid rgba(230,69,69,0.3); color: var(--red); border-radius: 6px; width: 28px; height: 28px; font-size: 1.25rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;';
+                        deleteBtn.title = 'Delete this club/shot combination';
+                        deleteBtn.addEventListener('click', () => {
+                            if (confirm(`Delete ${club} ${type}?`)) {
+                                delete State.bag.data[club][type];
+                                // If no more shot types for this club, remove the club entirely
+                                if (Object.keys(State.bag.data[club]).length === 0) {
+                                    delete State.bag.data[club];
+                                }
+                                State.saveBag();
+                                this.renderBagMatrix();
+                                Utils.toast('Deleted');
+                            }
+                        });
+                        
+                        rightSide.appendChild(values);
+                        rightSide.appendChild(deleteBtn);
+                        
+                        row.appendChild(label);
+                        row.appendChild(rightSide);
+                        UI.els.bagMatrix.appendChild(row);
+                    });
+                });
+            }
+        };
+        
+        // ============================================
+        // COURSE SETUP UI
+        // ============================================
+        
+        const CourseSetupUI = {
+            open() {
+                this.show();
+                this.loadCourseData();
+                this.renderHoles();
+            },
+            
+            close() {
+                this.hide();
+            },
+            
+            show() {
+                if (UI.els.courseBackdrop) {
+                    UI.els.courseBackdrop.classList.add('active');
+                }
+                if (UI.els.courseSheet) {
+                    UI.els.courseSheet.classList.add('active');
+                }
+            },
+            
+            hide() {
+                if (UI.els.courseBackdrop) {
+                    UI.els.courseBackdrop.classList.remove('active');
+                }
+                if (UI.els.courseSheet) {
+                    UI.els.courseSheet.classList.remove('active');
+                }
+            },
+            
+            loadCourseData() {
+                if (UI.els.courseName) {
+                    UI.els.courseName.value = State.courseName || '';
+                }
+            },
+            
+            renderHoles() {
+                if (!UI.els.courseHoles) return;
+                
+                UI.els.courseHoles.innerHTML = '';
+                
+                State.holes.forEach((hole, idx) => {
+                    const card = document.createElement('div');
+                    card.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3);';
+                    
+                    const header = document.createElement('div');
+                    header.style.cssText = 'font-weight: 900; margin-bottom: var(--space-2); font-size: 0.875rem;';
+                    header.textContent = `Hole ${idx + 1}`;
+                    
+                    const inputs = document.createElement('div');
+                    inputs.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2);';
+                    
+                    const parInput = this.createInput('Par', hole.par || '', `par-${idx}`);
+                    const yardsInput = this.createInput('Yards', hole.yards || '', `yards-${idx}`);
+                    const hcpInput = this.createInput('HCP', hole.hcp || '', `hcp-${idx}`);
+                    
+                    inputs.appendChild(parInput);
+                    inputs.appendChild(yardsInput);
+                    inputs.appendChild(hcpInput);
+                    
+                    card.appendChild(header);
+                    card.appendChild(inputs);
+                    UI.els.courseHoles.appendChild(card);
+                });
+            },
+            
+            createInput(label, value, id) {
+                const wrapper = document.createElement('div');
+                
+                const labelEl = document.createElement('label');
+                labelEl.style.cssText = 'display: block; font-size: 0.625rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase;';
+                labelEl.textContent = label;
+                labelEl.setAttribute('for', id);
+                
+                const input = document.createElement('input');
+                input.id = id;
+                input.type = 'number';
+                input.inputMode = 'numeric';
+                input.value = value;
+                input.style.cssText = 'width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); color: var(--text-primary); font-size: 0.875rem; font-weight: 700; font-family: var(--font-mono);';
+                
+                wrapper.appendChild(labelEl);
+                wrapper.appendChild(input);
+                return wrapper;
+            },
+            
+            saveCourse() {
+                const courseName = UI.els.courseName ? UI.els.courseName.value : '';
+                const holesData = [];
+                
+                State.holes.forEach((hole, idx) => {
+                    const parInput = Utils.$(`par-${idx}`);
+                    const yardsInput = Utils.$(`yards-${idx}`);
+                    const hcpInput = Utils.$(`hcp-${idx}`);
+                    
+                    const par = parInput ? Utils.clampInt(parInput.value, 0, 9) : hole.par;
+                    const yards = yardsInput ? Utils.clampInt(yardsInput.value, 0, 999) : hole.yards;
+                    const hcp = hcpInput ? Utils.clampInt(hcpInput.value, 0, 18) : hole.hcp;
+                    
+                    State.holes[idx].par = par || 0;
+                    State.holes[idx].yards = yards || 0;
+                    State.holes[idx].hcp = hcp || 0;
+                    
+                    holesData.push({
+                        hole: idx + 1,
+                        par: par || 0,
+                        yards: yards || 0,
+                        hcp: hcp || 0
+                    });
+                });
+                
+                State.saveCourseData(courseName, holesData);
+                State.save();
+                UI.render();
+                Utils.toast('Course saved');
+            }
+        };
+        
+        // ============================================
+        // EXPORT FUNCTIONALITY
+        // ============================================
+        
+        const ExportData = {
+            generateCSV() {
+                const rows = [];
+                
+                // Header
+                rows.push([
+                    'Hole',
+                    'Shot Number',
+                    'Club',
+                    'Shot Type',
+                    'Target Distance',
+                    'Actual Distance',
+                    'Carry (Bag)',
+                    'Total (Bag)',
+                    'Penalty',
+                    'Timestamp'
+                ].join(','));
+                
+                // Data rows
+                State.holes.forEach(hole => {
+                    hole.shots.forEach((shot, shotIdx) => {
+                        const bagData = State.bag.data[shot.club];
+                        let bagCarry = '';
+                        let bagTotal = '';
+                        
+                        if (bagData && bagData[shot.shotType]) {
+                            bagCarry = bagData[shot.shotType].carry || '';
+                            bagTotal = bagData[shot.shotType].total || '';
+                        }
+                        
+                        rows.push([
+                            hole.hole,
+                            shotIdx + 1,
+                            shot.club || '',
+                            shot.shotType || '',
+                            shot.distance || 0,
+                            shot.distance || 0,
+                            bagCarry,
+                            bagTotal,
+                            shot.penalty ? 'YES' : 'NO',
+                            shot.timestamp || ''
+                        ].join(','));
+                    });
+                });
+                
+                return rows.join('\n');
+            },
+            
+            downloadCSV() {
+                const csv = this.generateCSV();
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                
+                const date = new Date(State.round.startedAt);
+                const filename = `shot-tracker-${date.toISOString().split('T')[0]}.csv`;
+                
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                Utils.toast('CSV exported');
+            },
+            
+            generateReport() {
+                const lines = [];
+                
+                lines.push('SHOT TRACKER REPORT');
+                lines.push('===================');
+                lines.push('');
+                lines.push(`Course: ${State.courseName || 'Unknown'}`);
+                lines.push(`Date: ${new Date(State.round.startedAt).toLocaleString()}`);
+                lines.push(`Total Shots: ${State.totalShots()}`);
+                lines.push('');
+                lines.push('HOLE-BY-HOLE BREAKDOWN');
+                lines.push('----------------------');
+                
+                State.holes.forEach(hole => {
+                    if (hole.shots.length === 0) return;
+                    
+                    lines.push('');
+                    lines.push(`Hole ${hole.hole} - Par ${hole.par || '?'} - ${hole.yards || '?'} yards`);
+                    lines.push(`Shots: ${hole.shots.length} - Fairway: ${hole.fwy ? 'Yes' : 'No'} - GIR: ${hole.gir ? 'Yes' : 'No'}`);
+                    
+                    hole.shots.forEach((shot, idx) => {
+                        const bagData = State.bag.data[shot.club];
+                        let bagInfo = '';
+                        
+                        if (bagData && bagData[shot.shotType]) {
+                            const dist = bagData[shot.shotType];
+                            bagInfo = ` (Bag: ${dist.carry}y/${dist.total}y)`;
+                        }
+                        
+                        lines.push(`  ${idx + 1}. ${shot.club} ${shot.shotType} - ${shot.distance}y${bagInfo}${shot.penalty ? ' [PENALTY]' : ''}`);
+                    });
+                });
+                
+                return lines.join('\n');
+            },
+            
+            showReport() {
+                const report = this.generateReport();
+                
+                // Create modal for report
+                const backdrop = document.createElement('div');
+                backdrop.className = 'backdrop active';
+                backdrop.style.zIndex = '300';
+                
+                const modal = document.createElement('div');
+                modal.className = 'sheet active';
+                modal.style.cssText = 'z-index: 301; max-height: 90vh;';
+                
+                const header = document.createElement('div');
+                header.className = 'sheet-header';
+                
+                const title = document.createElement('h3');
+                title.className = 'sheet-title';
+                title.textContent = 'Round Report';
+                
+                const actions = document.createElement('div');
+                actions.className = 'sheet-actions';
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'btn btn-sm btn-secondary';
+                closeBtn.textContent = 'Close';
+                closeBtn.onclick = () => {
+                    backdrop.remove();
+                    modal.remove();
+                };
+                
+                actions.appendChild(closeBtn);
+                header.appendChild(title);
+                header.appendChild(actions);
+                
+                const content = document.createElement('pre');
+                content.style.cssText = 'white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.6; color: var(--text-primary); overflow-x: auto; margin-top: var(--space-4);';
+                content.textContent = report;
+                
+                modal.appendChild(header);
+                modal.appendChild(content);
+                
+                document.body.appendChild(backdrop);
+                document.body.appendChild(modal);
+                
+                backdrop.onclick = () => {
+                    backdrop.remove();
+                    modal.remove();
+                };
+            }
+        };
+        
+        // ============================================
+        // HOLE PICKER UI
+        // ============================================
+        
+        const HolePickerUI = {
+            init() {
+                if (!UI.els.holeGrid) return;
+                
+                UI.els.holeGrid.innerHTML = '';
+                
+                for (let i = 1; i <= 18; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'hole-picker-btn';
+                    btn.type = 'button';
+                    btn.textContent = String(i);
+                    btn.addEventListener('click', () => {
+                        Actions.gotoHole(i - 1);
+                        this.close();
+                    });
+                    UI.els.holeGrid.appendChild(btn);
+                }
+            },
+            
+            open() {
+                this.show();
+            },
+            
+            close() {
+                this.hide();
+            },
+            
+            show() {
+                if (UI.els.holeBackdrop) {
+                    UI.els.holeBackdrop.classList.add('active');
+                }
+                if (UI.els.holeSheet) {
+                    UI.els.holeSheet.classList.add('active');
+                }
+            },
+            
+            hide() {
+                if (UI.els.holeBackdrop) {
+                    UI.els.holeBackdrop.classList.remove('active');
+                }
+                if (UI.els.holeSheet) {
+                    UI.els.holeSheet.classList.remove('active');
+                }
+            }
+        };
+        
+        // ============================================
+        // EVENT BINDING
+        // ============================================
+        
+        const Events = {
+            bind() {
+                // Tee / Flag / Shot
+                this.on('btnTee', 'click', () => Actions.toggleTee());
+                this.on('btnFlag', 'click', () => Actions.toggleFlag());
+                this.on('btnShot', 'click', () => Actions.addShot());
+                
+                // Navigation
+                this.on('btnPrevHole', 'click', () => Actions.prevHole());
+                this.on('btnNextHole', 'click', () => Actions.nextHole());
+                this.on('btnHolePick', 'click', () => HolePickerUI.open());
+                
+                // Actions
+                this.on('btnPen', 'click', () => Actions.addPenalty());
+                this.on('btnDel', 'click', () => Actions.deleteLastShot());
+                this.on('btnFwy', 'click', () => Actions.toggleFwy());
+                this.on('btnGir', 'click', () => Actions.toggleGir());
+                
+                // Hole inputs
+                this.on('par', 'input', e => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 1);
+                    e.target.value = val;
+                    const hole = State.currentHole();
+                    hole.par = val ? Number(val) : 0;
+                    State.save();
+                    UI.render();
+                });
+                
+                this.on('holeYds', 'input', e => {
+                    const val = Utils.clampInt(e.target.value, 0, 999);
+                    const hole = State.currentHole();
+                    hole.yards = val || 0;
+                    State.save();
+                });
+                
+                this.on('holeHcp', 'input', e => {
+                    const val = Utils.clampInt(e.target.value, 0, 18);
+                    const hole = State.currentHole();
+                    hole.hcp = val || 0;
+                    State.save();
+                });
+                
+                // Caddy
+                this.on('btnCaddy', 'click', () => CaddyUI.open());
+                this.on('btnCloseCaddy', 'click', () => CaddyUI.close());
+                this.on('caddyBackdrop', 'click', () => CaddyUI.close());
+                
+                this.on('btnCaddyMode', 'click', () => {
+                    State.ui.caddyMode = State.ui.caddyMode === 'carry' ? 'total' : 'carry';
+                    if (UI.els.btnCaddyMode) {
+                        UI.els.btnCaddyMode.textContent = State.ui.caddyMode === 'carry' ? 'Carry' : 'Total';
+                    }
+                    State.save();
+                    CaddyUI.render();
+                });
+                
+                this.on('btnShowAll', 'click', () => {
+                    State.ui.showAll = !State.ui.showAll;
+                    if (UI.els.btnShowAll) {
+                        // Show CURRENT state, not next state
+                        // When showAll is TRUE, button says "Show All" (current state)
+                        // When showAll is FALSE, button says "Within 10" (current state)
+                        UI.els.btnShowAll.textContent = State.ui.showAll ? 'Show All' : 'Within 10';
+                    }
+                    State.save();
+                    CaddyUI.render();
+                });
+                
+                this.on('caddyTarget', 'input', () => CaddyUI.render());
+                
+                this.on('btnResetTarget', 'click', () => {
+                    const toFlag = UI.getToFlagYards();
+                    if (UI.els.caddyTarget) {
+                        UI.els.caddyTarget.value = toFlag !== null ? String(toFlag) : '';
+                    }
+                    CaddyUI.render();
+                });
+                
+                // Bag Editor
+                this.on('btnBagEditor', 'click', () => {
+                    CaddyUI.close();
+                    BagEditorUI.open();
+                });
+                this.on('btnCloseBag', 'click', () => BagEditorUI.close());
+                this.on('bagBackdrop', 'click', () => BagEditorUI.close());
+                this.on('bagClub', 'change', (e) => {
+                    e.stopPropagation();
+                    BagEditorUI.loadCurrentSelection();
+                });
+                this.on('bagShotType', 'change', (e) => {
+                    e.stopPropagation();
+                    BagEditorUI.loadCurrentSelection();
+                });
+                this.on('btnSaveBag', 'click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('Save button clicked');
+                    
+                    // Disable button temporarily to prevent double-clicks
+                    if (UI.els.btnSaveBag) {
+                        if (UI.els.btnSaveBag.disabled) {
+                            console.log('Button already disabled, ignoring click');
+                            return; // Already processing
+                        }
+                        
+                        console.log('Processing save...');
+                        UI.els.btnSaveBag.disabled = true;
+                        
+                        // Execute save
+                        try {
+                            BagEditorUI.saveEntry();
+                        } catch (err) {
+                            console.error('Save error:', err);
+                            Utils.toast('Save failed');
+                        }
+                        
+                        // Re-enable after delay
+                        setTimeout(() => {
+                            if (UI.els.btnSaveBag) {
+                                UI.els.btnSaveBag.disabled = false;
+                                console.log('Button re-enabled');
+                            }
+                        }, 500);
+                    }
+                });
+                
+                // Course Setup
+                this.on('btnSettings', 'click', () => CourseSetupUI.open());
+                this.on('btnCloseCourse', 'click', () => CourseSetupUI.close());
+                this.on('courseBackdrop', 'click', () => CourseSetupUI.close());
+                this.on('btnSaveCourse', 'click', () => {
+                    CourseSetupUI.saveCourse();
+                    CourseSetupUI.close();
+                });
+                
+                // Export
+                this.on('btnExport', 'click', () => {
+                    if (confirm('Export as CSV or view Report?\n\nOK = CSV Download\nCancel = View Report')) {
+                        ExportData.downloadCSV();
+                    } else {
+                        ExportData.showReport();
+                    }
+                });
+                
+                // Hole picker
+                this.on('btnCloseHole', 'click', () => HolePickerUI.close());
+                this.on('holeBackdrop', 'click', () => HolePickerUI.close());
+            },
+            
+            on(elId, event, handler) {
+                const el = UI.els[elId];
+                if (el) {
+                    try {
+                        el.addEventListener(event, handler);
+                    } catch (e) {
+                        console.error(`Event binding error for ${elId}:`, e);
+                    }
+                }
+            }
+        };
+        
+        // ============================================
+        // APP INITIALIZATION
+        // ============================================
+        
+        const App = {
+            init() {
+                try {
+                    // Initialize state
+                    State.init();
+                    
+                    // Cache DOM elements
+                    UI.cacheElements();
+                    
+                    // Bind events
+                    Events.bind();
+                    
+                    // Initialize hole picker
+                    HolePickerUI.init();
+                    
+                    // Start GPS
+                    GPS.start();
+                    
+                    // Initial render
+                    UI.render();
+                    
+                    // Expose for GPS callbacks
+                    window.App = this;
+                    
+                    console.log('Shot Tracker v39 initialized');
+                } catch (e) {
+                    console.error('App initialization error:', e);
+                    Utils.toast('Error starting app', 3000);
+                }
+            },
+            
+            render() {
+                UI.render();
+            }
+        };
+        
+        // ============================================
+        // BOOT
+        // ============================================
+        
+        function boot() {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => App.init());
+            } else {
+                App.init();
+            }
+        }
+        
+        boot();
+        
+    })();
+    </script>
 </body>
 </html>
