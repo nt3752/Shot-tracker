@@ -1178,6 +1178,22 @@
                 return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             },
             
+            // Format ISO date as mm/dd/yy hh:mm
+            formatShortDate(iso) {
+                if (!iso) return '';
+                try {
+                    const d = new Date(iso);
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const yy = String(d.getFullYear()).slice(-2);
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const min = String(d.getMinutes()).padStart(2, '0');
+                    return mm + '/' + dd + '/' + yy + ' ' + hh + ':' + min;
+                } catch (e) {
+                    return '';
+                }
+            },
+            
             // Clamp integer value
             clampInt(val, min, max) {
                 const n = Number(val);
@@ -3006,10 +3022,11 @@
                 container.innerHTML = bags.map(bag => {
                     const isActive = bag.id === activeBagId;
                     const clubCount = bag.clubs ? bag.clubs.length : 0;
+                    const dateStr = Utils.formatShortDate(bag.created);
                     return '<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + ';">' +
                         '<div>' +
                             '<div style="font-weight: 700; font-size: 0.9rem;">' + Utils.escHtml(bag.name) + (isActive ? ' <span style="color: var(--green-400); font-size: 0.75rem;">✓ Active</span>' : '') + '</div>' +
-                            '<div style="color: var(--text-secondary); font-size: 0.8rem;">' + clubCount + ' clubs</div>' +
+                            '<div style="color: var(--text-secondary); font-size: 0.8rem;">' + clubCount + ' clubs' + (dateStr ? ' · Created: ' + dateStr : '') + '</div>' +
                         '</div>' +
                     '</div>';
                 }).join('');
@@ -3032,10 +3049,11 @@
                     const holes = course.holes || [];
                     const teeCount = holes.filter(h => h.teeGPS).length;
                     const flagCount = holes.filter(h => h.flagGPS).length;
+                    const dateStr = Utils.formatShortDate(course.created);
                     return '<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + ';">' +
                         '<div>' +
                             '<div style="font-weight: 700; font-size: 0.9rem;">' + Utils.escHtml(course.name) + (isActive ? ' <span style="color: var(--green-400); font-size: 0.75rem;">✓ Active</span>' : '') + '</div>' +
-                            '<div style="color: var(--text-secondary); font-size: 0.8rem;">' + teeCount + ' tee · ' + flagCount + ' flag GPS</div>' +
+                            '<div style="color: var(--text-secondary); font-size: 0.8rem;">' + teeCount + ' tee · ' + flagCount + ' flag GPS' + (dateStr ? ' · Created: ' + dateStr : '') + '</div>' +
                         '</div>' +
                     '</div>';
                 }).join('');
