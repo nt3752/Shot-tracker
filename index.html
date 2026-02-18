@@ -1948,7 +1948,6 @@
             
             addShot(options = {}) {
                 const hole = State.currentHole();
-                const currentPos = GPS.getCurrentPosition();
                 
                 // Get distance from attempt field (user can override GPS)
                 const attemptVal = UI.els.attempt ? UI.els.attempt.value.trim() : '';
@@ -1961,8 +1960,8 @@
                     targetDistance: distance || 0,  // What they aimed for
                     actualDistance: null,  // Calculated after marking landing
                     penalty: !!options.penalty,
-                    position: currentPos ? { lat: currentPos.lat, lon: currentPos.lon } : null,
-                    positionPending: !currentPos,  // True if no GPS yet - awaiting Mark Landing
+                    position: null,  // ALWAYS null - GPS captured by Mark Landing
+                    positionPending: true,  // ALWAYS pending until Mark Landing
                     timestamp: Utils.nowISO()
                 };
                 
@@ -1975,7 +1974,7 @@
                 
                 State.save();
                 UI.render();
-                Utils.toast('Shot added');
+                Utils.toast('Shot added - Mark landing when you reach the ball');
             },
             
             addPenalty() {
