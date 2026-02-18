@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v39.1.6</title>
+    <title>Shot Tracker v40.1</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -785,7 +785,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v39.1.6</span>
+                    <span class="brand-version">v40.1</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
@@ -1124,12 +1124,12 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v39.1.6';
+        const VERSION = 'v40.1';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
-        const LS_BAG_LIBRARY_KEY = 'shotTracker.v39.bagLibrary';
-        const LS_COURSE_LIBRARY_KEY = 'shotTracker.v39.courseLibrary';
+        const LS_BAG_LIBRARY_KEY = 'shotTracker.v40.bagLibrary';
+        const LS_COURSE_LIBRARY_KEY = 'shotTracker.v40.courseLibrary';
         
         // Default bag configuration
         const DEFAULT_CLUBS = ['Club?', 'D', '3W', '5W', '7W', '3H', '5H', '4I', '5I', '6I', '7I', '8I', '9I', 'PW', '46', '52', '56', '60', 'PT'];
@@ -1264,6 +1264,159 @@
         };
         
         // ============================================
+        // LIBRARY MANAGER
+        // ============================================
+        
+        const Library = {
+            // === BAGS ===
+            
+            getBags() {
+                let bags = Storage.load(LS_BAG_LIBRARY_KEY) || [];
+                
+                // First-time migration: load from old v39 bag key
+                if (bags.length === 0) {
+                    const oldBag = Storage.load(LS_BAG_KEY);
+                    if (oldBag) {
+                        // Migrate existing bag to library
+                        bags.push({
+                            id: 'default-bag',
+                            name: 'My Bag',
+                            clubs: oldBag.clubs ? oldBag.clubs.slice() : DEFAULT_CLUBS.slice(),
+                            shotTypes: oldBag.shotTypes ? oldBag.shotTypes.slice() : DEFAULT_SHOT_TYPES.slice(),
+                            data: oldBag.data ? JSON.parse(JSON.stringify(oldBag.data)) : JSON.parse(JSON.stringify(DEFAULT_BAG)),
+                            created: Utils.nowISO()
+                        });
+                    } else {
+                        // Create default bag from scratch
+                        bags.push({
+                            id: 'default-bag',
+                            name: 'My Bag',
+                            clubs: DEFAULT_CLUBS.slice(),
+                            shotTypes: DEFAULT_SHOT_TYPES.slice(),
+                            data: JSON.parse(JSON.stringify(DEFAULT_BAG)),
+                            created: Utils.nowISO()
+                        });
+                    }
+                    Storage.save(LS_BAG_LIBRARY_KEY, bags);
+                }
+                
+                return bags;
+            },
+            
+            saveBags(bags) {
+                Storage.save(LS_BAG_LIBRARY_KEY, bags);
+            },
+            
+            getBag(id) {
+                const bags = this.getBags();
+                return bags.find(b => b.id === id) || null;
+            },
+            
+            saveBag(bag) {
+                const bags = this.getBags();
+                const index = bags.findIndex(b => b.id === bag.id);
+                
+                if (index >= 0) {
+                    bags[index] = bag;
+                } else {
+                    bags.push(bag);
+                }
+                
+                this.saveBags(bags);
+            },
+            
+            deleteBag(id) {
+                if (id === 'default-bag') {
+                    Utils.toast('Cannot delete default bag');
+                    return false;
+                }
+                
+                const bags = this.getBags().filter(b => b.id !== id);
+                this.saveBags(bags);
+                return true;
+            },
+            
+            // === COURSES ===
+            
+            getCourses() {
+                let courses = Storage.load(LS_COURSE_LIBRARY_KEY) || [];
+                
+                // First-time migration: load from old v39 course key
+                if (courses.length === 0) {
+                    const oldCourse = Storage.load(LS_COURSE_KEY);
+                    if (oldCourse) {
+                        // Migrate existing course to library
+                        courses.push({
+                            id: 'default-course',
+                            name: oldCourse.name || 'My Course',
+                            holes: oldCourse.holes && Array.isArray(oldCourse.holes) 
+                                ? oldCourse.holes.map((h, i) => ({
+                                    hole: i + 1,
+                                    par: h.par || 4,
+                                    yards: h.yards || 0,
+                                    hcp: h.hcp || (i + 1),
+                                    teeGPS: h.teeGPS || null,
+                                    flagGPS: h.flagGPS || null
+                                  }))
+                                : Array.from({length: 18}, (_, i) => ({
+                                    hole: i + 1, par: 4, yards: 0, hcp: i + 1,
+                                    teeGPS: null, flagGPS: null
+                                  })),
+                            created: Utils.nowISO()
+                        });
+                    } else {
+                        // Create default course from scratch
+                        courses.push({
+                            id: 'default-course',
+                            name: 'My Course',
+                            holes: Array.from({length: 18}, (_, i) => ({
+                                hole: i + 1, par: 4, yards: 0, hcp: i + 1,
+                                teeGPS: null, flagGPS: null
+                            })),
+                            created: Utils.nowISO()
+                        });
+                    }
+                    Storage.save(LS_COURSE_LIBRARY_KEY, courses);
+                }
+                
+                return courses;
+            },
+            
+            saveCourses(courses) {
+                Storage.save(LS_COURSE_LIBRARY_KEY, courses);
+            },
+            
+            getCourse(id) {
+                const courses = this.getCourses();
+                return courses.find(c => c.id === id) || null;
+            },
+            
+            saveCourse(course) {
+                const courses = this.getCourses();
+                const index = courses.findIndex(c => c.id === course.id);
+                
+                if (index >= 0) {
+                    courses[index] = course;
+                } else {
+                    courses.push(course);
+                }
+                
+                this.saveCourses(courses);
+            },
+            
+            deleteCourse(id) {
+                if (id === 'default-course') {
+                    Utils.toast('Cannot delete default course');
+                    return false;
+                }
+                
+                const courses = this.getCourses().filter(c => c.id !== id);
+                this.saveCourses(courses);
+                return true;
+            }
+        };
+        
+        // ============================================
         // GPS MANAGER
         // ============================================
         
@@ -1353,6 +1506,8 @@
             },
             holeIndex: 0,
             holes: [],
+            currentBagId: null,  // v40.1: Track which bag is active
+            currentCourseId: null,  // v40.1: Track which course is active
             bag: {
                 clubs: DEFAULT_CLUBS.slice(),
                 shotTypes: DEFAULT_SHOT_TYPES.slice(),
@@ -1373,7 +1528,10 @@
                     this.initHoles();
                 }
                 
-                // Load bag override if exists
+                // v40.1: Load from library
+                this.loadFromLibrary();
+                
+                // Load bag override if exists (backward compat)
                 this.loadBag();
                 
                 // Ensure state integrity
@@ -1381,6 +1539,50 @@
                 
                 // Save
                 this.save();
+            },
+            
+            loadFromLibrary() {
+                // v40.1: Load bag and course from library
+                const bags = Library.getBags();
+                const courses = Library.getCourses();
+                
+                // Set default IDs if not set
+                if (!this.currentBagId || !Library.getBag(this.currentBagId)) {
+                    this.currentBagId = (bags[0] && bags[0].id) || 'default-bag';
+                }
+                
+                if (!this.currentCourseId || !Library.getCourse(this.currentCourseId)) {
+                    this.currentCourseId = (courses[0] && courses[0].id) || 'default-course';
+                }
+                
+                // Load active bag into State.bag
+                const activeBag = Library.getBag(this.currentBagId);
+                if (activeBag) {
+                    this.bag = {
+                        clubs: activeBag.clubs.slice(),
+                        shotTypes: activeBag.shotTypes.slice(),
+                        data: JSON.parse(JSON.stringify(activeBag.data))
+                    };
+                }
+                
+                // Load active course data into State.holes
+                const activeCourse = Library.getCourse(this.currentCourseId);
+                if (activeCourse && activeCourse.holes) {
+                    activeCourse.holes.forEach((ch, idx) => {
+                        if (this.holes[idx]) {
+                            this.holes[idx].par = ch.par || this.holes[idx].par;
+                            this.holes[idx].yards = ch.yards || this.holes[idx].yards;
+                            this.holes[idx].hcp = ch.hcp || this.holes[idx].hcp;
+                            // Load tee/flag GPS if available and not already set
+                            if (ch.teeGPS && !this.holes[idx].tee) {
+                                this.holes[idx].tee = ch.teeGPS;
+                            }
+                            if (ch.flagGPS && !this.holes[idx].flag) {
+                                this.holes[idx].flag = ch.flagGPS;
+                            }
+                        }
+                    });
+                }
             },
             
             initHoles() {
@@ -1479,6 +1681,8 @@
                     round: this.round,
                     holeIndex: this.holeIndex,
                     holes: this.holes,
+                    currentBagId: this.currentBagId,  // v40.1
+                    currentCourseId: this.currentCourseId,  // v40.1
                     ui: this.ui
                 });
             },
