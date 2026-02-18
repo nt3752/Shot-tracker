@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v40.4</title>
+    <title>Shot Tracker v40.5</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -803,7 +803,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v40.4</span>
+                    <span class="brand-version">v40.5</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
@@ -1142,7 +1142,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v40.4';
+        const VERSION = 'v40.5';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -1176,6 +1176,11 @@
             // Escape HTML for safe insertion
             escHtml(str) {
                 return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            },
+            
+            // Generate unique ID
+            generateId(prefix) {
+                return (prefix || 'id') + '-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
             },
             
             // Format ISO date as mm/dd/yy hh:mm
@@ -3113,6 +3118,137 @@
         };
         
         // ============================================
+        // LIBRARY ACTIONS (v40.5)
+        // ============================================
+        
+        const LibraryActions = {
+            
+            // --- BAG ACTIONS ---
+            
+            activateBag(id) {
+                const bag = Library.getBag(id);
+                if (!bag) return;
+                State.currentBagId = id;
+                State.bag = bag;
+                State.save();
+                LibraryUI.render();
+                Utils.toast('Bag activated: ' + bag.name);
+            },
+            
+            copyBag(id) {
+                const bag = Library.getBag(id);
+                if (!bag) return;
+                const copy = JSON.parse(JSON.stringify(bag));
+                copy.id = Utils.generateId('bag');
+                copy.name = bag.name + ' - Copy';
+                copy.created = Utils.nowISO();
+                Library.saveBag(copy);
+                LibraryUI.render();
+                Utils.toast('Bag copied: ' + copy.name);
+            },
+            
+            renameBag(id) {
+                const bag = Library.getBag(id);
+                if (!bag) return;
+                const newName = window.prompt('Rename bag:', bag.name);
+                if (!newName || !newName.trim()) return;
+                bag.name = newName.trim();
+                Library.saveBag(bag);
+                LibraryUI.render();
+                Utils.toast('Renamed');
+            },
+            
+            deleteBag(id) {
+                if (id === State.currentBagId) {
+                    Utils.toast('Cannot delete active bag');
+                    return;
+                }
+                const bag = Library.getBag(id);
+                if (!bag) return;
+                if (!window.confirm('Delete "' + bag.name + '"?')) return;
+                Library.deleteBag(id);
+                LibraryUI.render();
+                Utils.toast('Deleted');
+            },
+            
+            exportBag(id) {
+                const bag = Library.getBag(id);
+                if (!bag) return;
+                try {
+                    const json = JSON.stringify({ type: 'shotTrackerBags', version: VERSION, bags: [bag] }, null, 2);
+                    const safeName = bag.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+                    ImportExport._download(json, 'bag-' + safeName + '.json');
+                    Utils.toast('Bag exported');
+                } catch (e) {
+                    console.error('Export bag error:', e);
+                    Utils.toast('Export failed');
+                }
+            },
+            
+            // --- COURSE ACTIONS ---
+            
+            activateCourse(id) {
+                const course = Library.getCourse(id);
+                if (!course) return;
+                State.currentCourseId = id;
+                State.course = course;
+                State.save();
+                LibraryUI.render();
+                Utils.toast('Course activated: ' + course.name);
+            },
+            
+            copyCourse(id) {
+                const course = Library.getCourse(id);
+                if (!course) return;
+                const copy = JSON.parse(JSON.stringify(course));
+                copy.id = Utils.generateId('course');
+                copy.name = course.name + ' - Copy';
+                copy.created = Utils.nowISO();
+                Library.saveCourse(copy);
+                LibraryUI.render();
+                Utils.toast('Course copied: ' + copy.name);
+            },
+            
+            renameCourse(id) {
+                const course = Library.getCourse(id);
+                if (!course) return;
+                const newName = window.prompt('Rename course:', course.name);
+                if (!newName || !newName.trim()) return;
+                course.name = newName.trim();
+                Library.saveCourse(course);
+                LibraryUI.render();
+                Utils.toast('Renamed');
+            },
+            
+            deleteCourse(id) {
+                if (id === State.currentCourseId) {
+                    Utils.toast('Cannot delete active course');
+                    return;
+                }
+                const course = Library.getCourse(id);
+                if (!course) return;
+                if (!window.confirm('Delete "' + course.name + '"?')) return;
+                Library.deleteCourse(id);
+                LibraryUI.render();
+                Utils.toast('Deleted');
+            },
+            
+            exportCourse(id) {
+                const course = Library.getCourse(id);
+                if (!course) return;
+                try {
+                    const json = JSON.stringify({ type: 'shotTrackerCourses', version: VERSION, courses: [course] }, null, 2);
+                    const safeName = course.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+                    ImportExport._download(json, 'course-' + safeName + '.json');
+                    Utils.toast('Course exported');
+                } catch (e) {
+                    console.error('Export course error:', e);
+                    Utils.toast('Export failed');
+                }
+            }
+        };
+        
+                // ============================================
         // LIBRARY UI (v40.3 - View Only)
         // ============================================
         
@@ -3149,14 +3285,23 @@
                     return;
                 }
                 
+                const btnStyle = 'padding: 4px 8px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-card-light); color: var(--text-primary); cursor: pointer;';
+                const btnGreenStyle = 'padding: 4px 8px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; border: 1px solid var(--green-500); background: var(--green-700); color: white; cursor: pointer;';
+                
                 container.innerHTML = bags.map(bag => {
                     const isActive = bag.id === activeBagId;
                     const clubCount = bag.clubs ? bag.clubs.length : 0;
                     const dateStr = Utils.formatShortDate(bag.created);
-                    return '<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + ';">' +
-                        '<div>' +
-                            '<div style="font-weight: 700; font-size: 0.9rem;">' + Utils.escHtml(bag.name) + (isActive ? ' <span style="color: var(--green-400); font-size: 0.75rem;">✓ Active</span>' : '') + '</div>' +
-                            '<div style="color: var(--text-secondary); font-size: 0.8rem;">' + clubCount + ' clubs' + (dateStr ? ' · Created: ' + dateStr : '') + '</div>' +
+                    const id = Utils.escHtml(bag.id);
+                    return '<div style="padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + '; margin-bottom: var(--space-1);">' +
+                        '<div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 2px;">' + Utils.escHtml(bag.name) + (isActive ? ' <span style="color: var(--green-400); font-size: 0.75rem;">✓ Active</span>' : '') + '</div>' +
+                        '<div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: var(--space-2);">' + clubCount + ' clubs' + (dateStr ? ' · Created: ' + dateStr : '') + '</div>' +
+                        '<div style="display: flex; gap: var(--space-1); flex-wrap: wrap;">' +
+                            '<button style="' + (isActive ? btnGreenStyle : btnStyle) + '" onclick="LibraryActions.activateBag(\'' + id + '\')">' + (isActive ? '✓ Active' : 'Activate') + '</button>' +
+                            '<button style="' + btnStyle + '" onclick="LibraryActions.copyBag(\'' + id + '\')">Copy</button>' +
+                            '<button style="' + btnStyle + '" onclick="LibraryActions.renameBag(\'' + id + '\')">Rename</button>' +
+                            '<button style="' + btnStyle + '" onclick="LibraryActions.deleteBag(\'' + id + '\')">Delete</button>' +
+                            '<button style="' + btnStyle + '" onclick="LibraryActions.exportBag(\'' + id + '\')">Export</button>' +
                         '</div>' +
                     '</div>';
                 }).join('');
@@ -3174,16 +3319,25 @@
                     return;
                 }
                 
+                const btnStyle = 'padding: 4px 8px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-card-light); color: var(--text-primary); cursor: pointer;';
+                const btnGreenStyle = 'padding: 4px 8px; font-size: 0.72rem; font-weight: 700; border-radius: 4px; border: 1px solid var(--green-500); background: var(--green-700); color: white; cursor: pointer;';
+                
                 container.innerHTML = courses.map(course => {
                     const isActive = course.id === activeCourseId;
                     const holes = course.holes || [];
                     const teeCount = holes.filter(h => h.teeGPS).length;
                     const flagCount = holes.filter(h => h.flagGPS).length;
                     const dateStr = Utils.formatShortDate(course.created);
-                    return '<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + ';">' +
-                        '<div>' +
-                            '<div style="font-weight: 700; font-size: 0.9rem;">' + Utils.escHtml(course.name) + (isActive ? ' <span style="color: var(--green-400); font-size: 0.75rem;">✓ Active</span>' : '') + '</div>' +
-                            '<div style="color: var(--text-secondary); font-size: 0.8rem;">' + teeCount + ' tee · ' + flagCount + ' flag GPS' + (dateStr ? ' · Created: ' + dateStr : '') + '</div>' +
+                    const id = Utils.escHtml(course.id);
+                    return '<div style="padding: var(--space-3); background: var(--bg-card-light); border-radius: var(--radius-md); border: 1px solid ' + (isActive ? 'var(--green-500)' : 'var(--border)') + '; margin-bottom: var(--space-1);">' +
+                        '<div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 2px;">' + Utils.escHtml(course.name) + (isActive ? ' <span style="color: var(--green-400); font-size: 0.75rem;">✓ Active</span>' : '') + '</div>' +
+                        '<div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: var(--space-2);">' + teeCount + ' tee · ' + flagCount + ' flag GPS' + (dateStr ? ' · Created: ' + dateStr : '') + '</div>' +
+                        '<div style="display: flex; gap: var(--space-1); flex-wrap: wrap;">' +
+                            '<button style="' + (isActive ? btnGreenStyle : btnStyle) + '" onclick="LibraryActions.activateCourse(\'' + id + '\')">' + (isActive ? '✓ Active' : 'Activate') + '</button>' +
+                            '<button style="' + btnStyle + '" onclick="LibraryActions.copyCourse(\'' + id + '\')">Copy</button>' +
+                            '<button style="' + btnStyle + '" onclick="LibraryActions.renameCourse(\'' + id + '\')">Rename</button>' +
+                            '<button style="' + btnStyle + '" onclick="LibraryActions.deleteCourse(\'' + id + '\')">Delete</button>' +
+                            '<button style="' + btnStyle + '" onclick="LibraryActions.exportCourse(\'' + id + '\')">Export</button>' +
                         '</div>' +
                     '</div>';
                 }).join('');
