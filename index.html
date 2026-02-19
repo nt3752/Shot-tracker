@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v40.7</title>
+    <title>Shot Tracker v40.8</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -803,7 +803,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v40.7</span>
+                    <span class="brand-version">v40.8</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
@@ -959,6 +959,24 @@
         <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
             <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Current Bag</h4>
             <div id="bagMatrix" style="font-size: 0.75rem; color: var(--text-secondary); max-height: 300px; overflow-y: auto;"></div>
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Clubs</h4>
+            <div id="clubList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3);"></div>
+            <div style="display: flex; gap: var(--space-2);">
+                <input type="text" id="newClubInput" class="input-field" placeholder="e.g. 7I, PW, 60°" style="flex:1;" maxlength="6">
+                <button class="btn btn-primary btn-sm" id="btnAddClub" type="button">Add Club</button>
+            </div>
+        </div>
+        
+        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Shot Types</h4>
+            <div id="shotTypeList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3);"></div>
+            <div style="display: flex; gap: var(--space-2);">
+                <input type="text" id="newShotTypeInput" class="input-field" placeholder="e.g. Punch, Chip" style="flex:1;" maxlength="12">
+                <button class="btn btn-primary btn-sm" id="btnAddShotType" type="button">Add Type</button>
+            </div>
         </div>
     </div>
     
@@ -1143,7 +1161,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v40.7';
+        const VERSION = 'v40.8';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -1845,6 +1863,8 @@
                     'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid',
                     'bagBackdrop', 'bagSheet', 'btnCloseBag', 'bagClub', 'bagShotType',
                     'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix',
+                    'clubList', 'shotTypeList', 'newClubInput', 'newShotTypeInput',
+                    'btnAddClub', 'btnAddShotType',
                     'courseBackdrop', 'courseSheet', 'btnCloseCourse', 'btnSaveCourse',
                     'courseName', 'courseHoles',
                     'libraryBackdrop', 'librarySheet', 'btnCloseLibrary',
@@ -2557,6 +2577,8 @@
                 this.show();
                 this.populateSelects();
                 this.renderBagMatrix();
+                this.renderClubList();
+                this.renderShotTypeList();
                 this.loadCurrentSelection();
             },
             
@@ -2667,6 +2689,121 @@
                 this.renderBagMatrix();
             },
             
+            renderClubList() {
+                const container = UI.els.clubList;
+                if (!container) return;
+                const clubs = State.bag.clubs.filter(function(c) { return c !== 'Club?'; });
+                if (clubs.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem;">No clubs added yet.</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                clubs.forEach(function(club) {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding: 4px 0;';
+                    const label = document.createElement('span');
+                    label.style.cssText = 'font-weight:700; font-size:0.9rem;';
+                    label.textContent = club;
+                    const del = document.createElement('button');
+                    del.textContent = 'Delete';
+                    del.style.cssText = 'padding:3px 8px; font-size:0.72rem; font-weight:700; border-radius:4px; border:1px solid rgba(230,69,69,0.4); background:rgba(230,69,69,0.1); color:var(--red); cursor:pointer;';
+                    del.addEventListener('click', function() {
+                        BagEditorUI.deleteClub(club);
+                    });
+                    row.appendChild(label);
+                    row.appendChild(del);
+                    container.appendChild(row);
+                });
+            },
+
+            addClub() {
+                const input = UI.els.newClubInput;
+                if (!input) return;
+                const name = input.value.trim();
+                if (!name) { Utils.toast('Enter a club name'); return; }
+                if (State.bag.clubs.indexOf(name) >= 0) { Utils.toast('Club already exists'); return; }
+                State.bag.clubs.push(name);
+                State.saveBag();
+                input.value = '';
+                this.populateSelects();
+                this.renderClubList();
+                Utils.toast('Club added: ' + name);
+            },
+
+            deleteClub(club) {
+                const idx = State.bag.clubs.indexOf(club);
+                if (idx < 0) return;
+                // Two-tap confirmation via button state handled inline
+                State.bag.clubs.splice(idx, 1);
+                // Remove from data matrix too
+                if (State.bag.data[club]) {
+                    delete State.bag.data[club];
+                }
+                State.saveBag();
+                this.populateSelects();
+                this.renderClubList();
+                this.renderBagMatrix();
+                Utils.toast(club + ' deleted');
+            },
+
+            renderShotTypeList() {
+                const container = UI.els.shotTypeList;
+                if (!container) return;
+                const types = State.bag.shotTypes.filter(function(t) { return t !== 'Type?'; });
+                if (types.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem;">No shot types added yet.</div>';
+                    return;
+                }
+                container.innerHTML = '';
+                types.forEach(function(type) {
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding: 4px 0;';
+                    const label = document.createElement('span');
+                    label.style.cssText = 'font-weight:700; font-size:0.9rem;';
+                    label.textContent = type;
+                    const del = document.createElement('button');
+                    del.textContent = 'Delete';
+                    del.style.cssText = 'padding:3px 8px; font-size:0.72rem; font-weight:700; border-radius:4px; border:1px solid rgba(230,69,69,0.4); background:rgba(230,69,69,0.1); color:var(--red); cursor:pointer;';
+                    del.addEventListener('click', function() {
+                        BagEditorUI.deleteShotType(type);
+                    });
+                    row.appendChild(label);
+                    row.appendChild(del);
+                    container.appendChild(row);
+                });
+            },
+
+            addShotType() {
+                const input = UI.els.newShotTypeInput;
+                if (!input) return;
+                const name = input.value.trim();
+                if (!name) { Utils.toast('Enter a shot type name'); return; }
+                if (State.bag.shotTypes.indexOf(name) >= 0) { Utils.toast('Shot type already exists'); return; }
+                State.bag.shotTypes.push(name);
+                State.saveBag();
+                input.value = '';
+                this.populateSelects();
+                this.renderShotTypeList();
+                Utils.toast('Shot type added: ' + name);
+            },
+
+            deleteShotType(type) {
+                const idx = State.bag.shotTypes.indexOf(type);
+                if (idx < 0) return;
+                State.bag.shotTypes.splice(idx, 1);
+                // Remove this shot type from all clubs in data matrix
+                Object.keys(State.bag.data).forEach(function(club) {
+                    if (State.bag.data[club][type]) {
+                        delete State.bag.data[club][type];
+                    }
+                });
+                State.saveBag();
+                this.populateSelects();
+                this.renderShotTypeList();
+                this.renderBagMatrix();
+                Utils.toast(type + ' deleted');
+            },
+
             renderBagMatrix() {
                 if (!UI.els.bagMatrix) return;
                 
@@ -3568,6 +3705,8 @@
                     BagEditorUI.open();
                 });
                 this.on('btnCloseBag', 'click', () => BagEditorUI.close());
+                this.on('btnAddClub', 'click', () => BagEditorUI.addClub());
+                this.on('btnAddShotType', 'click', () => BagEditorUI.addShotType());
                 this.on('bagBackdrop', 'click', () => BagEditorUI.close());
                 this.on('bagClub', 'change', (e) => {
                     e.stopPropagation();
