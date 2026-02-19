@@ -783,7 +783,7 @@
         }
         
         .hole-picker-info {
-            font-size: 0.9rem;
+            font-size: 1rem;
             font-weight: 600;
             color: var(--text-primary);
             line-height: 1;
@@ -1183,7 +1183,7 @@
         <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Clubs</h4>
         <div id="clubList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3);"></div>
         <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-5);">
-            <input type="text" id="newClubInput" class="input-field" placeholder="e.g. 7I, PW, 60°" style="flex:1;">
+            <input type="text" id="newClubInput" class="input-field" enterkeyhint="done" placeholder="e.g. 7I, PW, 60°" style="flex:1;">
             <button class="btn btn-primary btn-sm" id="btnAddClub" type="button">Add Club</button>
         </div>
         
@@ -1191,7 +1191,7 @@
             <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Shot Types</h4>
             <div id="shotTypeList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3);"></div>
             <div style="display: flex; gap: var(--space-2);">
-                <input type="text" id="newShotTypeInput" class="input-field" placeholder="e.g. Punch, Chip" style="flex:1;">
+                <input type="text" id="newShotTypeInput" class="input-field" enterkeyhint="done" placeholder="e.g. Punch, Chip" style="flex:1;">
                 <button class="btn btn-primary btn-sm" id="btnAddShotType" type="button">Add Type</button>
             </div>
         </div>
@@ -1384,9 +1384,9 @@
             
             <div class="input-row">
                 <span class="input-label">Carry</span>
-                <input type="number" class="input-field compact" id="editBagCarry" inputmode="numeric" placeholder="140">
+                <input type="text" class="input-field compact" id="editBagCarry" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="140">
                 <span class="input-label">Total</span>
-                <input type="number" class="input-field compact" id="editBagTotal" inputmode="numeric" placeholder="150">
+                <input type="text" class="input-field compact" id="editBagTotal" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="150">
             </div>
             
             <div class="btn-row">
@@ -2383,7 +2383,8 @@
                 
                 const distInput = document.createElement('input');
                 distInput.className = 'shot-input';
-                distInput.type = 'number';
+                distInput.type = 'text';
+                distInput.pattern = '[0-9]*';
                 distInput.inputMode = 'numeric';
                 distInput.disabled = !!shot.penalty;
                 distInput.value = shot.penalty ? '' : String(shot.distance || 0);
@@ -2692,13 +2693,6 @@
             toggleFwy() {
                 const hole = State.currentHole();
                 hole.fwy = !hole.fwy;
-                State.save();
-                UI.render();
-            },
-            
-            toggleGir() {
-                const hole = State.currentHole();
-                hole.gir = !hole.gir;
                 State.save();
                 UI.render();
             },
@@ -3566,7 +3560,7 @@
                 rows.push([
                     'Hole','Par','Yards','HCP','Hole Score','vs Par',
                     'FWY','GIR','Putts',
-                    'Shot#','Club','Type','Distance (y)',
+                    'Shot#','Club','Type','Distance','Unit',
                     'Bag Carry (y)','Bag Total (y)',
                     'Penalty','GPS Lat','GPS Lon','Timestamp'
                 ].map(self.csvField).join(','));
@@ -3592,6 +3586,7 @@
                             shot.club || '',
                             shot.shotType || '',
                             shot.distance || '',
+                            ((shot.shotType||'').toLowerCase() === 'putt' ? 'ft' : 'y'),
                             bd.carry,
                             bd.total,
                             shot.penalty ? 'Y' : 'N',
@@ -3710,8 +3705,8 @@
                 if (puttCounts.more > 0) lines.push('4-putt+            : ' + puttCounts.more);
                 if (puttDistances.length > 0) {
                     lines.push('Putt dist data     : ' + puttDistances.length + ' putts');
-                    lines.push('Avg putt dist      : ' + puttDistAvg + 'y');
-                    lines.push('Total putt dist    : ' + puttDistTotal + 'y');
+                    lines.push('Avg putt dist      : ' + puttDistAvg + 'ft');
+                    lines.push('Total putt dist    : ' + puttDistTotal + 'ft');
                 }
                 lines.push('');
 
@@ -3813,8 +3808,9 @@
                     h.shots.forEach(function(s, idx) {
                         var bd = self.bagDist(s);
                         var bagStr = bd.carry ? ' (bag:' + bd.carry + 'y)' : '';
+                        var sPutt = (s.shotType||'').toLowerCase() === 'putt';
                         lines.push('  ' + (idx+1) + '. ' + (s.club||'?') + ' ' + (s.shotType||'?') +
-                            (s.distance ? ' ' + s.distance + 'y' : '') +
+                            (s.distance ? ' ' + s.distance + (sPutt ? 'ft' : 'y') : '') +
                             bagStr +
                             (s.penalty ? ' [PEN]' : ''));
                     });
@@ -3858,7 +3854,7 @@
                         navigator.share({
                             title: 'Shot Tracker Round Report',
                             text: text
-                        }).catch(function(e) { console.log('Share cancelled', e); });
+                        }).catch(function(e) { /* share cancelled */ });
                     } else {
                         // Fallback: copy to clipboard
                         if (navigator.clipboard) {
@@ -3988,8 +3984,8 @@
                 h += statLine('Total Putts', totalPutts);
                 h += statLine('Avg Putts/Hole', playedHoles.length>0?(totalPutts/playedHoles.length).toFixed(1):'N/A', !puttDistances.length);
                 if (puttDistances.length > 0) {
-                    h += statLine('Avg Putt Distance', puttDistAvg+'y');
-                    h += statLine('Total Putt Distance', puttDistTotal+'y', true);
+                    h += statLine('Avg Putt Distance', puttDistAvg+'ft');
+                    h += statLine('Total Putt Distance', puttDistTotal+'ft', true);
                 }
                 h += '</div>';
 
@@ -4176,7 +4172,8 @@
                         h += '<td style="color:#888;font-size:0.75rem;padding:2px 4px 2px 0;width:18px;">'+(idx+1)+'.</td>';
                         h += '<td style="font-weight:700;font-size:0.8rem;padding:2px 4px;">'+(s.club||'?')+'</td>';
                         h += '<td style="color:#aaa;font-size:0.75rem;padding:2px 4px;">'+(s.shotType||'?')+'</td>';
-                        h += '<td style="font-weight:700;font-size:0.8rem;padding:2px 4px;">'+(s.distance?s.distance+'y':'—')+'</td>';
+                        var isPutt = (s.shotType||'').toLowerCase() === 'putt';
+                        h += '<td style="font-weight:700;font-size:0.8rem;padding:2px 4px;">'+(s.distance?s.distance+(isPutt?'ft':'y'):'—')+'</td>';
                         h += '<td style="color:#666;font-size:0.7rem;padding:2px 4px;">'+(bd.carry?'('+bd.carry+'y)':'')+'</td>';
                         h += '<td style="color:#e64545;font-size:0.7rem;padding:2px 4px;">'+(s.penalty?'PEN':'')+'</td>';
                         h += '</tr>';
@@ -4785,8 +4782,10 @@
             },
             
             open() {
-                this.renderGrid();
                 this.show();
+                // Render after transition so iOS touch targets settle correctly
+                var self = this;
+                setTimeout(function() { self.renderGrid(); }, 320);
             },
             
             close() {
@@ -5297,16 +5296,11 @@
                     e.preventDefault();
                     e.stopPropagation();
                     
-                    console.log('Save button clicked');
-                    
                     // Disable button temporarily to prevent double-clicks
                     if (UI.els.btnSaveBag) {
                         if (UI.els.btnSaveBag.disabled) {
-                            console.log('Button already disabled, ignoring click');
                             return; // Already processing
                         }
-                        
-                        console.log('Processing save...');
                         UI.els.btnSaveBag.disabled = true;
                         
                         // Execute save
@@ -5321,7 +5315,7 @@
                         setTimeout(() => {
                             if (UI.els.btnSaveBag) {
                                 UI.els.btnSaveBag.disabled = false;
-                                console.log('Button re-enabled');
+
                             }
                         }, 500);
                     }
@@ -5430,7 +5424,7 @@
                     window.LibraryActions = LibraryActions;
                     window.LibraryUI = LibraryUI;
                     
-                    console.log('Shot Tracker v39 initialized');
+    
                 } catch (e) {
                     console.error('App initialization error:', e);
                     Utils.toast('Error starting app', 3000);
