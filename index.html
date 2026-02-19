@@ -516,6 +516,13 @@
             background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
             border-color: var(--green-500);
         }
+
+        /* GIR missed — hole played, no GIR, shown as dim to distinguish from unknown */
+        .btn-toggle.gir-missed {
+            background: var(--bg-card-light);
+            border-color: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.3);
+        }
         
         /* ===============================================
            SHOT LIST
@@ -1147,9 +1154,9 @@
         
         <div class="input-row">
             <span class="input-label">Carry</span>
-            <input type="number" class="input-field compact" id="bagCarry" inputmode="numeric" placeholder="140">
+            <input type="text" class="input-field compact" id="bagCarry" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="140">
             <span class="input-label">Total</span>
-            <input type="number" class="input-field compact" id="bagTotal" inputmode="numeric" placeholder="150">
+            <input type="text" class="input-field compact" id="bagTotal" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="150">
         </div>
         
         <div class="btn-row">
@@ -2256,12 +2263,23 @@
                     this.els.btnMark.classList.toggle('btn-pending', hasPendingShots);
                 }
                 
-                // Fairway / GIR toggles
+                // Fairway toggle (manual — requires human eye)
                 if (this.els.btnFwy) {
                     this.els.btnFwy.classList.toggle('active', !!hole.fwy);
                 }
+
+                // GIR — calculated from shot sequence, written back to hole record
                 if (this.els.btnGir) {
-                    this.els.btnGir.classList.toggle('active', !!hole.gir);
+                    const gir = ExportData.calcGIR(hole);
+                    // Write calculated value back so hole record stays accurate
+                    if (gir !== null && hole.gir !== gir) {
+                        hole.gir = gir;
+                        State.save();
+                    }
+                    this.els.btnGir.classList.remove('active', 'gir-missed');
+                    if (gir === true)       this.els.btnGir.classList.add('active');
+                    else if (gir === false) this.els.btnGir.classList.add('gir-missed');
+                    // gir === null → neutral grey (no putts yet, unknown)
                 }
             },
             
@@ -2843,7 +2861,7 @@
                 // Close all other sheets first
                 this.closeAllOtherSheets();
                 
-                // Show bag name in title and display line
+                // Show bag name in title and display line — these are text-only, safe before transition
                 if (UI.els.bagTitle) {
                     const name = State.bag && State.bag.name ? State.bag.name : 'Bag Editor';
                     UI.els.bagTitle.textContent = name;
@@ -2853,9 +2871,14 @@
                 }
                 
                 this.show();
-                this.populateSelects();
-                this.renderBagMatrix();
-                this.loadCurrentSelection();
+                // Delay DOM population until after the slide-up transition (300ms)
+                // so iOS computes touch targets against the final settled position
+                var self = this;
+                setTimeout(function() {
+                    self.populateSelects();
+                    self.renderBagMatrix();
+                    self.loadCurrentSelection();
+                }, 320);
             },
             
             openManageClubs() {
@@ -5196,7 +5219,7 @@
                 this.on('btnPen', 'click', () => Actions.addPenalty());
                 this.on('btnDel', 'click', () => Actions.deleteLastShot());
                 this.on('btnFwy', 'click', () => Actions.toggleFwy());
-                this.on('btnGir', 'click', () => Actions.toggleGir());
+                this.on('btnGir', 'click', () => {}); // Read-only indicator — no tap action
                 
                 // Caddy
                 this.on('btnCaddy', 'click', () => CaddyUI.open());
@@ -5260,6 +5283,16 @@
                     e.stopPropagation();
                     BagEditorUI.loadCurrentSelection();
                 });
+                // Dismiss keyboard on Enter so touch targets settle before Save tap
+                ['bagCarry', 'bagTotal'].forEach(function(id) {
+                    this.on(id, 'keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            var el = UI.els[id];
+                            if (el) el.blur();
+                        }
+                    });
+                }, this);
+
                 this.on('btnSaveBag', 'click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
