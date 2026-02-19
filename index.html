@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v40.9</title>
+    <title>Shot Tracker v40.10</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -803,7 +803,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v40.9</span>
+                    <span class="brand-version">v40.10</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
@@ -1173,7 +1173,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v40.9';
+        const VERSION = 'v40.10';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -2736,20 +2736,35 @@
                     return;
                 }
                 container.innerHTML = '';
-                clubs.forEach(function(club) {
+                const btnBase = 'padding:3px 7px; font-size:0.8rem; font-weight:700; border-radius:4px; cursor:pointer; border:1px solid var(--border); background:var(--bg-card-light); color:var(--text-primary);';
+                const btnDel = 'padding:3px 8px; font-size:0.72rem; font-weight:700; border-radius:4px; border:1px solid rgba(230,69,69,0.4); background:rgba(230,69,69,0.1); color:var(--red); cursor:pointer;';
+                clubs.forEach(function(club, idx) {
                     const row = document.createElement('div');
                     row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding: 4px 0;';
                     const label = document.createElement('span');
-                    label.style.cssText = 'font-weight:700; font-size:0.9rem;';
+                    label.style.cssText = 'font-weight:700; font-size:0.9rem; flex:1;';
                     label.textContent = club;
+                    const btns = document.createElement('div');
+                    btns.style.cssText = 'display:flex; gap:4px;';
+                    const up = document.createElement('button');
+                    up.textContent = '↑';
+                    up.style.cssText = btnBase;
+                    up.disabled = idx === 0;
+                    up.addEventListener('click', function() { BagEditorUI.moveClub(club, -1); });
+                    const dn = document.createElement('button');
+                    dn.textContent = '↓';
+                    dn.style.cssText = btnBase;
+                    dn.disabled = idx === clubs.length - 1;
+                    dn.addEventListener('click', function() { BagEditorUI.moveClub(club, 1); });
                     const del = document.createElement('button');
                     del.textContent = 'Delete';
-                    del.style.cssText = 'padding:3px 8px; font-size:0.72rem; font-weight:700; border-radius:4px; border:1px solid rgba(230,69,69,0.4); background:rgba(230,69,69,0.1); color:var(--red); cursor:pointer;';
-                    del.addEventListener('click', function() {
-                        BagEditorUI.deleteClub(club);
-                    });
+                    del.style.cssText = btnDel;
+                    del.addEventListener('click', function() { BagEditorUI.deleteClub(club); });
+                    btns.appendChild(up);
+                    btns.appendChild(dn);
+                    btns.appendChild(del);
                     row.appendChild(label);
-                    row.appendChild(del);
+                    row.appendChild(btns);
                     container.appendChild(row);
                 });
             },
@@ -2784,6 +2799,19 @@
                 Utils.toast(club + ' deleted');
             },
 
+            moveClub(club, dir) {
+                const arr = State.bag.clubs;
+                const idx = arr.indexOf(club);
+                if (idx < 0) return;
+                const newIdx = idx + dir;
+                if (newIdx < 1 || newIdx >= arr.length) return;
+                arr.splice(idx, 1);
+                arr.splice(newIdx, 0, club);
+                State.saveBag();
+                this.populateSelects();
+                this.renderClubList();
+            },
+
             renderShotTypeList() {
                 const container = UI.els.shotTypeList;
                 if (!container) return;
@@ -2793,20 +2821,35 @@
                     return;
                 }
                 container.innerHTML = '';
-                types.forEach(function(type) {
+                const btnBase = 'padding:3px 7px; font-size:0.8rem; font-weight:700; border-radius:4px; cursor:pointer; border:1px solid var(--border); background:var(--bg-card-light); color:var(--text-primary);';
+                const btnDel = 'padding:3px 8px; font-size:0.72rem; font-weight:700; border-radius:4px; border:1px solid rgba(230,69,69,0.4); background:rgba(230,69,69,0.1); color:var(--red); cursor:pointer;';
+                types.forEach(function(type, idx) {
                     const row = document.createElement('div');
                     row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding: 4px 0;';
                     const label = document.createElement('span');
-                    label.style.cssText = 'font-weight:700; font-size:0.9rem;';
+                    label.style.cssText = 'font-weight:700; font-size:0.9rem; flex:1;';
                     label.textContent = type;
+                    const btns = document.createElement('div');
+                    btns.style.cssText = 'display:flex; gap:4px;';
+                    const up = document.createElement('button');
+                    up.textContent = '↑';
+                    up.style.cssText = btnBase;
+                    up.disabled = idx === 0;
+                    up.addEventListener('click', function() { BagEditorUI.moveShotType(type, -1); });
+                    const dn = document.createElement('button');
+                    dn.textContent = '↓';
+                    dn.style.cssText = btnBase;
+                    dn.disabled = idx === types.length - 1;
+                    dn.addEventListener('click', function() { BagEditorUI.moveShotType(type, 1); });
                     const del = document.createElement('button');
                     del.textContent = 'Delete';
-                    del.style.cssText = 'padding:3px 8px; font-size:0.72rem; font-weight:700; border-radius:4px; border:1px solid rgba(230,69,69,0.4); background:rgba(230,69,69,0.1); color:var(--red); cursor:pointer;';
-                    del.addEventListener('click', function() {
-                        BagEditorUI.deleteShotType(type);
-                    });
+                    del.style.cssText = btnDel;
+                    del.addEventListener('click', function() { BagEditorUI.deleteShotType(type); });
+                    btns.appendChild(up);
+                    btns.appendChild(dn);
+                    btns.appendChild(del);
                     row.appendChild(label);
-                    row.appendChild(del);
+                    row.appendChild(btns);
                     container.appendChild(row);
                 });
             },
@@ -2840,6 +2883,19 @@
                 this.renderShotTypeList();
                 this.renderBagMatrix();
                 Utils.toast(type + ' deleted');
+            },
+
+            moveShotType(type, dir) {
+                const arr = State.bag.shotTypes;
+                const idx = arr.indexOf(type);
+                if (idx < 0) return;
+                const newIdx = idx + dir;
+                if (newIdx < 1 || newIdx >= arr.length) return; // don't move past 'Type?' sentinel
+                arr.splice(idx, 1);
+                arr.splice(newIdx, 0, type);
+                State.saveBag();
+                this.populateSelects();
+                this.renderShotTypeList();
             },
 
             renderBagMatrix() {
