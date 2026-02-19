@@ -1005,9 +1005,15 @@
         </div>
         
         <div class="input-row">
-            <span class="input-label">Course Name</span>
-            <input type="text" class="input-field" id="courseName" placeholder="Enter course name">
+            <span class="input-label">Course</span>
+            <div style="display:flex; gap: var(--space-2); flex:1;">
+                <input type="text" class="input-field" id="courseName" placeholder="Course name" style="flex:1;">
+                <button class="btn btn-sm btn-secondary" id="btnPickCourse" type="button" style="flex-shrink:0;">▼</button>
+            </div>
         </div>
+        
+        <!-- Course picker list (hidden by default) -->
+        <div id="coursePickerList" style="display:none; flex-direction:column; gap:4px; margin-bottom: var(--space-3); max-height:180px; overflow-y:auto; border:1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2); background: var(--bg-card);"></div>
         
         <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
             <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Holes</h4>
@@ -1881,7 +1887,7 @@
                     'clubList', 'shotTypeList', 'newClubInput', 'newShotTypeInput',
                     'btnAddClub', 'btnAddShotType',
                     'courseBackdrop', 'courseSheet', 'btnCloseCourse', 'btnSaveCourse',
-                    'courseName', 'courseHoles',
+                    'courseName', 'courseHoles', 'btnPickCourse', 'coursePickerList',
                     'libraryBackdrop', 'librarySheet', 'btnCloseLibrary',
                     'bagLibraryList', 'courseLibraryList',
                     'btnImportBag', 'btnImportCourse',
@@ -2968,38 +2974,97 @@
         // ============================================
         
         const CourseSetupUI = {
+            editingCourseId: null,
+            
             open() {
+                this.editingCourseId = State.currentCourseId;
+                this.hidePicker();
                 this.show();
                 this.loadCourseData();
                 this.renderHoles();
             },
             
             close() {
+                this.hidePicker();
                 this.hide();
             },
             
             show() {
-                if (UI.els.courseBackdrop) {
-                    UI.els.courseBackdrop.classList.add('active');
-                }
-                if (UI.els.courseSheet) {
-                    UI.els.courseSheet.classList.add('active');
-                }
+                if (UI.els.courseBackdrop) UI.els.courseBackdrop.classList.add('active');
+                if (UI.els.courseSheet) UI.els.courseSheet.classList.add('active');
             },
             
             hide() {
-                if (UI.els.courseBackdrop) {
-                    UI.els.courseBackdrop.classList.remove('active');
-                }
-                if (UI.els.courseSheet) {
-                    UI.els.courseSheet.classList.remove('active');
-                }
+                if (UI.els.courseBackdrop) UI.els.courseBackdrop.classList.remove('active');
+                if (UI.els.courseSheet) UI.els.courseSheet.classList.remove('active');
             },
             
             loadCourseData() {
+                const course = Library.getCourse(this.editingCourseId);
                 if (UI.els.courseName) {
-                    UI.els.courseName.value = State.courseName || '';
+                    UI.els.courseName.value = course ? (course.name || '') : (State.courseName || '');
                 }
+            },
+            
+            togglePicker() {
+                const list = UI.els.coursePickerList;
+                if (!list) return;
+                if (list.style.display === 'none' || list.style.display === '') {
+                    this.showPicker();
+                } else {
+                    this.hidePicker();
+                }
+            },
+            
+            showPicker() {
+                const list = UI.els.coursePickerList;
+                if (!list) return;
+                list.innerHTML = '';
+                const self = this;
+                Library.getCourses().forEach(function(course) {
+                    const item = document.createElement('div');
+                    const isActive = course.id === self.editingCourseId;
+                    item.style.cssText = 'padding: 8px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 700;' +
+                        (isActive ? 'background: rgba(74,222,128,0.15); color: var(--green-400);' : 'color: var(--text-primary);');
+                    item.textContent = course.name + (isActive ? ' ✓' : '');
+                    item.addEventListener('click', function() {
+                        self.selectCourse(course.id);
+                    });
+                    list.appendChild(item);
+                });
+                list.style.display = 'flex';
+            },
+            
+            hidePicker() {
+                const list = UI.els.coursePickerList;
+                if (list) list.style.display = 'none';
+            },
+            
+            selectCourse(courseId) {
+                const course = Library.getCourse(courseId);
+                if (!course) return;
+                this.editingCourseId = courseId;
+                // Load into State
+                State.currentCourseId = courseId;
+                State.courseName = course.name || '';
+                State.course = course;
+                State.initHoles();
+                if (course.holes) {
+                    course.holes.forEach(function(ch, idx) {
+                        if (State.holes[idx]) {
+                            State.holes[idx].par = ch.par || 0;
+                            State.holes[idx].yards = ch.yards || 0;
+                            State.holes[idx].hcp = ch.hcp || 0;
+                            if (ch.teeGPS) State.holes[idx].tee = ch.teeGPS;
+                            if (ch.flagGPS) State.holes[idx].flag = ch.flagGPS;
+                        }
+                    });
+                }
+                State.save();
+                this.hidePicker();
+                this.loadCourseData();
+                this.renderHoles();
+                Utils.toast('Editing: ' + course.name);
             },
             
             renderHoles() {
@@ -3053,7 +3118,8 @@
             },
             
             saveCourse() {
-                const courseName = UI.els.courseName ? UI.els.courseName.value : '';
+                const courseId = this.editingCourseId || State.currentCourseId;
+                const courseName = UI.els.courseName ? UI.els.courseName.value.trim() : '';
                 const holesData = [];
                 
                 State.holes.forEach((hole, idx) => {
@@ -3077,7 +3143,25 @@
                     });
                 });
                 
-                State.saveCourseData(courseName, holesData);
+                // Save to library, preserving GPS data
+                const existingCourse = Library.getCourse(courseId);
+                if (existingCourse) {
+                    if (courseName) existingCourse.name = courseName;
+                    holesData.forEach(function(hd, idx) {
+                        if (existingCourse.holes && existingCourse.holes[idx]) {
+                            existingCourse.holes[idx].par = hd.par;
+                            existingCourse.holes[idx].yards = hd.yards;
+                            existingCourse.holes[idx].hcp = hd.hcp;
+                        }
+                    });
+                    Library.saveCourse(existingCourse);
+                }
+                
+                // If editing the active course, sync State too
+                if (courseId === State.currentCourseId) {
+                    State.saveCourseData(courseName || State.courseName, holesData);
+                }
+                
                 State.save();
                 UI.render();
                 Utils.toast('Course saved');
@@ -3979,6 +4063,7 @@
                 
                 // Course Setup
                 this.on('btnSettings', 'click', () => CourseSetupUI.open());
+                this.on('btnPickCourse', 'click', () => CourseSetupUI.togglePicker());
                 this.on('btnBagHeader', 'click', () => BagEditorUI.open());
                 this.on('btnCloseCourse', 'click', () => CourseSetupUI.close());
                 this.on('courseBackdrop', 'click', () => CourseSetupUI.close());
