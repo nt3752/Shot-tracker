@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v40.8</title>
+    <title>Shot Tracker v40.9</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -803,7 +803,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v40.8</span>
+                    <span class="brand-version">v40.9</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnLibrary" type="button" aria-label="Library">📚</button>
@@ -931,6 +931,7 @@
         <div class="sheet-header">
             <h3 class="sheet-title" id="bagTitle">Bag Editor</h3>
             <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnManageClubs" type="button">Manage Clubs</button>
                 <button class="btn btn-sm btn-secondary" id="btnCloseBag" type="button">Close</button>
             </div>
         </div>
@@ -960,21 +961,30 @@
             <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Current Bag</h4>
             <div id="bagMatrix" style="font-size: 0.75rem; color: var(--text-secondary); max-height: 300px; overflow-y: auto;"></div>
         </div>
-        
-        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
-            <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Clubs</h4>
-            <div id="clubList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3);"></div>
-            <div style="display: flex; gap: var(--space-2);">
-                <input type="text" id="newClubInput" class="input-field" placeholder="e.g. 7I, PW, 60°" style="flex:1;" maxlength="6">
-                <button class="btn btn-primary btn-sm" id="btnAddClub" type="button">Add Club</button>
+    </div>
+    
+    <!-- MANAGE CLUBS & SHOT TYPES SHEET -->
+    <div class="backdrop" id="manageClubsBackdrop"></div>
+    <div class="sheet" id="manageClubsSheet" role="dialog" aria-modal="true" aria-labelledby="manageClubsTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="manageClubsTitle">Clubs &amp; Shot Types</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCloseManageClubs" type="button">Done</button>
             </div>
         </div>
         
-        <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
+        <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Clubs</h4>
+        <div id="clubList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3);"></div>
+        <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-5);">
+            <input type="text" id="newClubInput" class="input-field" placeholder="e.g. 7I, PW, 60°" style="flex:1;">
+            <button class="btn btn-primary btn-sm" id="btnAddClub" type="button">Add Club</button>
+        </div>
+        
+        <div style="padding-top: var(--space-4); border-top: 1px solid var(--border);">
             <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Shot Types</h4>
             <div id="shotTypeList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3);"></div>
             <div style="display: flex; gap: var(--space-2);">
-                <input type="text" id="newShotTypeInput" class="input-field" placeholder="e.g. Punch, Chip" style="flex:1;" maxlength="12">
+                <input type="text" id="newShotTypeInput" class="input-field" placeholder="e.g. Punch, Chip" style="flex:1;">
                 <button class="btn btn-primary btn-sm" id="btnAddShotType" type="button">Add Type</button>
             </div>
         </div>
@@ -1161,7 +1171,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v40.8';
+        const VERSION = 'v40.9';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -1622,6 +1632,7 @@
                 const activeBag = Library.getBag(this.currentBagId);
                 if (activeBag) {
                     this.bag = {
+                        name: activeBag.name || '',
                         clubs: activeBag.clubs.slice(),
                         shotTypes: activeBag.shotTypes.slice(),
                         data: JSON.parse(JSON.stringify(activeBag.data))
@@ -1862,7 +1873,8 @@
                     'suggestionList', 'btnBagEditor',
                     'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid',
                     'bagBackdrop', 'bagSheet', 'btnCloseBag', 'bagClub', 'bagShotType',
-                    'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix',
+                    'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix', 'btnManageClubs',
+                    'manageClubsBackdrop', 'manageClubsSheet', 'btnCloseManageClubs',
                     'clubList', 'shotTypeList', 'newClubInput', 'newShotTypeInput',
                     'btnAddClub', 'btnAddShotType',
                     'courseBackdrop', 'courseSheet', 'btnCloseCourse', 'btnSaveCourse',
@@ -1919,7 +1931,9 @@
                     const dd = String(date.getDate()).padStart(2, '0');
                     const time = date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
                     const courseName = State.courseName ? State.courseName : ((State.course && State.course.name) ? State.course.name : 'No Course');
-                    this.els.roundInfo.textContent = courseName + ' · ' + mm + '/' + dd + ' ' + time;
+                    const bagName = (State.bag && State.bag.name) ? State.bag.name : '';
+                    const infoStr = bagName ? courseName + ' · ' + bagName + ' · ' + mm + '/' + dd + ' ' + time : courseName + ' · ' + mm + '/' + dd + ' ' + time;
+                    this.els.roundInfo.textContent = infoStr;
                 }
             },
             
@@ -2574,12 +2588,31 @@
                 // Close all other sheets first
                 this.closeAllOtherSheets();
                 
+                // Show bag name in title
+                if (UI.els.bagTitle) {
+                    const name = State.bag && State.bag.name ? State.bag.name : 'Bag Editor';
+                    UI.els.bagTitle.textContent = name;
+                }
+                
                 this.show();
                 this.populateSelects();
                 this.renderBagMatrix();
+                this.loadCurrentSelection();
+            },
+            
+            openManageClubs() {
+                if (UI.els.manageClubsBackdrop) UI.els.manageClubsBackdrop.classList.add('active');
+                if (UI.els.manageClubsSheet) UI.els.manageClubsSheet.classList.add('active');
                 this.renderClubList();
                 this.renderShotTypeList();
-                this.loadCurrentSelection();
+            },
+            
+            closeManageClubs() {
+                if (UI.els.manageClubsBackdrop) UI.els.manageClubsBackdrop.classList.remove('active');
+                if (UI.els.manageClubsSheet) UI.els.manageClubsSheet.classList.remove('active');
+                // Refresh bag editor selects and matrix in case clubs changed
+                this.populateSelects();
+                this.renderBagMatrix();
             },
             
             close() {
@@ -3705,6 +3738,8 @@
                     BagEditorUI.open();
                 });
                 this.on('btnCloseBag', 'click', () => BagEditorUI.close());
+                this.on('btnManageClubs', 'click', () => BagEditorUI.openManageClubs());
+                this.on('btnCloseManageClubs', 'click', () => BagEditorUI.closeManageClubs());
                 this.on('btnAddClub', 'click', () => BagEditorUI.addClub());
                 this.on('btnAddShotType', 'click', () => BagEditorUI.addShotType());
                 this.on('bagBackdrop', 'click', () => BagEditorUI.close());
