@@ -3472,6 +3472,58 @@
                 return hole.shots.length > 0 && this.puttCount(hole) === 0;
             },
 
+            // Comprehensive putting analysis across all played holes
+            // Returns bands (made/attempted from distance ranges), up&downs, holedOut count
+            puttAnalysis(playedHoles) {
+                var self = this;
+                // Distance bands: <=3ft, 4-6ft, >6ft
+                var bands = [
+                    { label: '\u22643ft',  max: 3,    made: 0, att: 0 },
+                    { label: '4\u20136ft', min: 4, max: 6, made: 0, att: 0 },
+                    { label: '>6ft',  min: 7,        made: 0, att: 0 }
+                ];
+                var upDownMade = 0, upDownOpp = 0;
+                var holedOutCount = 0;
+
+                playedHoles.forEach(function(hole) {
+                    var pc = self.puttCount(hole);
+                    var gir = self.calcGIR(hole);
+
+                    // Holed out from off green
+                    if (hole.shots.length > 0 && pc === 0) holedOutCount++;
+
+                    // Up & down: missed GIR, exactly 1 putt (= made it)
+                    if (gir === false) {
+                        upDownOpp++;
+                        if (pc === 1) upDownMade++;
+                    }
+
+                    // Collect putts with distances for band analysis
+                    // Last putt on hole = made; any earlier putt = missed
+                    var puttShots = hole.shots.filter(function(s) {
+                        return (s.shotType || '').toLowerCase() === 'putt';
+                    });
+
+                    puttShots.forEach(function(s, idx) {
+                        if (!s.distance || s.distance <= 0) return; // no distance — skip
+                        var dist = s.distance; // stored in feet
+                        var made = (idx === puttShots.length - 1); // last putt = made
+
+                        bands.forEach(function(band) {
+                            var inBand = (band.max !== undefined && dist <= band.max) ||
+                                         (band.min !== undefined && band.max !== undefined && dist >= band.min && dist <= band.max) ||
+                                         (band.min !== undefined && band.max === undefined && dist >= band.min);
+                            if (inBand) {
+                                band.att++;
+                                if (made) band.made++;
+                            }
+                        });
+                    });
+                });
+
+                return { bands: bands, upDownMade: upDownMade, upDownOpp: upDownOpp, holedOutCount: holedOutCount };
+            },
+
             // Score vs par for a hole (-1=birdie etc), null if no par/no shots
             vsParHole(hole) {
                 if (!hole.par || hole.shots.length === 0) return null;
@@ -3708,6 +3760,22 @@
                     lines.push('Avg putt dist      : ' + puttDistAvg + 'ft');
                     lines.push('Total putt dist    : ' + puttDistTotal + 'ft');
                 }
+
+                // Putt distance analysis
+                var pa = self.puttAnalysis(playedHoles);
+                var hasDistData = pa.bands.some(function(b) { return b.att > 0; });
+                if (hasDistData || pa.upDownOpp > 0 || pa.holedOutCount > 0) {
+                    lines.push('');
+                    lines.push('PUTT CONVERSION');
+                    lines.push('---------------');
+                    pa.bands.forEach(function(b) {
+                        if (b.att > 0) {
+                            lines.push(b.label + ' putts : ' + b.made + '/' + b.att + ' (' + pct(b.made, b.att) + ')');
+                        }
+                    });
+                    lines.push('Up & Down      : ' + pa.upDownMade + '/' + pa.upDownOpp + ' (' + pct(pa.upDownMade, pa.upDownOpp) + ')');
+                    lines.push('Holed Out      : ' + pa.holedOutCount + ' hole' + (pa.holedOutCount !== 1 ? 's' : ''));
+                }
                 lines.push('');
 
                 // Holes by performance
@@ -3726,7 +3794,7 @@
                         else               groups.triple.push(h);
                     });
                     function holeList(arr) {
-                        return arr.map(function(h) { return 'H' + h.hole; }).join(', ') || '—';
+                        return arr.map(function(h) { return String(h.hole); }).join(', ') || '—';
                     }
                     lines.push('Eagle or Better : ' + holeList(groups.eb));
                     lines.push('Birdies         : ' + holeList(groups.birdie));
@@ -4002,6 +4070,35 @@
                 if (puttCounts.more > 0) h += puttPill('4-putt+', puttCounts.more);
                 h += '</div>';
 
+                // ── Putt Conversion ──
+                var pa = self.puttAnalysis(playedHoles);
+                var hasDistData = pa.bands.some(function(b) { return b.att > 0; });
+                if (hasDistData || pa.upDownOpp > 0 || pa.holedOutCount > 0) {
+                    h += '<div style="' + sectionHead + '">Putt Conversion</div>';
+                    h += '<div style="' + card + '">';
+                    // Distance bands table (only rows with data)
+                    if (hasDistData) {
+                        h += '<table style="' + tbl + 'margin-bottom:8px;">';
+                        h += '<tr><th style="' + th + 'text-align:left;">Distance</th><th style="' + th + '">Made</th><th style="' + th + '">Attempted</th><th style="' + th + '">Conv%</th></tr>';
+                        pa.bands.forEach(function(b) {
+                            if (b.att === 0) return;
+                            var convPct = Math.round(b.made / b.att * 100);
+                            var pctColor = convPct >= 80 ? '#4ade80' : convPct >= 50 ? '#fff' : '#888';
+                            h += '<tr>';
+                            h += '<td style="' + tdL + 'font-weight:700;">' + b.label + '</td>';
+                            h += '<td style="' + td + '">' + b.made + '</td>';
+                            h += '<td style="' + td + '">' + b.att + '</td>';
+                            h += '<td style="' + td + 'font-weight:700;color:' + pctColor + ';">' + convPct + '%</td>';
+                            h += '</tr>';
+                        });
+                        h += '</table>';
+                    }
+                    // Up & Down and Holed Out
+                    h += statLine('Up &amp; Down', pa.upDownMade + '/' + pa.upDownOpp + ' (' + pct(pa.upDownMade, pa.upDownOpp) + ')');
+                    h += statLine('Holed Out', pa.holedOutCount + ' hole' + (pa.holedOutCount !== 1 ? 's' : ''), true);
+                    h += '</div>';
+                }
+
                 // ── Holes by Performance ──
                 if (hasPar) {
                     h += '<div style="' + sectionHead + '">Holes by Performance</div>';
@@ -4027,7 +4124,7 @@
                     ];
                     perfRows.forEach(function(row, i) {
                         var isLast = i === perfRows.length - 1;
-                        var holes = row.items.map(function(hole) { return 'H'+hole.hole; }).join(', ') || '—';
+                        var holes = row.items.map(function(hole) { return String(hole.hole); }).join(', ') || '—';
                         h += '<div style="'+(isLast?statLast:statRow)+'"><span style="color:#aaa;">'+row.label+'</span><span style="font-weight:700;color:'+row.color+';">'+holes+'</span></div>';
                     });
                     h += '</div>';
