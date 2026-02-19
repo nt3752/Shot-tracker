@@ -362,6 +362,12 @@
             white-space: nowrap;
         }
         
+        /* iOS Safari zooms on focus if font-size < 16px.
+           This rule ensures no input ever triggers that behaviour. */
+        input, select, textarea {
+            font-size: max(1rem, 16px) !important;
+        }
+
         .input-field {
             flex: 1;
             background: rgba(255, 255, 255, 0.05);
@@ -3311,7 +3317,7 @@
                 input.inputMode = 'numeric';
                 input.pattern = '[0-9]*';
                 input.value = value;
-                input.style.cssText = 'width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); color: var(--text-primary); font-size: 0.875rem; font-weight: 700; font-family: var(--font-mono);';
+                input.style.cssText = 'width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); color: var(--text-primary); font-size: 1rem; font-weight: 700; font-family: var(--font-mono);';
                 
                 wrapper.appendChild(labelEl);
                 wrapper.appendChild(input);
