@@ -936,6 +936,8 @@
             </div>
         </div>
         
+        <div id="bagNameDisplay" style="font-size: 1rem; font-weight: 700; color: var(--green-400); margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);"></div>
+        
         <div class="input-row">
             <span class="input-label">Club</span>
             <select class="input-field" id="bagClub"></select>
@@ -1873,7 +1875,7 @@
                     'suggestionList', 'btnBagEditor',
                     'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid',
                     'bagBackdrop', 'bagSheet', 'btnCloseBag', 'bagClub', 'bagShotType',
-                    'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix', 'btnManageClubs',
+                    'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix', 'btnManageClubs', 'bagNameDisplay',
                     'manageClubsBackdrop', 'manageClubsSheet', 'btnCloseManageClubs',
                     'clubList', 'shotTypeList', 'newClubInput', 'newShotTypeInput',
                     'btnAddClub', 'btnAddShotType',
@@ -2588,10 +2590,13 @@
                 // Close all other sheets first
                 this.closeAllOtherSheets();
                 
-                // Show bag name in title
+                // Show bag name in title and display line
                 if (UI.els.bagTitle) {
                     const name = State.bag && State.bag.name ? State.bag.name : 'Bag Editor';
                     UI.els.bagTitle.textContent = name;
+                }
+                if (UI.els.bagNameDisplay) {
+                    UI.els.bagNameDisplay.textContent = State.bag && State.bag.name ? '🏌️ ' + State.bag.name : '';
                 }
                 
                 this.show();
