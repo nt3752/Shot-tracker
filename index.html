@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v40.19</title>
+    <title>Shot Tracker v40.20</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -1006,7 +1006,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v40.19</span>
+                    <span class="brand-version">v40.20</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard">📋</button>
@@ -1114,7 +1114,7 @@
         <div class="sheet-body">
         <div class="input-row">
             <span class="input-label">Target</span>
-            <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" maxlength="3" pattern="[0-9]*">
+            <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" enterkeyhint="done" maxlength="3" pattern="[0-9]*">
             <button class="btn btn-sm btn-secondary" id="btnResetTarget" type="button">Reset</button>
         </div>
         
@@ -1307,6 +1307,14 @@
                 <button class="btn btn-secondary btn-sm" id="btnExportAllCourses" type="button">Export All Courses</button>
             </div>
         </div>
+        <div style="padding-top: var(--space-4); border-top: 1px solid var(--border); margin-top: var(--space-4);">
+            <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: var(--space-2);">Full Backup</h4>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--space-3);">Saves everything: all bags, courses, and current round. Restore replaces all data.</p>
+            <div class="btn-row">
+                <button class="btn btn-primary btn-sm" id="btnBackupAll" type="button">&#128190; Backup All</button>
+                <button class="btn btn-secondary btn-sm" id="btnRestoreBackup" type="button">&#128194; Restore Backup</button>
+            </div>
+        </div>
         </div>
     </div>
 
@@ -1423,7 +1431,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v40.19';
+        const VERSION = 'v40.20';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -2137,6 +2145,7 @@
                     'bagLibraryList', 'courseLibraryList',
                     'btnImportBag', 'btnImportCourse',
                     'btnExportAllBags', 'btnExportAllCourses',
+                    'btnBackupAll', 'btnRestoreBackup',
                     'roundSetupBackdrop', 'roundSetupSheet',
                     'btnNewRound', 'btnNewRoundHeader', 'btnCancelRound',
                     'btnStartRound', 'roundBagSelect', 'roundCourseSelect'
@@ -2725,7 +2734,10 @@
                 }
                 
                 this.show();
-                this.render();
+                // Delay render until after slide-up transition (300ms) so iOS
+                // calculates touch targets against the final settled position
+                var self = this;
+                setTimeout(function() { self.render(); }, 320);
             },
             
             close() {
@@ -4283,6 +4295,117 @@
         };
         
         // ============================================
+        // FULL BACKUP & RESTORE (v40.20)
+        // ============================================
+
+        const Backup = {
+
+            backup() {
+                try {
+                    var bags      = Storage.load(LS_BAG_LIBRARY_KEY)    || [];
+                    var courses   = Storage.load(LS_COURSE_LIBRARY_KEY) || [];
+                    var state     = Storage.load(LS_STATE_KEY)           || {};
+                    var activeBag = Storage.load(LS_BAG_KEY)             || {};
+                    var activeCourse = Storage.load(LS_COURSE_KEY)       || {};
+
+                    var payload = {
+                        type:          'shotTrackerBackup',
+                        version:       VERSION,
+                        exportedAt:    Utils.nowISO(),
+                        bagLibrary:    bags,
+                        courseLibrary: courses,
+                        activeState:   state,
+                        activeBag:     activeBag,
+                        activeCourse:  activeCourse
+                    };
+
+                    var json     = JSON.stringify(payload, null, 2);
+                    var blob     = new Blob([json], { type: 'application/json' });
+                    var url      = URL.createObjectURL(blob);
+                    var a        = document.createElement('a');
+                    var dateStr  = new Date().toISOString().split('T')[0];
+                    a.href       = url;
+                    a.download   = 'shot-tracker-backup-' + dateStr + '.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    var bagCount    = bags.length;
+                    var courseCount = courses.length;
+                    Utils.toast('Backup saved \u2014 ' + bagCount + ' bag' + (bagCount !== 1 ? 's' : '') +
+                                ', ' + courseCount + ' course' + (courseCount !== 1 ? 's' : ''));
+                } catch (e) {
+                    console.error('Backup error:', e);
+                    Utils.toast('Backup failed');
+                }
+            },
+
+            restore() {
+                var self = this;
+                if (!window.confirm(
+                    'Restore from backup?\n\n' +
+                    'This will REPLACE all current data:\n' +
+                    '\u2022 All bags\n' +
+                    '\u2022 All courses\n' +
+                    '\u2022 Current round in progress\n\n' +
+                    'This cannot be undone. Continue?'
+                )) return;
+
+                // Use a fresh file input so iOS triggers the picker every time
+                var input    = document.createElement('input');
+                input.type   = 'file';
+                input.accept = '.json,application/json';
+                input.onchange = function() {
+                    var file = input.files && input.files[0];
+                    if (!file) return;
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        self._applyRestore(e.target.result);
+                    };
+                    reader.onerror = function() {
+                        Utils.toast('Could not read file');
+                    };
+                    reader.readAsText(file);
+                };
+                input.click();
+            },
+
+            _applyRestore(json) {
+                try {
+                    var data = JSON.parse(json);
+
+                    // Validate
+                    if (!data || data.type !== 'shotTrackerBackup') {
+                        Utils.toast('Invalid backup file');
+                        return;
+                    }
+
+                    // Restore each localStorage key
+                    if (data.bagLibrary)    Storage.save(LS_BAG_LIBRARY_KEY,    data.bagLibrary);
+                    if (data.courseLibrary) Storage.save(LS_COURSE_LIBRARY_KEY, data.courseLibrary);
+                    if (data.activeState)   Storage.save(LS_STATE_KEY,          data.activeState);
+                    if (data.activeBag)     Storage.save(LS_BAG_KEY,            data.activeBag);
+                    if (data.activeCourse)  Storage.save(LS_COURSE_KEY,         data.activeCourse);
+
+                    // Re-initialize app from restored storage
+                    State.load();
+                    State.loadBag();
+                    UI.render();
+                    LibraryUI.render();
+
+                    var bagCount    = (data.bagLibrary    || []).length;
+                    var courseCount = (data.courseLibrary || []).length;
+                    Utils.toast('Restored \u2014 ' + bagCount + ' bag' + (bagCount !== 1 ? 's' : '') +
+                                ', ' + courseCount + ' course' + (courseCount !== 1 ? 's' : ''));
+                } catch (e) {
+                    console.error('Restore error:', e);
+                    Utils.toast('Restore failed \u2014 file may be corrupt');
+                }
+            }
+        };
+
+        // ============================================
         // LIBRARY ACTIONS (v40.5)
         // ============================================
         
@@ -5102,6 +5225,13 @@
                 });
                 
                 this.on('caddyTarget', 'input', () => CaddyUI.render());
+                // Dismiss keyboard on Enter/Done so touch targets settle before next tap
+                this.on('caddyTarget', 'keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const t = UI.els.caddyTarget;
+                        if (t) t.blur();
+                    }
+                });
                 
                 this.on('btnResetTarget', 'click', () => {
                     const toFlag = UI.getToFlagYards();
@@ -5217,10 +5347,12 @@
                 this.on('libraryBackdrop', 'click', () => LibraryUI.close());
                 
                 // Import / Export
-                this.on('btnExportAllBags', 'click', () => ImportExport.exportBags());
+                this.on('btnExportAllBags',    'click', () => ImportExport.exportBags());
                 this.on('btnExportAllCourses', 'click', () => ImportExport.exportCourses());
-                this.on('btnImportBag', 'click', () => ImportExport.importBags());
-                this.on('btnImportCourse', 'click', () => ImportExport.importCourses());
+                this.on('btnImportBag',        'click', () => ImportExport.importBags());
+                this.on('btnImportCourse',     'click', () => ImportExport.importCourses());
+                this.on('btnBackupAll',        'click', () => Backup.backup());
+                this.on('btnRestoreBackup',    'click', () => Backup.restore());
             },
             
             on(elId, event, handler) {
