@@ -635,27 +635,30 @@
             border-top: 1px solid var(--border-strong);
             border-radius: var(--radius-xl) var(--radius-xl) 0 0;
             z-index: 201;
-            padding: var(--space-4);
-            max-height: 80vh;
-            overflow-y: auto;
+            /* flex column: header stays put, body scrolls */
+            display: none;
+            flex-direction: column;
+            /* dvh = dynamic viewport height: shrinks when iOS keyboard is open
+               so sheet always stays above the keyboard, no overlap or jump */
+            max-height: 80dvh;
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: none; /* Hidden by default */
         }
         
         .sheet.active {
             transform: translateY(0);
-            display: block; /* Show when active */
+            display: flex;
         }
         
+        /* Header is outside the scroll area — Save/Close always visible */
         .sheet-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: var(--space-3);
-            margin-bottom: var(--space-4);
-            padding-bottom: var(--space-3);
+            padding: var(--space-4) var(--space-4) var(--space-3);
             border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
         }
         
         .sheet-title {
@@ -668,6 +671,14 @@
         .sheet-actions {
             display: flex;
             gap: var(--space-2);
+        }
+
+        /* Scrollable body inside sheet — sits below the sticky header */
+        .sheet-body {
+            overflow-y: auto;
+            flex: 1;
+            padding: var(--space-4);
+            -webkit-overflow-scrolling: touch;
         }
         
         /* ===============================================
@@ -1100,7 +1111,7 @@
                 <button class="btn btn-sm btn-secondary" id="btnCloseCaddy" type="button">Close</button>
             </div>
         </div>
-        
+        <div class="sheet-body">
         <div class="input-row">
             <span class="input-label">Target</span>
             <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" maxlength="3" pattern="[0-9]*">
@@ -1108,6 +1119,7 @@
         </div>
         
         <div class="suggestion-list" id="suggestionList"></div>
+        </div>
     </div>
     
     <!-- BAG EDITOR SHEET -->
@@ -1120,7 +1132,7 @@
                 <button class="btn btn-sm btn-secondary" id="btnCloseBag" type="button">Close</button>
             </div>
         </div>
-        
+        <div class="sheet-body">
         <div id="bagNameDisplay" style="font-size: 1rem; font-weight: 700; color: var(--green-400); margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);"></div>
         
         <div class="input-row">
@@ -1148,6 +1160,7 @@
             <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Current Bag</h4>
             <div id="bagMatrix" style="font-size: 0.75rem; color: var(--text-secondary); max-height: 300px; overflow-y: auto;"></div>
         </div>
+        </div>
     </div>
     
     <!-- MANAGE CLUBS & SHOT TYPES SHEET -->
@@ -1159,7 +1172,7 @@
                 <button class="btn btn-sm btn-secondary" id="btnCloseManageClubs" type="button">Done</button>
             </div>
         </div>
-        
+        <div class="sheet-body">
         <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Clubs</h4>
         <div id="clubList" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--space-3);"></div>
         <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-5);">
@@ -1175,6 +1188,7 @@
                 <button class="btn btn-primary btn-sm" id="btnAddShotType" type="button">Add Type</button>
             </div>
         </div>
+        </div>
     </div>
     
     <!-- COURSE SETUP SHEET -->
@@ -1187,7 +1201,7 @@
                 <button class="btn btn-sm btn-secondary" id="btnCloseCourse" type="button">Close</button>
             </div>
         </div>
-        
+        <div class="sheet-body">
         <div class="input-row">
             <span class="input-label">Course</span>
             <div style="display:flex; gap: var(--space-2); flex:1;">
@@ -1201,7 +1215,8 @@
         
         <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
             <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Holes</h4>
-            <div id="courseHoles" style="display: grid; gap: var(--space-3); max-height: 400px; overflow-y: auto;"></div>
+            <div id="courseHoles" style="display: grid; gap: var(--space-3);"></div>
+        </div>
         </div>
     </div>
     
@@ -1214,6 +1229,7 @@
                 <button class="btn btn-sm btn-secondary" id="btnCloseExport" type="button">Close</button>
             </div>
         </div>
+        <div class="sheet-body">
         <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:var(--space-4);">Choose how to export your round data.</p>
         <div style="display:flex; flex-direction:column; gap:var(--space-3);">
             <button class="btn btn-primary" id="btnDownloadCSV" type="button" style="font-size:1rem; padding:var(--space-4);">
@@ -1224,6 +1240,7 @@
                 📄 View Report
                 <span style="display:block; font-size:0.7rem; font-weight:500; opacity:0.8; margin-top:2px;">Summary on screen</span>
             </button>
+        </div>
         </div>
     </div>
 
@@ -1236,7 +1253,7 @@
                 <button class="btn btn-sm btn-secondary" id="btnCloseScorecard" type="button">Close</button>
             </div>
         </div>
-        <div id="scorecardContent"></div>
+        <div class="sheet-body"><div id="scorecardContent"></div></div>
     </div>
 
     <!-- HOLE PICKER SHEET -->
@@ -1248,7 +1265,7 @@
                 <button class="btn btn-sm btn-secondary" id="btnCloseHole" type="button">Close</button>
             </div>
         </div>
-        <div class="hole-picker-grid" id="holeGrid"></div>
+        <div class="sheet-body"><div class="hole-picker-grid" id="holeGrid"></div></div>
     </div>
 
     <!-- LIBRARY MANAGEMENT SHEET -->
@@ -1262,6 +1279,7 @@
             </div>
         </div>
         
+        <div class="sheet-body">
         <div style="margin-bottom: var(--space-4);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
                 <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary);">Bag Library</h4>
@@ -1289,6 +1307,7 @@
                 <button class="btn btn-secondary btn-sm" id="btnExportAllCourses" type="button">Export All Courses</button>
             </div>
         </div>
+        </div>
     </div>
 
     <!-- NEW ROUND SETUP SHEET -->
@@ -1301,6 +1320,7 @@
             </div>
         </div>
         
+        <div class="sheet-body">
         <div class="input-row">
             <span class="input-label">Select Bag</span>
             <select class="input-field" id="roundBagSelect"></select>
@@ -1313,6 +1333,7 @@
         
         <div class="btn-row" style="margin-top: var(--space-4);">
             <button class="btn btn-primary" id="btnStartRound" type="button">Start Round</button>
+        </div>
         </div>
     </div>
 
@@ -1327,6 +1348,7 @@
             </div>
         </div>
         
+        <div class="sheet-body">
         <div class="input-row">
             <span class="input-label">Bag Name</span>
             <input type="text" class="input-field" id="editBagName" placeholder="e.g., Summer Bag">
@@ -1358,6 +1380,7 @@
             
             <div id="editBagMatrix" style="margin-top: var(--space-4); max-height: 300px; overflow-y: auto;"></div>
         </div>
+        </div>
     </div>
 
     <!-- EDIT COURSE SHEET -->
@@ -1371,6 +1394,7 @@
             </div>
         </div>
         
+        <div class="sheet-body">
         <div class="input-row">
             <span class="input-label">Course Name</span>
             <input type="text" class="input-field" id="editCourseName" placeholder="e.g., Pebble Beach">
@@ -1378,7 +1402,8 @@
         
         <div style="margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border);">
             <h4 style="font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: var(--space-3);">Holes</h4>
-            <div id="editCourseHoles" style="display: grid; gap: var(--space-3); max-height: 400px; overflow-y: auto;"></div>
+            <div id="editCourseHoles" style="display: grid; gap: var(--space-3);"></div>
+        </div>
         </div>
     </div>
 
@@ -3773,7 +3798,7 @@
 
                 var modal = document.createElement('div');
                 modal.className = 'sheet active';
-                modal.style.cssText = 'z-index:301; max-height:90vh; display:flex; flex-direction:column;';
+                modal.style.cssText = 'z-index:301;';
 
                 // Header
                 var header = document.createElement('div');
@@ -3823,7 +3848,7 @@
 
                 // Scrollable content area
                 var scrollArea = document.createElement('div');
-                scrollArea.style.cssText = 'overflow-y:auto; flex:1; padding: var(--space-4) var(--space-4) var(--space-6);';
+                scrollArea.className = 'sheet-body';
 
                 // Render the report as styled HTML sections
                 scrollArea.innerHTML = self.buildReportHTML();
