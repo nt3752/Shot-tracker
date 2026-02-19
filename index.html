@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v40.16</title>
+    <title>Shot Tracker v40.17</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -845,59 +845,64 @@
         }
         .sc-total td.sc-left { text-align: left; }
 
-        /* Score symbol — the raw shot count sits inside the shape.
-           Fixed 28×28 box keeps all circles/squares the same size. */
+        /* Base symbol — fixed box so all borders render consistently */
         .sc-sym {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
             font-size: 0.85rem;
             font-weight: 900;
+            box-sizing: border-box;
         }
 
-        /* Eagle or better: double circle (box-shadow = outer ring) */
+        /* Eagle or better: double thin circle, red number.
+           Inner ring = border, outer ring = outline offset outward. */
         .sc-eagle {
-            border: 2px solid var(--green-400);
+            border: 1.5px solid var(--red);
             border-radius: 50%;
-            box-shadow: 0 0 0 3px var(--green-400);
-            color: var(--green-400);
+            outline: 1.5px solid var(--red);
+            outline-offset: 3px;
+            color: var(--red);
         }
 
-        /* Birdie: single circle */
+        /* Birdie: single thin circle, red number */
         .sc-birdie {
-            border: 2px solid var(--green-400);
+            border: 1.5px solid var(--red);
             border-radius: 50%;
-            color: var(--green-400);
+            color: var(--red);
         }
 
-        /* Par: plain number, no border */
+        /* Par: plain number, no border, white */
         .sc-par {
             color: var(--text-primary);
         }
 
-        /* Bogey: single square */
+        /* Bogey: single thin square, white number */
         .sc-bogey {
-            border: 2px solid var(--text-muted);
+            border: 1.5px solid var(--text-primary);
             border-radius: 3px;
             color: var(--text-primary);
         }
 
-        /* Double bogey: double square (box-shadow = outer ring) */
+        /* Double bogey: double thin square, white number.
+           Inner ring = border, outer ring = outline offset outward. */
         .sc-double {
-            border: 2px solid var(--red);
+            border: 1.5px solid var(--text-primary);
             border-radius: 3px;
-            box-shadow: 0 0 0 3px var(--red);
-            color: var(--red);
+            outline: 1.5px solid var(--text-primary);
+            outline-offset: 3px;
+            color: var(--text-primary);
         }
 
-        /* Triple bogey+: double square, smaller font to fit "+N" */
+        /* Triple bogey+: double thin square, white "+N", smaller font to fit */
         .sc-triple {
-            border: 2px solid var(--red);
+            border: 1.5px solid var(--text-primary);
             border-radius: 3px;
-            box-shadow: 0 0 0 3px var(--red);
-            color: var(--red);
+            outline: 1.5px solid var(--text-primary);
+            outline-offset: 3px;
+            color: var(--text-primary);
             font-size: 0.6rem;
         }
 
@@ -977,7 +982,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v40.16</span>
+                    <span class="brand-version">v40.17</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnNewRoundHeader" type="button" aria-label="New Round">🔄</button>
@@ -1358,7 +1363,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v40.16';
+        const VERSION = 'v40.17';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -4152,14 +4157,15 @@
             },
 
             // Returns a <span> with the shot count shown inside the scoring symbol.
-            // Shape encodes score vs par:
-            //   Eagle or better → double circle (green)
-            //   Birdie          → single circle (green)
-            //   Par             → plain number  (white)
-            //   Bogey           → single square (grey)
-            //   Double bogey    → double square (red)
-            //   Triple bogey+   → double square with "+N" (red, small font)
-            //   Not played      → dash (muted)
+            // Shape and color encode score vs par:
+            //   Eagle or better → double thin circle, red number
+            //   Birdie          → single thin circle, red number
+            //   Par             → plain number, white
+            //   Bogey           → single thin square, white number
+            //   Double bogey    → double thin square, white number
+            //   Triple bogey+   → double thin square, white "+N"
+            //   Not played      → dash, muted
+            // All color/border styling is in CSS — JS only assigns the class.
             symbol(shots, par) {
                 const el = document.createElement('span');
                 el.className = 'sc-sym';
@@ -4170,14 +4176,13 @@
                     return el;
                 }
 
-                el.textContent = String(shots);
                 const diff = shots - par;
 
-                if      (diff <= -2) { el.classList.add('sc-eagle');  }  // Double circle
-                else if (diff === -1) { el.classList.add('sc-birdie'); }  // Single circle
-                else if (diff ===  0) { el.classList.add('sc-par');    }  // Plain
-                else if (diff ===  1) { el.classList.add('sc-bogey');  }  // Single square
-                else if (diff ===  2) { el.classList.add('sc-double'); }  // Double square
+                if      (diff <= -2) { el.classList.add('sc-eagle');  el.textContent = String(shots); }
+                else if (diff === -1) { el.classList.add('sc-birdie'); el.textContent = String(shots); }
+                else if (diff ===  0) { el.classList.add('sc-par');    el.textContent = String(shots); }
+                else if (diff ===  1) { el.classList.add('sc-bogey');  el.textContent = String(shots); }
+                else if (diff ===  2) { el.classList.add('sc-double'); el.textContent = String(shots); }
                 else {
                     // Triple bogey or worse — show net over par inside double square
                     el.classList.add('sc-triple');
