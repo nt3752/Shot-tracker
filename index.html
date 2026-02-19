@@ -2096,12 +2096,13 @@
                 const holeNum = State.holeIndex + 1;
                 const shotsThisHole = hole.shots.length;
                 
-                // Calculate score relative to par for holes played
+                // Calculate cumulative score vs par for all holes played.
+                // Par is read from State.holes[i].par — the single source of truth.
+                // Holes with no par set (0) are excluded from the calculation.
                 let relPar = 0;
-                State.holes.forEach(function(h, i) {
-                    if (h.shots.length > 0) {
-                        const par = (State.course && State.course.holes && State.course.holes[i]) ? (State.course.holes[i].par || 4) : 4;
-                        relPar += h.shots.length - par;
+                State.holes.forEach(function(h) {
+                    if (h.shots.length > 0 && h.par > 0) {
+                        relPar += h.shots.length - h.par;
                     }
                 });
                 const relParText = relPar === 0 ? 'E' : (relPar > 0 ? '+' + relPar : '' + relPar);
@@ -2113,7 +2114,8 @@
                 
                 if (this.els.sbTotal) {
                     this.els.sbTotal.textContent = relParText;
-                    this.els.sbTotal.style.color = relPar < 0 ? 'var(--red)' : (relPar > 0 ? '' : '');
+                    // Under par = red (hot!), over par / even = white
+                    this.els.sbTotal.style.color = relPar < 0 ? 'var(--red)' : '';
                 }
                 
                 if (this.els.roundInfo) {
@@ -4190,10 +4192,9 @@
                 return rel > 0 ? '+' + rel : String(rel);
             },
 
-            // Color for vs-par: under par=green, over=red, even=white
+            // Color for vs-par: under par=red (hot!), over/even=white
             relParColor(rel) {
-                if (rel < 0) return 'var(--green-400)';
-                if (rel > 0) return 'var(--red)';
+                if (rel < 0) return 'var(--red)';
                 return 'var(--text-primary)';
             },
 
