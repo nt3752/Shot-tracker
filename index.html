@@ -718,19 +718,44 @@
         }
         
         .hole-picker-btn {
-            height: 80px;
+            min-height: 90px;
             background: var(--bg-card-light);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
-            font-size: 2rem;
-            font-weight: 900;
-            font-family: var(--font-mono);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: var(--space-2) var(--space-1);
             transition: all 0.15s ease;
+            cursor: pointer;
         }
         
         .hole-picker-btn:active {
             transform: scale(0.95);
             background: var(--green-700);
+        }
+        
+        .hole-picker-num {
+            font-size: 2.25rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            line-height: 1;
+        }
+        
+        .hole-picker-par {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--green-400);
+            line-height: 1;
+        }
+        
+        .hole-picker-info {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            line-height: 1;
         }
         
         /* ===============================================
@@ -3754,24 +3779,64 @@
         
         const HolePickerUI = {
             init() {
+                // Intentionally empty — grid built on open() so data is fresh
+            },
+            
+            renderGrid() {
                 if (!UI.els.holeGrid) return;
-                
                 UI.els.holeGrid.innerHTML = '';
                 
-                for (let i = 1; i <= 18; i++) {
+                for (let i = 0; i < 18; i++) {
+                    const hole = State.holes[i];
+                    const isActive = i === State.holeIndex;
+                    
                     const btn = document.createElement('button');
                     btn.className = 'hole-picker-btn';
                     btn.type = 'button';
-                    btn.textContent = String(i);
-                    btn.addEventListener('click', () => {
-                        Actions.gotoHole(i - 1);
-                        this.close();
-                    });
+                    if (isActive) {
+                        btn.style.borderColor = 'var(--green-400)';
+                        btn.style.background = 'rgba(74,222,128,0.1)';
+                    }
+                    
+                    const num = document.createElement('div');
+                    num.className = 'hole-picker-num';
+                    num.textContent = String(i + 1);
+                    btn.appendChild(num);
+                    
+                    const par = hole && hole.par ? hole.par : null;
+                    const yards = hole && hole.yards ? hole.yards : null;
+                    const hcp = hole && hole.hcp ? hole.hcp : null;
+                    
+                    if (par) {
+                        const parEl = document.createElement('div');
+                        parEl.className = 'hole-picker-par';
+                        parEl.textContent = 'Par ' + par;
+                        btn.appendChild(parEl);
+                    }
+                    
+                    if (yards || hcp) {
+                        const infoEl = document.createElement('div');
+                        infoEl.className = 'hole-picker-info';
+                        const parts = [];
+                        if (yards) parts.push(yards + 'y');
+                        if (hcp) parts.push('HCP ' + hcp);
+                        infoEl.textContent = parts.join(' · ');
+                        btn.appendChild(infoEl);
+                    }
+                    
+                    btn.addEventListener('click', (function(idx) {
+                        return function() {
+                            Actions.gotoHole(idx);
+                            HolePickerUI.close();
+                        };
+                    })(i));
+                    
                     UI.els.holeGrid.appendChild(btn);
                 }
             },
             
             open() {
+                this.renderGrid();
                 this.show();
             },
             
