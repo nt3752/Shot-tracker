@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v40.18</title>
+    <title>Shot Tracker v40.19</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -995,7 +995,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v40.18</span>
+                    <span class="brand-version">v40.19</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard">📋</button>
@@ -1398,7 +1398,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v40.18';
+        const VERSION = 'v40.19';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -3380,156 +3380,752 @@
         // ============================================
         
         const ExportData = {
+
+            // ── Shared calculation helpers ──────────────────────────────────
+
+            // Calculate GIR from shot sequence.
+            // GIR = true if shots before first putt <= (par - 2).
+            // Returns true/false/null (null = unknown, e.g. no par or no shots).
+            calcGIR(hole) {
+                const par = hole.par || 0;
+                if (!par || hole.shots.length === 0) return null;
+                // Find index of first putt
+                var firstPuttIdx = -1;
+                for (var i = 0; i < hole.shots.length; i++) {
+                    if ((hole.shots[i].shotType || '').toLowerCase() === 'putt') {
+                        firstPuttIdx = i;
+                        break;
+                    }
+                }
+                // No putts — could be holed out from off green (GIR = false by definition)
+                // or incomplete hole
+                if (firstPuttIdx === -1) return null;
+                // Shots before first putt = firstPuttIdx (0-based index = count before it)
+                return firstPuttIdx <= (par - 2);
+            },
+
+            // Count putts on a hole
+            puttCount(hole) {
+                var count = 0;
+                hole.shots.forEach(function(s) {
+                    if ((s.shotType || '').toLowerCase() === 'putt') count++;
+                });
+                return count;
+            },
+
+            // Was this hole holed out from off green (score recorded, 0 putts, shots played)
+            holedOut(hole) {
+                return hole.shots.length > 0 && this.puttCount(hole) === 0;
+            },
+
+            // Score vs par for a hole (-1=birdie etc), null if no par/no shots
+            vsParHole(hole) {
+                if (!hole.par || hole.shots.length === 0) return null;
+                return hole.shots.length - hole.par;
+            },
+
+            // Label for vs-par: "Eagle", "Birdie", "Par", "Bogey", etc.
+            vsParLabel(diff) {
+                if (diff === null) return '—';
+                if (diff <= -2) return 'Eagle or Better';
+                if (diff === -1) return 'Birdie';
+                if (diff === 0)  return 'Par';
+                if (diff === 1)  return 'Bogey';
+                if (diff === 2)  return 'Double Bogey';
+                return 'Triple Bogey+';
+            },
+
+            // Get bag carry/total for a shot
+            bagDist(shot) {
+                var bd = State.bag && State.bag.data && shot.club ? State.bag.data[shot.club] : null;
+                if (bd && shot.shotType && bd[shot.shotType]) {
+                    return { carry: bd[shot.shotType].carry || '', total: bd[shot.shotType].total || '' };
+                }
+                return { carry: '', total: '' };
+            },
+
+            // Escape CSV field (wrap in quotes if contains comma/quote/newline)
+            csvField(val) {
+                var s = String(val === null || val === undefined ? '' : val);
+                if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+                    return '"' + s.replace(/"/g, '""') + '"';
+                }
+                return s;
+            },
+
+            // ── CSV ─────────────────────────────────────────────────────────
+
             generateCSV() {
-                const rows = [];
-                
-                // Header
+                var self = this;
+                var rows = [];
+                var date = new Date(State.round.startedAt);
+
+                // --- Section 1: Round summary (key:value rows) ---
+                rows.push('ROUND SUMMARY');
+                rows.push('Course,' + self.csvField(State.courseName || ''));
+                rows.push('Bag,' + self.csvField((State.bag && State.bag.name) || ''));
+                rows.push('Date,' + self.csvField(date.toLocaleString()));
+                rows.push('Version,' + VERSION);
+                rows.push('');
+
+                // Compute summary stats
+                var hasPar = State.holes.some(function(h) { return h.par > 0; });
+                var playedHoles = State.holes.filter(function(h) { return h.shots.length > 0; });
+                var totalShots = 0;
+                var front9Shots = 0, front9Par = 0, back9Shots = 0, back9Par = 0;
+                var fwyHit = 0, fwyOpp = 0, girHit = 0, girOpp = 0;
+                var totalPutts = 0;
+
+                playedHoles.forEach(function(h) {
+                    var shots = h.shots.length;
+                    totalShots += shots;
+                    if (h.hole <= 9) { front9Shots += shots; if (h.par) front9Par += h.par; }
+                    else             { back9Shots  += shots; if (h.par) back9Par  += h.par; }
+                    if (h.par === 4 || h.par === 5) { fwyOpp++; if (h.fwy) fwyHit++; }
+                    var gir = self.calcGIR(h);
+                    if (gir !== null) { girOpp++; if (gir) girHit++; }
+                    totalPutts += self.puttCount(h);
+                });
+
+                var totalPar = front9Par + back9Par;
+                rows.push('Total Score,' + totalShots);
+                if (hasPar) {
+                    var rel = totalShots - totalPar;
+                    rows.push('Total Par,' + totalPar);
+                    rows.push('vs Par,' + (rel === 0 ? 'E' : (rel > 0 ? '+' + rel : rel)));
+                    rows.push('Front 9,' + front9Shots + (front9Par ? ' (par ' + front9Par + ')' : ''));
+                    rows.push('Back 9,' + back9Shots  + (back9Par  ? ' (par ' + back9Par  + ')' : ''));
+                }
+                rows.push('Total Putts,' + totalPutts);
+                rows.push('Fairways Hit,' + fwyHit + '/' + fwyOpp);
+                rows.push('GIR (calculated),' + girHit + '/' + girOpp);
+                rows.push('');
+
+                // --- Section 2: Shot detail ---
+                rows.push('SHOT DETAIL');
                 rows.push([
-                    'Hole',
-                    'Shot Number',
-                    'Club',
-                    'Shot Type',
-                    'Target Distance',
-                    'Actual Distance',
-                    'Carry (Bag)',
-                    'Total (Bag)',
-                    'Penalty',
-                    'Timestamp'
-                ].join(','));
-                
-                // Data rows
-                State.holes.forEach(hole => {
-                    hole.shots.forEach((shot, shotIdx) => {
-                        const bagData = State.bag.data[shot.club];
-                        let bagCarry = '';
-                        let bagTotal = '';
-                        
-                        if (bagData && bagData[shot.shotType]) {
-                            bagCarry = bagData[shot.shotType].carry || '';
-                            bagTotal = bagData[shot.shotType].total || '';
-                        }
-                        
+                    'Hole','Par','Yards','HCP','Hole Score','vs Par',
+                    'FWY','GIR','Putts',
+                    'Shot#','Club','Type','Distance (y)',
+                    'Bag Carry (y)','Bag Total (y)',
+                    'Penalty','GPS Lat','GPS Lon','Timestamp'
+                ].map(self.csvField).join(','));
+
+                State.holes.forEach(function(hole) {
+                    if (hole.shots.length === 0) return;
+                    var gir = self.calcGIR(hole);
+                    var vsp = self.vsParHole(hole);
+                    var putts = self.puttCount(hole);
+                    hole.shots.forEach(function(shot, idx) {
+                        var bd = self.bagDist(shot);
                         rows.push([
                             hole.hole,
-                            shotIdx + 1,
+                            hole.par || '',
+                            hole.yards || '',
+                            hole.hcp || '',
+                            hole.shots.length,
+                            vsp === null ? '' : (vsp === 0 ? 'E' : (vsp > 0 ? '+' + vsp : vsp)),
+                            (hole.par === 4 || hole.par === 5) ? (hole.fwy ? 'Y' : 'N') : 'N/A',
+                            gir === null ? '' : (gir ? 'Y' : 'N'),
+                            putts,
+                            idx + 1,
                             shot.club || '',
                             shot.shotType || '',
-                            shot.distance || 0,
-                            shot.distance || 0,
-                            bagCarry,
-                            bagTotal,
-                            shot.penalty ? 'YES' : 'NO',
+                            shot.distance || '',
+                            bd.carry,
+                            bd.total,
+                            shot.penalty ? 'Y' : 'N',
+                            (shot.position && shot.position.lat) ? shot.position.lat : '',
+                            (shot.position && shot.position.lon) ? shot.position.lon : '',
                             shot.timestamp || ''
-                        ].join(','));
+                        ].map(self.csvField).join(','));
                     });
                 });
-                
+
                 return rows.join('\n');
             },
-            
+
             downloadCSV() {
-                const csv = this.generateCSV();
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                
-                const date = new Date(State.round.startedAt);
-                const filename = `shot-tracker-${date.toISOString().split('T')[0]}.csv`;
-                
+                var csv = this.generateCSV();
+                var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                var link = document.createElement('a');
+                var url = URL.createObjectURL(blob);
+                var date = new Date(State.round.startedAt);
+                var filename = 'shot-tracker-' + date.toISOString().split('T')[0] + '.csv';
                 link.setAttribute('href', url);
                 link.setAttribute('download', filename);
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
-                Utils.toast('CSV exported');
+                Utils.toast('CSV downloaded');
             },
-            
-            generateReport() {
-                const lines = [];
-                
-                lines.push('SHOT TRACKER REPORT');
-                lines.push('===================');
-                lines.push('');
-                lines.push(`Course: ${State.courseName || 'Unknown'}`);
-                lines.push(`Date: ${new Date(State.round.startedAt).toLocaleString()}`);
-                lines.push(`Total Shots: ${State.totalShots()}`);
-                lines.push('');
-                lines.push('HOLE-BY-HOLE BREAKDOWN');
-                lines.push('----------------------');
-                
-                State.holes.forEach(hole => {
-                    if (hole.shots.length === 0) return;
-                    
-                    lines.push('');
-                    lines.push(`Hole ${hole.hole} - Par ${hole.par || '?'} - ${hole.yards || '?'} yards`);
-                    lines.push(`Shots: ${hole.shots.length} - Fairway: ${hole.fwy ? 'Yes' : 'No'} - GIR: ${hole.gir ? 'Yes' : 'No'}`);
-                    
-                    hole.shots.forEach((shot, idx) => {
-                        const bagData = State.bag.data[shot.club];
-                        let bagInfo = '';
-                        
-                        if (bagData && bagData[shot.shotType]) {
-                            const dist = bagData[shot.shotType];
-                            bagInfo = ` (Bag: ${dist.carry}y/${dist.total}y)`;
+
+            // ── Report ───────────────────────────────────────────────────────
+
+            generateReportText() {
+                // Plain text version for sharing via iOS share sheet
+                var self = this;
+                var lines = [];
+                var date = new Date(State.round.startedAt);
+                var hasPar = State.holes.some(function(h) { return h.par > 0; });
+                var playedHoles = State.holes.filter(function(h) { return h.shots.length > 0; });
+
+                var totalShots = 0, totalPar = 0;
+                var front9S = 0, front9P = 0, back9S = 0, back9P = 0;
+                var fwyHit = 0, fwyOpp = 0, girHit = 0, girOpp = 0;
+                var puttCounts = { 0:0, 1:0, 2:0, 3:0, more:0 };
+                var totalPutts = 0;
+                var puttDistances = [];
+                var scrambles = 0, scrambleOpp = 0;
+
+                playedHoles.forEach(function(h) {
+                    totalShots += h.shots.length;
+                    if (h.par) { totalPar += h.par; }
+                    if (h.hole <= 9) { front9S += h.shots.length; if (h.par) front9P += h.par; }
+                    else             { back9S  += h.shots.length; if (h.par) back9P  += h.par; }
+                    if (h.par === 4 || h.par === 5) { fwyOpp++; if (h.fwy) fwyHit++; }
+                    var gir = self.calcGIR(h);
+                    if (gir !== null) { girOpp++; if (gir) girHit++; }
+                    var pc = self.puttCount(h);
+                    totalPutts += pc;
+                    if      (pc === 0) puttCounts[0]++;
+                    else if (pc === 1) puttCounts[1]++;
+                    else if (pc === 2) puttCounts[2]++;
+                    else if (pc === 3) puttCounts[3]++;
+                    else               puttCounts.more++;
+                    // Scrambling: missed GIR but made par or better
+                    if (gir === false && h.par > 0 && h.shots.length <= h.par) {
+                        scrambles++;
+                    }
+                    if (gir === false) scrambleOpp++;
+                    // Putt distances
+                    h.shots.forEach(function(s) {
+                        if ((s.shotType || '').toLowerCase() === 'putt' && s.distance > 0) {
+                            puttDistances.push(s.distance);
                         }
-                        
-                        lines.push(`  ${idx + 1}. ${shot.club} ${shot.shotType} - ${shot.distance}y${bagInfo}${shot.penalty ? ' [PENALTY]' : ''}`);
                     });
                 });
-                
+
+                var puttDistTotal = puttDistances.reduce(function(a, b) { return a + b; }, 0);
+                var puttDistAvg = puttDistances.length > 0 ? (puttDistTotal / puttDistances.length).toFixed(1) : null;
+
+                function pct(n, d) { return d > 0 ? Math.round(n / d * 100) + '%' : 'N/A'; }
+                function rel(s, p) { if (!p) return ''; var r = s - p; return r === 0 ? ' (E)' : (r > 0 ? ' (+' + r + ')' : ' (' + r + ')'); }
+
+                lines.push('SHOT TRACKER ROUND REPORT');
+                lines.push('=========================');
+                lines.push('Course : ' + (State.courseName || 'Unknown'));
+                lines.push('Bag    : ' + ((State.bag && State.bag.name) || 'Unknown'));
+                lines.push('Date   : ' + date.toLocaleDateString() + ' ' + date.toLocaleTimeString());
+                lines.push('');
+
+                // Score summary
+                lines.push('SCORE SUMMARY');
+                lines.push('-------------');
+                lines.push('Total  : ' + totalShots + (hasPar ? rel(totalShots, totalPar) : ''));
+                if (hasPar) {
+                    lines.push('Front 9: ' + front9S + rel(front9S, front9P));
+                    lines.push('Back 9 : ' + back9S  + rel(back9S,  back9P));
+                }
+                lines.push('');
+
+                // Key stats
+                lines.push('KEY STATS');
+                lines.push('---------');
+                lines.push('Fairways Hit : ' + fwyHit + '/' + fwyOpp + ' (' + pct(fwyHit, fwyOpp) + ')');
+                lines.push('GIR          : ' + girHit + '/' + girOpp + ' (' + pct(girHit, girOpp) + ')');
+                lines.push('Scrambling   : ' + scrambles + '/' + scrambleOpp + ' (' + pct(scrambles, scrambleOpp) + ')');
+                lines.push('Total Putts  : ' + totalPutts);
+                lines.push('Avg Putts/Hole: ' + (playedHoles.length > 0 ? (totalPutts / playedHoles.length).toFixed(1) : 'N/A'));
+                lines.push('');
+
+                // Putt breakdown
+                lines.push('PUTTING');
+                lines.push('-------');
+                lines.push('0-putt (holed out) : ' + puttCounts[0]);
+                lines.push('1-putt (up & down) : ' + puttCounts[1]);
+                lines.push('2-putt             : ' + puttCounts[2]);
+                lines.push('3-putt             : ' + puttCounts[3]);
+                if (puttCounts.more > 0) lines.push('4-putt+            : ' + puttCounts.more);
+                if (puttDistances.length > 0) {
+                    lines.push('Putt dist data     : ' + puttDistances.length + ' putts');
+                    lines.push('Avg putt dist      : ' + puttDistAvg + 'y');
+                    lines.push('Total putt dist    : ' + puttDistTotal + 'y');
+                }
+                lines.push('');
+
+                // Holes by performance
+                if (hasPar) {
+                    lines.push('HOLES BY PERFORMANCE');
+                    lines.push('--------------------');
+                    var groups = { eb: [], birdie: [], par: [], bogey: [], double: [], triple: [] };
+                    playedHoles.forEach(function(h) {
+                        var d = self.vsParHole(h);
+                        if (d === null) return;
+                        if      (d <= -2) groups.eb.push(h);
+                        else if (d === -1) groups.birdie.push(h);
+                        else if (d === 0)  groups.par.push(h);
+                        else if (d === 1)  groups.bogey.push(h);
+                        else if (d === 2)  groups.double.push(h);
+                        else               groups.triple.push(h);
+                    });
+                    function holeList(arr) {
+                        return arr.map(function(h) { return 'H' + h.hole; }).join(', ') || '—';
+                    }
+                    lines.push('Eagle or Better : ' + holeList(groups.eb));
+                    lines.push('Birdies         : ' + holeList(groups.birdie));
+                    lines.push('Pars            : ' + holeList(groups.par));
+                    lines.push('Bogeys          : ' + holeList(groups.bogey));
+                    lines.push('Double Bogeys   : ' + holeList(groups.double));
+                    lines.push('Triple Bogey+   : ' + holeList(groups.triple));
+                    lines.push('');
+
+                    // Score impact (sorted best to worst)
+                    lines.push('SCORE IMPACT (best to worst)');
+                    lines.push('----------------------------');
+                    lines.push('Hole  Par  Score  vs Par');
+                    var sorted = playedHoles.filter(function(h) { return h.par > 0; }).slice();
+                    sorted.sort(function(a, b) { return self.vsParHole(a) - self.vsParHole(b); });
+                    sorted.forEach(function(h) {
+                        var d = self.vsParHole(h);
+                        var dStr = d === 0 ? ' E' : (d > 0 ? '+' + d : String(d));
+                        lines.push(
+                            String('  ' + h.hole).slice(-4) + '   ' +
+                            String(' ' + h.par).slice(-3) + '  ' +
+                            String('  ' + h.shots.length).slice(-5) + '   ' +
+                            String('  ' + dStr).slice(-6)
+                        );
+                    });
+                    lines.push('');
+                }
+
+                // Club performance
+                lines.push('CLUB PERFORMANCE');
+                lines.push('----------------');
+                var clubMap = {};
+                State.holes.forEach(function(h) {
+                    h.shots.forEach(function(s) {
+                        if (!s.club || s.club === 'Club?' || !s.shotType || s.shotType === 'Type?') return;
+                        if (s.penalty) return;
+                        var key = s.club + '|' + s.shotType;
+                        if (!clubMap[key]) clubMap[key] = { club: s.club, type: s.shotType, dists: [], count: 0 };
+                        clubMap[key].count++;
+                        if (s.distance > 0) clubMap[key].dists.push(s.distance);
+                    });
+                });
+                var clubKeys = Object.keys(clubMap);
+                clubKeys.sort(function(a, b) { return clubMap[b].count - clubMap[a].count; });
+                lines.push('Club       Type     Used  Avg Dist  Bag Carry');
+                clubKeys.forEach(function(key) {
+                    var c = clubMap[key];
+                    var avg = c.dists.length > 0 ? Math.round(c.dists.reduce(function(a,b){return a+b;},0) / c.dists.length) : '—';
+                    var bd = ExportData.bagDist({ club: c.club, shotType: c.type });
+                    lines.push(
+                        String(c.club + '          ').slice(0, 10) + ' ' +
+                        String(c.type + '        ').slice(0, 8) + ' ' +
+                        String('   ' + c.count).slice(-4) + '  ' +
+                        String('      ' + avg).slice(-8) + 'y  ' +
+                        String('      ' + (bd.carry || '—')).slice(-8) + 'y'
+                    );
+                });
+                lines.push('');
+
+                // Hole-by-hole detail
+                lines.push('HOLE-BY-HOLE DETAIL');
+                lines.push('-------------------');
+                playedHoles.forEach(function(h) {
+                    var gir = self.calcGIR(h);
+                    var vsp = self.vsParHole(h);
+                    var vspStr = vsp === null ? '' : (vsp === 0 ? ' E' : (vsp > 0 ? ' +' + vsp : ' ' + vsp));
+                    lines.push('');
+                    lines.push('Hole ' + h.hole +
+                        (h.par   ? ' · Par '   + h.par   : '') +
+                        (h.yards ? ' · '       + h.yards + 'y' : '') +
+                        (h.hcp   ? ' · HCP '   + h.hcp   : '') +
+                        ' · Score ' + h.shots.length + vspStr);
+                    var stats = [];
+                    if (h.par === 4 || h.par === 5) stats.push('FWY:' + (h.fwy ? 'Y' : 'N'));
+                    stats.push('GIR:' + (gir === null ? '?' : (gir ? 'Y' : 'N')));
+                    stats.push('Putts:' + self.puttCount(h));
+                    if (self.holedOut(h)) stats.push('HOLED OUT');
+                    lines.push('  ' + stats.join(' · '));
+                    h.shots.forEach(function(s, idx) {
+                        var bd = self.bagDist(s);
+                        var bagStr = bd.carry ? ' (bag:' + bd.carry + 'y)' : '';
+                        lines.push('  ' + (idx+1) + '. ' + (s.club||'?') + ' ' + (s.shotType||'?') +
+                            (s.distance ? ' ' + s.distance + 'y' : '') +
+                            bagStr +
+                            (s.penalty ? ' [PEN]' : ''));
+                    });
+                });
+
                 return lines.join('\n');
             },
-            
+
             showReport() {
-                const report = this.generateReport();
-                
-                // Create modal for report
-                const backdrop = document.createElement('div');
+                var self = this;
+
+                // Build the modal
+                var backdrop = document.createElement('div');
                 backdrop.className = 'backdrop active';
                 backdrop.style.zIndex = '300';
-                
-                const modal = document.createElement('div');
+
+                var modal = document.createElement('div');
                 modal.className = 'sheet active';
-                modal.style.cssText = 'z-index: 301; max-height: 90vh;';
-                
-                const header = document.createElement('div');
+                modal.style.cssText = 'z-index:301; max-height:90vh; display:flex; flex-direction:column;';
+
+                // Header
+                var header = document.createElement('div');
                 header.className = 'sheet-header';
-                
-                const title = document.createElement('h3');
+                header.style.flexShrink = '0';
+
+                var title = document.createElement('h3');
                 title.className = 'sheet-title';
                 title.textContent = 'Round Report';
-                
-                const actions = document.createElement('div');
+
+                var actions = document.createElement('div');
                 actions.className = 'sheet-actions';
-                
-                const closeBtn = document.createElement('button');
+
+                // Share button
+                var shareBtn = document.createElement('button');
+                shareBtn.className = 'btn btn-sm btn-primary';
+                shareBtn.textContent = '📤 Share';
+                shareBtn.onclick = function() {
+                    var text = self.generateReportText();
+                    if (navigator.share) {
+                        var date = new Date(State.round.startedAt);
+                        navigator.share({
+                            title: 'Shot Tracker Round Report',
+                            text: text
+                        }).catch(function(e) { console.log('Share cancelled', e); });
+                    } else {
+                        // Fallback: copy to clipboard
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(text).then(function() {
+                                Utils.toast('Report copied to clipboard');
+                            });
+                        } else {
+                            Utils.toast('Sharing not supported on this device');
+                        }
+                    }
+                };
+
+                var closeBtn = document.createElement('button');
                 closeBtn.className = 'btn btn-sm btn-secondary';
                 closeBtn.textContent = 'Close';
-                closeBtn.onclick = () => {
-                    backdrop.remove();
-                    modal.remove();
-                };
-                
+                closeBtn.onclick = function() { backdrop.remove(); modal.remove(); };
+
+                actions.appendChild(shareBtn);
                 actions.appendChild(closeBtn);
                 header.appendChild(title);
                 header.appendChild(actions);
-                
-                const content = document.createElement('pre');
-                content.style.cssText = 'white-space: pre-wrap; font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.6; color: var(--text-primary); overflow-x: auto; margin-top: var(--space-4);';
-                content.textContent = report;
-                
+
+                // Scrollable content area
+                var scrollArea = document.createElement('div');
+                scrollArea.style.cssText = 'overflow-y:auto; flex:1; padding: var(--space-4) var(--space-4) var(--space-6);';
+
+                // Render the report as styled HTML sections
+                scrollArea.innerHTML = self.buildReportHTML();
+
                 modal.appendChild(header);
-                modal.appendChild(content);
-                
+                modal.appendChild(scrollArea);
                 document.body.appendChild(backdrop);
                 document.body.appendChild(modal);
-                
-                backdrop.onclick = () => {
-                    backdrop.remove();
-                    modal.remove();
-                };
+
+                backdrop.onclick = function() { backdrop.remove(); modal.remove(); };
+            },
+
+            buildReportHTML() {
+                var self = this;
+                var hasPar = State.holes.some(function(h) { return h.par > 0; });
+                var playedHoles = State.holes.filter(function(h) { return h.shots.length > 0; });
+                var date = new Date(State.round.startedAt);
+
+                // Accumulate stats
+                var totalShots = 0, totalPar = 0;
+                var front9S = 0, front9P = 0, back9S = 0, back9P = 0;
+                var fwyHit = 0, fwyOpp = 0, girHit = 0, girOpp = 0;
+                var puttCounts = { 0:0, 1:0, 2:0, 3:0, more:0 };
+                var totalPutts = 0;
+                var puttDistances = [];
+                var scrambles = 0, scrambleOpp = 0;
+
+                playedHoles.forEach(function(h) {
+                    totalShots += h.shots.length;
+                    if (h.par) totalPar += h.par;
+                    if (h.hole <= 9) { front9S += h.shots.length; if (h.par) front9P += h.par; }
+                    else             { back9S  += h.shots.length; if (h.par) back9P  += h.par; }
+                    if (h.par === 4 || h.par === 5) { fwyOpp++; if (h.fwy) fwyHit++; }
+                    var gir = self.calcGIR(h);
+                    if (gir !== null) { girOpp++; if (gir) girHit++; }
+                    var pc = self.puttCount(h);
+                    totalPutts += pc;
+                    if      (pc === 0) puttCounts[0]++;
+                    else if (pc === 1) puttCounts[1]++;
+                    else if (pc === 2) puttCounts[2]++;
+                    else if (pc === 3) puttCounts[3]++;
+                    else               puttCounts.more++;
+                    if (gir === false && h.par > 0 && h.shots.length <= h.par) scrambles++;
+                    if (gir === false) scrambleOpp++;
+                    h.shots.forEach(function(s) {
+                        if ((s.shotType||'').toLowerCase() === 'putt' && s.distance > 0) puttDistances.push(s.distance);
+                    });
+                });
+
+                var puttDistTotal = puttDistances.reduce(function(a,b){return a+b;},0);
+                var puttDistAvg = puttDistances.length > 0 ? (puttDistTotal/puttDistances.length).toFixed(1) : null;
+
+                function pct(n,d) { return d > 0 ? Math.round(n/d*100)+'%' : 'N/A'; }
+                function relStr(s,p) { if(!p) return ''; var r=s-p; return r===0?'E':(r>0?'+'+r:String(r)); }
+                function relColor(s,p) { if(!p) return ''; var r=s-p; return r<0?'color:#e64545':r>0?'color:#888':''; }
+
+                // Shared styles
+                var sectionHead = 'font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin:20px 0 8px;';
+                var card = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;margin-bottom:8px;';
+                var statRow = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.85rem;';
+                var statLast = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:0.85rem;';
+                var tbl = 'width:100%;border-collapse:collapse;font-size:0.8rem;';
+                var th = 'text-align:center;padding:5px 3px;font-size:0.6rem;font-weight:700;color:#888;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1);';
+                var td = 'text-align:center;padding:5px 3px;border-bottom:1px solid rgba(255,255,255,0.05);';
+                var tdL = 'text-align:left;padding:5px 3px;border-bottom:1px solid rgba(255,255,255,0.05);';
+
+                var h = '';
+
+                // ── Header ──
+                h += '<div style="margin-bottom:4px;">';
+                h += '<div style="font-size:1.1rem;font-weight:900;color:#fff;">' + (State.courseName || 'Unknown Course') + '</div>';
+                h += '<div style="font-size:0.75rem;color:#888;margin-top:2px;">' + date.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}) + ' &nbsp;·&nbsp; ' + ((State.bag&&State.bag.name)||'Unknown Bag') + '</div>';
+                h += '</div>';
+
+                // ── Score Summary ──
+                h += '<div style="' + sectionHead + '">Score Summary</div>';
+                h += '<div style="' + card + '">';
+                // Big score display
+                h += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
+                var bigPill = 'flex:1;background:rgba(255,255,255,0.06);border-radius:8px;padding:10px 4px;text-align:center;';
+                h += '<div style="' + bigPill + '"><div style="font-size:1.5rem;font-weight:900;color:#fff;">' + totalShots + '</div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">Total</div></div>';
+                if (hasPar) {
+                    var relTotal = totalShots - totalPar;
+                    var relTotalStr = relTotal === 0 ? 'E' : (relTotal > 0 ? '+'+relTotal : String(relTotal));
+                    var relTotalColor = relTotal < 0 ? '#e64545' : relTotal > 0 ? '#888' : '#fff';
+                    h += '<div style="' + bigPill + '"><div style="font-size:1.5rem;font-weight:900;color:' + relTotalColor + ';">' + relTotalStr + '</div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">vs Par</div></div>';
+                    h += '<div style="' + bigPill + '"><div style="font-size:1.1rem;font-weight:900;color:#fff;">' + front9S + '<span style="font-size:0.7rem;color:#888;"> ' + relStr(front9S,front9P) + '</span></div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">Front 9</div></div>';
+                    h += '<div style="' + bigPill + '"><div style="font-size:1.1rem;font-weight:900;color:#fff;">' + back9S + '<span style="font-size:0.7rem;color:#888;"> ' + relStr(back9S,back9P) + '</span></div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">Back 9</div></div>';
+                }
+                h += '</div>';
+                h += '</div>';
+
+                // ── Key Stats ──
+                h += '<div style="' + sectionHead + '">Key Stats</div>';
+                h += '<div style="' + card + '">';
+                function statLine(label, val, last) {
+                    return '<div style="' + (last?statLast:statRow) + '"><span style="color:#aaa;">' + label + '</span><span style="font-weight:700;color:#fff;">' + val + '</span></div>';
+                }
+                h += statLine('Fairways Hit', fwyHit+'/'+fwyOpp+' ('+pct(fwyHit,fwyOpp)+')');
+                h += statLine('GIR (calculated)', girHit+'/'+girOpp+' ('+pct(girHit,girOpp)+')');
+                h += statLine('Scrambling', scrambles+'/'+scrambleOpp+' ('+pct(scrambles,scrambleOpp)+')');
+                h += statLine('Total Putts', totalPutts);
+                h += statLine('Avg Putts/Hole', playedHoles.length>0?(totalPutts/playedHoles.length).toFixed(1):'N/A', !puttDistances.length);
+                if (puttDistances.length > 0) {
+                    h += statLine('Avg Putt Distance', puttDistAvg+'y');
+                    h += statLine('Total Putt Distance', puttDistTotal+'y', true);
+                }
+                h += '</div>';
+
+                // ── Putting Breakdown ──
+                h += '<div style="' + sectionHead + '">Putting Breakdown</div>';
+                h += '<div style="' + card + 'display:flex;gap:6px;">';
+                function puttPill(label, val) {
+                    return '<div style="flex:1;background:rgba(255,255,255,0.06);border-radius:6px;padding:8px 4px;text-align:center;"><div style="font-size:1.1rem;font-weight:900;color:#fff;">'+val+'</div><div style="font-size:0.55rem;color:#888;text-transform:uppercase;margin-top:2px;">'+label+'</div></div>';
+                }
+                h += puttPill('0-putt', puttCounts[0]);
+                h += puttPill('1-putt', puttCounts[1]);
+                h += puttPill('2-putt', puttCounts[2]);
+                h += puttPill('3-putt', puttCounts[3]);
+                if (puttCounts.more > 0) h += puttPill('4-putt+', puttCounts.more);
+                h += '</div>';
+
+                // ── Holes by Performance ──
+                if (hasPar) {
+                    h += '<div style="' + sectionHead + '">Holes by Performance</div>';
+                    h += '<div style="' + card + '">';
+                    var groups = { eb:[], birdie:[], par:[], bogey:[], double:[], triple:[] };
+                    playedHoles.forEach(function(hole) {
+                        var d = self.vsParHole(hole);
+                        if (d === null) return;
+                        if      (d <= -2) groups.eb.push(hole);
+                        else if (d === -1) groups.birdie.push(hole);
+                        else if (d === 0)  groups.par.push(hole);
+                        else if (d === 1)  groups.bogey.push(hole);
+                        else if (d === 2)  groups.double.push(hole);
+                        else               groups.triple.push(hole);
+                    });
+                    var perfRows = [
+                        { label:'Eagle or Better', color:'#e64545', items: groups.eb },
+                        { label:'Birdie',           color:'#e64545', items: groups.birdie },
+                        { label:'Par',              color:'#fff',    items: groups.par },
+                        { label:'Bogey',            color:'#aaa',    items: groups.bogey },
+                        { label:'Double Bogey',     color:'#888',    items: groups.double },
+                        { label:'Triple Bogey+',    color:'#666',    items: groups.triple }
+                    ];
+                    perfRows.forEach(function(row, i) {
+                        var isLast = i === perfRows.length - 1;
+                        var holes = row.items.map(function(hole) { return 'H'+hole.hole; }).join(', ') || '—';
+                        h += '<div style="'+(isLast?statLast:statRow)+'"><span style="color:#aaa;">'+row.label+'</span><span style="font-weight:700;color:'+row.color+';">'+holes+'</span></div>';
+                    });
+                    h += '</div>';
+
+                    // Score Impact Table
+                    h += '<div style="' + sectionHead + '">Score Impact (best to worst)</div>';
+                    h += '<div style="' + card + 'padding:0;overflow:hidden;">';
+                    h += '<table style="' + tbl + '">';
+                    h += '<thead><tr>';
+                    h += '<th style="' + th + 'text-align:left;padding-left:10px;">Hole</th>';
+                    h += '<th style="' + th + '">Par</th>';
+                    h += '<th style="' + th + '">Yds</th>';
+                    h += '<th style="' + th + '">Score</th>';
+                    h += '<th style="' + th + '">vs Par</th>';
+                    h += '<th style="' + th + '">FWY</th>';
+                    h += '<th style="' + th + '">GIR</th>';
+                    h += '</tr></thead><tbody>';
+                    var sorted = playedHoles.filter(function(hole) { return hole.par > 0; }).slice();
+                    sorted.sort(function(a, b) { return self.vsParHole(a) - self.vsParHole(b); });
+                    sorted.forEach(function(hole) {
+                        var d = self.vsParHole(hole);
+                        var dStr = d === 0 ? 'E' : (d > 0 ? '+'+d : String(d));
+                        var dColor = d < 0 ? '#e64545' : d > 0 ? '#888' : '#fff';
+                        var gir = self.calcGIR(hole);
+                        h += '<tr>';
+                        h += '<td style="' + tdL + 'padding-left:10px;font-weight:700;">H' + hole.hole + '</td>';
+                        h += '<td style="' + td + '">' + (hole.par||'—') + '</td>';
+                        h += '<td style="' + td + '">' + (hole.yards||'—') + '</td>';
+                        h += '<td style="' + td + 'font-weight:700;">' + hole.shots.length + '</td>';
+                        h += '<td style="' + td + 'font-weight:900;color:' + dColor + ';">' + dStr + '</td>';
+                        h += '<td style="' + td + '">' + ((hole.par===4||hole.par===5)?(hole.fwy?'✓':'✗'):'—') + '</td>';
+                        h += '<td style="' + td + '">' + (gir===null?'—':(gir?'✓':'✗')) + '</td>';
+                        h += '</tr>';
+                    });
+                    h += '</tbody></table></div>';
+                }
+
+                // ── Club Performance ──
+                var clubMap = {};
+                State.holes.forEach(function(hole) {
+                    hole.shots.forEach(function(s) {
+                        if (!s.club||s.club==='Club?'||!s.shotType||s.shotType==='Type?'||s.penalty) return;
+                        var key = s.club+'|'+s.shotType;
+                        if (!clubMap[key]) clubMap[key] = { club:s.club, type:s.shotType, dists:[], count:0 };
+                        clubMap[key].count++;
+                        if (s.distance > 0) clubMap[key].dists.push(s.distance);
+                    });
+                });
+                var clubKeys = Object.keys(clubMap);
+                if (clubKeys.length > 0) {
+                    clubKeys.sort(function(a,b){ return clubMap[b].count - clubMap[a].count; });
+                    // Split putts vs non-putts
+                    var nonPuttKeys = clubKeys.filter(function(k){ return clubMap[k].type.toLowerCase() !== 'putt'; });
+                    var puttKeys    = clubKeys.filter(function(k){ return clubMap[k].type.toLowerCase() === 'putt'; });
+
+                    if (nonPuttKeys.length > 0) {
+                        h += '<div style="' + sectionHead + '">Club Performance</div>';
+                        h += '<div style="' + card + 'padding:0;overflow:hidden;">';
+                        h += '<table style="' + tbl + '">';
+                        h += '<thead><tr>';
+                        h += '<th style="' + th + 'text-align:left;padding-left:10px;">Club</th>';
+                        h += '<th style="' + th + '">Type</th>';
+                        h += '<th style="' + th + '">Used</th>';
+                        h += '<th style="' + th + '">Avg</th>';
+                        h += '<th style="' + th + '">Bag</th>';
+                        h += '</tr></thead><tbody>';
+                        nonPuttKeys.forEach(function(key) {
+                            var c = clubMap[key];
+                            var avg = c.dists.length > 0 ? Math.round(c.dists.reduce(function(a,b){return a+b;},0)/c.dists.length) : '—';
+                            var bd = self.bagDist({ club:c.club, shotType:c.type });
+                            var diff = (avg !== '—' && bd.carry) ? avg - parseInt(bd.carry) : null;
+                            var diffStr = diff === null ? '' : (diff === 0 ? 'E' : (diff > 0 ? '+'+diff : String(diff)));
+                            var diffColor = diff === null ? '' : (diff > 5 ? 'color:#4ade80' : diff < -5 ? 'color:#e64545' : 'color:#888');
+                            h += '<tr>';
+                            h += '<td style="' + tdL + 'padding-left:10px;font-weight:700;">' + c.club + '</td>';
+                            h += '<td style="' + td + 'color:#aaa;">' + c.type + '</td>';
+                            h += '<td style="' + td + '">' + c.count + '</td>';
+                            h += '<td style="' + td + 'font-weight:700;">' + avg + (avg!=='—'?'y':'') + '</td>';
+                            h += '<td style="' + td + 'color:#aaa;">' + (bd.carry?bd.carry+'y':'—') + (diffStr?'<span style="font-size:0.7rem;'+diffColor+'"> '+diffStr+'</span>':'') + '</td>';
+                            h += '</tr>';
+                        });
+                        h += '</tbody></table></div>';
+                    }
+
+                    if (puttKeys.length > 0) {
+                        h += '<div style="' + sectionHead + '">Putting by Club</div>';
+                        h += '<div style="' + card + 'padding:0;overflow:hidden;">';
+                        h += '<table style="' + tbl + '">';
+                        h += '<thead><tr>';
+                        h += '<th style="' + th + 'text-align:left;padding-left:10px;">Club</th>';
+                        h += '<th style="' + th + '">Putts</th>';
+                        h += '<th style="' + th + '">Avg Dist</th>';
+                        h += '<th style="' + th + '">Total Dist</th>';
+                        h += '</tr></thead><tbody>';
+                        puttKeys.forEach(function(key) {
+                            var c = clubMap[key];
+                            var avg = c.dists.length > 0 ? (c.dists.reduce(function(a,b){return a+b;},0)/c.dists.length).toFixed(1) : '—';
+                            var tot = c.dists.length > 0 ? c.dists.reduce(function(a,b){return a+b;},0) : '—';
+                            h += '<tr>';
+                            h += '<td style="' + tdL + 'padding-left:10px;font-weight:700;">' + c.club + '</td>';
+                            h += '<td style="' + td + '">' + c.count + '</td>';
+                            h += '<td style="' + td + '">' + avg + (avg!=='—'?'y':'') + '</td>';
+                            h += '<td style="' + td + '">' + tot + (tot!=='—'?'y':'') + '</td>';
+                            h += '</tr>';
+                        });
+                        h += '</tbody></table></div>';
+                    }
+                }
+
+                // ── Hole-by-hole detail ──
+                h += '<div style="' + sectionHead + '">Hole-by-Hole Detail</div>';
+                playedHoles.forEach(function(hole) {
+                    var gir = self.calcGIR(hole);
+                    var vsp = self.vsParHole(hole);
+                    var vspStr = vsp===null?'':(vsp===0?' E':(vsp>0?' +'+vsp:' '+vsp));
+                    var vspColor = vsp===null?'#fff':(vsp<0?'#e64545':vsp>0?'#888':'#fff');
+                    h += '<div style="' + card + '">';
+                    // Hole header row
+                    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+                    h += '<span style="font-weight:900;font-size:0.9rem;">Hole ' + hole.hole;
+                    if (hole.par)   h += ' <span style="color:#888;font-weight:400;font-size:0.75rem;">Par '+hole.par+'</span>';
+                    if (hole.yards) h += ' <span style="color:#888;font-weight:400;font-size:0.75rem;">'+hole.yards+'y</span>';
+                    if (hole.hcp)   h += ' <span style="color:#888;font-weight:400;font-size:0.75rem;">HCP '+hole.hcp+'</span>';
+                    h += '</span>';
+                    h += '<span style="font-size:1rem;font-weight:900;color:'+vspColor+';">'+hole.shots.length+vspStr+'</span>';
+                    h += '</div>';
+                    // Stat badges
+                    h += '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">';
+                    function badge(label, val, color) {
+                        return '<span style="font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:'+(color||'#aaa')+';">'+label+': '+val+'</span>';
+                    }
+                    if (hole.par===4||hole.par===5) h += badge('FWY', hole.fwy?'✓':'✗', hole.fwy?'#4ade80':'#888');
+                    h += badge('GIR', gir===null?'?':(gir?'✓':'✗'), gir?'#4ade80':'#888');
+                    h += badge('Putts', self.puttCount(hole));
+                    if (self.holedOut(hole)) h += badge('HOLED OUT','⭐','#fbbf24');
+                    h += '</div>';
+                    // Shot list
+                    h += '<table style="' + tbl + '">';
+                    hole.shots.forEach(function(s, idx) {
+                        var bd = self.bagDist(s);
+                        h += '<tr>';
+                        h += '<td style="color:#888;font-size:0.75rem;padding:2px 4px 2px 0;width:18px;">'+(idx+1)+'.</td>';
+                        h += '<td style="font-weight:700;font-size:0.8rem;padding:2px 4px;">'+(s.club||'?')+'</td>';
+                        h += '<td style="color:#aaa;font-size:0.75rem;padding:2px 4px;">'+(s.shotType||'?')+'</td>';
+                        h += '<td style="font-weight:700;font-size:0.8rem;padding:2px 4px;">'+(s.distance?s.distance+'y':'—')+'</td>';
+                        h += '<td style="color:#666;font-size:0.7rem;padding:2px 4px;">'+(bd.carry?'('+bd.carry+'y)':'')+'</td>';
+                        h += '<td style="color:#e64545;font-size:0.7rem;padding:2px 4px;">'+(s.penalty?'PEN':'')+'</td>';
+                        h += '</tr>';
+                    });
+                    h += '</table>';
+                    h += '</div>';
+                });
+
+                return h;
             }
         };
         
