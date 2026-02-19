@@ -3718,6 +3718,133 @@
         // EVENT BINDING
         // ============================================
         
+        // ============================================
+        // ROUND SETUP UI
+        // ============================================
+        
+        const RoundSetupUI = {
+            confirmed: false,
+            
+            open() {
+                this.confirmed = false;
+                this.populateSelects();
+                this.resetStartButton();
+                if (UI.els.roundSetupBackdrop) UI.els.roundSetupBackdrop.classList.add('active');
+                if (UI.els.roundSetupSheet) UI.els.roundSetupSheet.classList.add('active');
+            },
+            
+            close() {
+                this.confirmed = false;
+                this.resetStartButton();
+                if (UI.els.roundSetupBackdrop) UI.els.roundSetupBackdrop.classList.remove('active');
+                if (UI.els.roundSetupSheet) UI.els.roundSetupSheet.classList.remove('active');
+            },
+            
+            populateSelects() {
+                const bagSel = UI.els.roundBagSelect;
+                if (bagSel) {
+                    bagSel.innerHTML = '';
+                    Library.getBags().forEach(function(bag) {
+                        const opt = document.createElement('option');
+                        opt.value = bag.id;
+                        opt.textContent = bag.name;
+                        if (bag.id === State.currentBagId) opt.selected = true;
+                        bagSel.appendChild(opt);
+                    });
+                }
+                const courseSel = UI.els.roundCourseSelect;
+                if (courseSel) {
+                    courseSel.innerHTML = '';
+                    Library.getCourses().forEach(function(course) {
+                        const opt = document.createElement('option');
+                        opt.value = course.id;
+                        opt.textContent = course.name;
+                        if (course.id === State.currentCourseId) opt.selected = true;
+                        courseSel.appendChild(opt);
+                    });
+                }
+            },
+            
+            resetStartButton() {
+                const btn = UI.els.btnStartRound;
+                if (!btn) return;
+                btn.textContent = 'Start Round';
+                btn.style.background = '';
+                btn.style.borderColor = '';
+                this.confirmed = false;
+            },
+            
+            startRound() {
+                const bagSel = UI.els.roundBagSelect;
+                const courseSel = UI.els.roundCourseSelect;
+                const bagId = bagSel ? bagSel.value : null;
+                const courseId = courseSel ? courseSel.value : null;
+                if (!bagId || !courseId) {
+                    Utils.toast('Select a bag and course');
+                    return;
+                }
+                
+                // Check for existing shot data
+                const totalShots = State.totalShots();
+                if (totalShots > 0 && !this.confirmed) {
+                    const btn = UI.els.btnStartRound;
+                    if (btn) {
+                        btn.textContent = 'Clear ' + totalShots + ' shots & start?';
+                        btn.style.background = 'rgba(230,69,69,0.2)';
+                        btn.style.borderColor = 'rgba(230,69,69,0.6)';
+                    }
+                    this.confirmed = true;
+                    const self = this;
+                    setTimeout(function() {
+                        if (self.confirmed) self.resetStartButton();
+                    }, 4000);
+                    return;
+                }
+                
+                const bag = Library.getBag(bagId);
+                const course = Library.getCourse(courseId);
+                if (!bag || !course) {
+                    Utils.toast('Bag or course not found');
+                    return;
+                }
+                
+                State.currentBagId = bagId;
+                State.currentCourseId = courseId;
+                
+                State.bag = {
+                    name: bag.name || '',
+                    clubs: bag.clubs.slice(),
+                    shotTypes: bag.shotTypes.slice(),
+                    data: JSON.parse(JSON.stringify(bag.data))
+                };
+                
+                State.initHoles();
+                
+                if (course.holes) {
+                    course.holes.forEach(function(ch, idx) {
+                        if (State.holes[idx]) {
+                            State.holes[idx].par = ch.par || 0;
+                            State.holes[idx].yards = ch.yards || 0;
+                            State.holes[idx].hcp = ch.hcp || 0;
+                            if (ch.teeGPS) State.holes[idx].tee = ch.teeGPS;
+                            if (ch.flagGPS) State.holes[idx].flag = ch.flagGPS;
+                        }
+                    });
+                }
+                
+                State.courseName = course.name || '';
+                State.course = course;
+                State.holeIndex = 0;
+                State.round = { startedAt: Utils.nowISO() };
+                
+                State.save();
+                UI.render();
+                this.close();
+                LibraryUI.close();
+                Utils.toast('Round started: ' + course.name);
+            }
+        };
+
         const Events = {
             bind() {
                 // Tee / Flag / Shot / Mark
@@ -3875,6 +4002,9 @@
                 
                 // Library
                 this.on('btnNewRoundHeader', 'click', () => RoundSetupUI.open());
+                this.on('btnNewRound', 'click', () => RoundSetupUI.open());
+                this.on('btnCancelRound', 'click', () => RoundSetupUI.close());
+                this.on('btnStartRound', 'click', () => RoundSetupUI.startRound());
                 this.on('btnLibrary', 'click', () => LibraryUI.open());
                 this.on('btnCloseLibrary', 'click', () => LibraryUI.close());
                 this.on('libraryBackdrop', 'click', () => LibraryUI.close());
