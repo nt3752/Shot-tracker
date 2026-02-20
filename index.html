@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v41.3</title>
+    <title>Shot Tracker v41.4</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -1013,7 +1013,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v41.3</span>
+                    <span class="brand-version">v41.4</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard">📋</button>
@@ -1442,7 +1442,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.3';
+        const VERSION = 'v41.4';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -3319,8 +3319,9 @@
                             State.holes[idx].par = ch.par || 0;
                             State.holes[idx].yards = ch.yards || 0;
                             State.holes[idx].hcp = ch.hcp || 0;
-                            if (ch.teeGPS) State.holes[idx].tee = ch.teeGPS;
-                            if (ch.flagGPS) State.holes[idx].flag = ch.flagGPS;
+                            if (ch.teeGPS)   State.holes[idx].tee      = ch.teeGPS;
+                            if (ch.flagGPS)  State.holes[idx].flag     = ch.flagGPS;
+                            if (ch.planPath) State.holes[idx].planPath = ch.planPath;
                         }
                     });
                 }
@@ -3454,6 +3455,88 @@
                     card.appendChild(header);
                     card.appendChild(inputs);
                     card.appendChild(gpsSect);
+
+                    // ── Shot Plan section (waypoints = par - 2) ──
+                    var par = hole.par || 0;
+                    var wpCount = par >= 3 ? par - 2 : 0;
+                    if (wpCount > 0) {
+                        var planSect = document.createElement('div');
+                        planSect.style.cssText = 'border-top:1px solid rgba(255,255,255,0.06);padding-top:var(--space-2);margin-top:var(--space-2);display:flex;flex-direction:column;gap:var(--space-2);';
+
+                        var planHeader = document.createElement('div');
+                        planHeader.style.cssText = 'font-size:0.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;';
+                        planHeader.textContent = 'Shot Plan (' + wpCount + ' waypoint' + (wpCount > 1 ? 's' : '') + ')';
+                        planSect.appendChild(planHeader);
+
+                        var planPath = hole.planPath || [];
+
+                        for (var w = 0; w < wpCount; w++) {
+                            (function(wIdx) {
+                                var currentWP = planPath[wIdx] || null;
+                                var wpLabel = wpCount === 1 ? 'W1' : ('W' + (wIdx + 1));
+                                var wpFieldId = 'gps-plan-' + idx + '-' + wIdx;
+
+                                var row = document.createElement('div');
+                                row.style.cssText = 'display:flex;gap:6px;align-items:center;';
+
+                                var lbl = document.createElement('span');
+                                lbl.style.cssText = 'font-size:0.65rem;font-weight:700;color:#fbbf24;width:32px;flex-shrink:0;text-transform:uppercase;';
+                                lbl.textContent = wpLabel;
+
+                                var inp = document.createElement('input');
+                                inp.id = wpFieldId;
+                                inp.type = 'text';
+                                inp.placeholder = currentWP && currentWP.lat
+                                    ? currentWP.lat.toFixed(6) + ', ' + currentWP.lon.toFixed(6)
+                                    : 'Paste from Google Maps';
+                                inp.style.cssText = 'flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--space-2);color:var(--text-primary);font-size:0.75rem;font-family:var(--font-mono);';
+                                inp.setAttribute('enterkeyhint', 'done');
+                                inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') inp.blur(); });
+
+                                var btn = document.createElement('button');
+                                btn.type = 'button';
+                                btn.textContent = 'Set';
+                                btn.style.cssText = 'padding:6px 10px;font-size:0.7rem;font-weight:700;border-radius:var(--radius-sm);border:1px solid var(--border);background:rgba(255,255,255,0.08);color:var(--text-primary);flex-shrink:0;';
+
+                                btn.addEventListener('click', function() {
+                                    inp.blur();
+                                    var val = inp.value.trim();
+                                    if (!val) { Utils.toast('Paste coordinates first'); return; }
+                                    setTimeout(function() {
+                                        var gps = self.parseGPS(val);
+                                        if (!gps) {
+                                            Utils.toast('Invalid format — use: lat, lon');
+                                            inp.style.borderColor = '#e64545';
+                                            return;
+                                        }
+                                        inp.style.borderColor = '';
+                                        // Store in planPath array
+                                        if (!State.holes[idx].planPath) State.holes[idx].planPath = [];
+                                        State.holes[idx].planPath[wIdx] = gps;
+                                        inp.value = '';
+                                        inp.placeholder = gps.lat.toFixed(6) + ', ' + gps.lon.toFixed(6);
+                                        btn.textContent = '✓';
+                                        btn.style.color = '#fbbf24';
+                                        btn.style.borderColor = '#fbbf24';
+                                        setTimeout(function() {
+                                            btn.textContent = 'Set';
+                                            btn.style.color = '';
+                                            btn.style.borderColor = '';
+                                        }, 1500);
+                                        Utils.toast('H' + (idx+1) + ' ' + wpLabel + ' set');
+                                    }, 320);
+                                });
+
+                                row.appendChild(lbl);
+                                row.appendChild(inp);
+                                row.appendChild(btn);
+                                planSect.appendChild(row);
+                            })(w);
+                        }
+
+                        card.appendChild(planSect);
+                    }
+
                     UI.els.courseHoles.appendChild(card);
                 });
             },
@@ -3533,8 +3616,9 @@
                             existingCourse.holes[idx].yards = hd.yards;
                             existingCourse.holes[idx].hcp   = hd.hcp;
                             // Persist any GPS set via paste fields
-                            if (State.holes[idx].tee)  existingCourse.holes[idx].teeGPS  = State.holes[idx].tee;
-                            if (State.holes[idx].flag) existingCourse.holes[idx].flagGPS = State.holes[idx].flag;
+                            if (State.holes[idx].tee)      existingCourse.holes[idx].teeGPS   = State.holes[idx].tee;
+                            if (State.holes[idx].flag)     existingCourse.holes[idx].flagGPS  = State.holes[idx].flag;
+                            if (State.holes[idx].planPath) existingCourse.holes[idx].planPath = State.holes[idx].planPath;
                         }
                     });
                     Library.saveCourse(existingCourse);
@@ -3828,12 +3912,11 @@
                         scrambles++;
                     }
                     if (gir === false) scrambleOpp++;
-                    // Putt distances
-                    h.shots.forEach(function(s) {
-                        if ((s.shotType || '').toLowerCase() === 'putt' && s.distance > 0) {
-                            puttDistances.push(s.distance);
-                        }
+                    // First putt distance only — measures proximity to pin, not total putting distance
+                    var firstPutt = h.shots.find(function(s) {
+                        return (s.shotType || '').toLowerCase() === 'putt' && s.distance > 0;
                     });
+                    if (firstPutt) puttDistances.push(firstPutt.distance);
                 });
 
                 var puttDistTotal = puttDistances.reduce(function(a, b) { return a + b; }, 0);
@@ -3878,9 +3961,9 @@
                 lines.push('3-putt             : ' + puttCounts[3]);
                 if (puttCounts.more > 0) lines.push('4-putt+            : ' + puttCounts.more);
                 if (puttDistances.length > 0) {
-                    lines.push('Putt dist data     : ' + puttDistances.length + ' putts');
-                    lines.push('Avg putt dist      : ' + puttDistAvg + 'ft');
-                    lines.push('Total putt dist    : ' + puttDistTotal + 'ft');
+                    lines.push('1st putt data      : ' + puttDistances.length + ' holes');
+                    lines.push('Avg 1st putt dist  : ' + puttDistAvg + 'ft');
+                    lines.push('Total 1st putt dist: ' + puttDistTotal + 'ft');
                 }
 
                 // Putt distance analysis
@@ -4114,9 +4197,11 @@
                     else               puttCounts.more++;
                     if (gir === false && h.par > 0 && h.shots.length <= h.par) scrambles++;
                     if (gir === false) scrambleOpp++;
-                    h.shots.forEach(function(s) {
-                        if ((s.shotType||'').toLowerCase() === 'putt' && s.distance > 0) puttDistances.push(s.distance);
+                    // First putt distance only — measures proximity to pin
+                    var firstPutt = h.shots.find(function(s) {
+                        return (s.shotType||'').toLowerCase() === 'putt' && s.distance > 0;
                     });
+                    if (firstPutt) puttDistances.push(firstPutt.distance);
                 });
 
                 var puttDistTotal = puttDistances.reduce(function(a,b){return a+b;},0);
@@ -4178,8 +4263,8 @@
                 h += statLine('Total Putts', totalPutts);
                 h += statLine('Avg Putts/Hole', playedHoles.length>0?(totalPutts/playedHoles.length).toFixed(1):'N/A', !puttDistances.length);
                 if (puttDistances.length > 0) {
-                    h += statLine('Avg Putt Distance', puttDistAvg+'ft');
-                    h += statLine('Total Putt Distance', puttDistTotal+'ft', true);
+                    h += statLine('Avg 1st Putt Distance', puttDistAvg+'ft');
+                    h += statLine('Total 1st Putt Distance', puttDistTotal+'ft', true);
                 }
                 h += '</div>';
 
@@ -4419,7 +4504,7 @@
         };
         
         // ============================================
-        // SHOT MAP (v41.3)
+        // SHOT MAP (v41.4)
         // ============================================
 
         const ShotMap = {
@@ -4474,14 +4559,19 @@
                     return self.rotate(xy, holeBearing);
                 }
 
-                var teeXY  = project(hole.tee);   // should be {0,0}
+                var teeXY  = project(hole.tee);
                 var flagXY = project(hole.flag);
 
                 var shotXYs = shotPoints.map(function(gps) {
                     return gps ? project(gps) : null;
                 });
 
-                return { tee: teeXY, flag: flagXY, shots: shotXYs };
+                // Project plan waypoints if present
+                var planXYs = (hole.planPath || []).map(function(gps) {
+                    return gps ? project(gps) : null;
+                });
+
+                return { tee: teeXY, flag: flagXY, shots: shotXYs, plan: planXYs };
             },
 
             // Scale projected points to fit SVG canvas with padding
@@ -4508,7 +4598,8 @@
                 var result = {
                     tee:   toSVG(projected.tee),
                     flag:  toSVG(projected.flag),
-                    shots: projected.shots.map(toSVG)
+                    shots: projected.shots.map(toSVG),
+                    plan:  (projected.plan || []).map(toSVG)
                 };
 
                 // Anchor tee to bottom — shift all points so tee.y = H - PAD
@@ -4521,6 +4612,7 @@
                 result.tee   = shiftY(result.tee);
                 result.flag  = shiftY(result.flag);
                 result.shots = result.shots.map(shiftY);
+                result.plan  = result.plan.map(shiftY);
 
                 return result;
             },
@@ -4543,6 +4635,26 @@
 
                 // Background
                 svg += '<rect width="' + W + '" height="' + H + '" rx="8" fill="#1a2a1a"/>';
+
+                // ── Draw plan path line (yellow, behind actual shots) ──
+                if (scaled.plan && scaled.plan.length > 0) {
+                    // Full plan: tee → waypoints → flag
+                    var planPts = [scaled.tee].concat(scaled.plan.filter(Boolean)).concat([scaled.flag]);
+                    for (var p = 0; p < planPts.length - 1; p++) {
+                        var pa = planPts[p], pb = planPts[p+1];
+                        if (!pa || !pb) continue;
+                        svg += '<line x1="' + pa.x.toFixed(1) + '" y1="' + pa.y.toFixed(1) +
+                               '" x2="' + pb.x.toFixed(1) + '" y2="' + pb.y.toFixed(1) +
+                               '" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.45"/>';
+                    }
+                    // Waypoint dots (small yellow diamonds)
+                    scaled.plan.filter(Boolean).forEach(function(pt, i) {
+                        var s = 4;
+                        svg += '<rect x="' + (pt.x - s).toFixed(1) + '" y="' + (pt.y - s).toFixed(1) +
+                               '" width="' + (s*2) + '" height="' + (s*2) +
+                               '" fill="#fbbf24" opacity="0.6" transform="rotate(45,' + pt.x.toFixed(1) + ',' + pt.y.toFixed(1) + ')"/>';
+                    });
+                }
 
                 // ── Draw shot path lines + distance labels ──
                 // Build ordered list of points and corresponding shots:
@@ -4956,7 +5068,7 @@
         };
         
         // ============================================
-        // FULL BACKUP & RESTORE (v41.3)
+        // FULL BACKUP & RESTORE (v41.4)
         // ============================================
 
         const Backup = {
