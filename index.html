@@ -4548,19 +4548,26 @@
                 for (var i = 0; i < pathPts.length - 1; i++) {
                     var a = pathPts[i], b = pathPts[i+1];
                     var shot = pathShots[i];
-                    if (!a || !b || !shot || !shot.distance) continue;
+                    if (!a || !b || !shot || shot.distance <= 0) continue;
 
                     var isPutt = (shot.shotType || '').toLowerCase() === 'putt';
                     var distLabel = shot.distance + (isPutt ? 'ft' : 'y');
 
-                    var mx = ((a.x + b.x) / 2).toFixed(1);
-                    var my = ((a.y + b.y) / 2).toFixed(1);
+                    var mx = (a.x + b.x) / 2;
+                    var my = (a.y + b.y) / 2;
 
-                    // Small pill background for readability
-                    svg += '<rect x="' + (parseFloat(mx) - 13).toFixed(1) + '" y="' + (parseFloat(my) - 7).toFixed(1) +
-                           '" width="26" height="12" rx="3" fill="rgba(0,0,0,0.55)"/>';
-                    svg += '<text x="' + mx + '" y="' + (parseFloat(my) + 3).toFixed(1) +
-                           '" text-anchor="middle" font-size="7" font-weight="700" fill="#fbbf24" font-family="monospace">' +
+                    // Pill width based on label length
+                    var pillW = Math.max(26, distLabel.length * 5.5 + 8);
+                    var pillH = 13;
+
+                    // Clamp to canvas
+                    var px = Math.min(Math.max(mx, pillW/2 + 2), W - pillW/2 - 2);
+                    var py = Math.min(Math.max(my, pillH/2 + 2), H - pillH/2 - 2);
+
+                    svg += '<rect x="' + (px - pillW/2).toFixed(1) + '" y="' + (py - pillH/2).toFixed(1) +
+                           '" width="' + pillW.toFixed(1) + '" height="' + pillH + '" rx="3" fill="rgba(0,0,0,0.65)"/>';
+                    svg += '<text x="' + px.toFixed(1) + '" y="' + (py + 4).toFixed(1) +
+                           '" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fbbf24" font-family="monospace">' +
                            distLabel + '</text>';
                 }
 
