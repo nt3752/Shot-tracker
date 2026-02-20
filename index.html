@@ -3942,6 +3942,22 @@
                     });
                 });
 
+                // --- Section 3: Hole GPS & Plan Path (all 18 holes, empty if not set) ---
+                rows.push('');
+                rows.push('HOLE GPS & PLAN PATH');
+                rows.push(['Hole','Tee Lat','Tee Lon','Flag Lat','Flag Lon','W1 Lat','W1 Lon','W2 Lat','W2 Lon'].map(self.csvField).join(','));
+                for (var hi = 0; hi < 18; hi++) {
+                    var h = State.holes[hi];
+                    var tl = '', tlon = '', fl = '', flon = '', w1l = '', w1lon = '', w2l = '', w2lon = '';
+                    if (h) {
+                        if (h.tee  && h.tee.lat)  { tl   = h.tee.lat.toFixed(6);  tlon  = h.tee.lon.toFixed(6);  }
+                        if (h.flag && h.flag.lat)  { fl   = h.flag.lat.toFixed(6); flon  = h.flag.lon.toFixed(6); }
+                        if (h.planPath && h.planPath[0] && h.planPath[0].lat) { w1l  = h.planPath[0].lat.toFixed(6); w1lon = h.planPath[0].lon.toFixed(6); }
+                        if (h.planPath && h.planPath[1] && h.planPath[1].lat) { w2l  = h.planPath[1].lat.toFixed(6); w2lon = h.planPath[1].lon.toFixed(6); }
+                    }
+                    rows.push([hi+1, tl, tlon, fl, flon, w1l, w1lon, w2l, w2lon].map(self.csvField).join(','));
+                }
+
                 return rows.join('\n');
             },
 
