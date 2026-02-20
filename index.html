@@ -4150,8 +4150,12 @@
                     var relTotalStr = relTotal === 0 ? 'E' : (relTotal > 0 ? '+'+relTotal : String(relTotal));
                     var relTotalColor = relTotal < 0 ? '#e64545' : relTotal > 0 ? '#888' : '#fff';
                     h += '<div style="' + bigPill + '"><div style="font-size:1.5rem;font-weight:900;color:' + relTotalColor + ';">' + relTotalStr + '</div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">vs Par</div></div>';
-                    h += '<div style="' + bigPill + '"><div style="font-size:1.1rem;font-weight:900;color:#fff;">' + front9S + '<span style="font-size:0.7rem;color:#888;"> ' + relStr(front9S,front9P) + '</span></div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">Front 9</div></div>';
-                    h += '<div style="' + bigPill + '"><div style="font-size:1.1rem;font-weight:900;color:#fff;">' + back9S + '<span style="font-size:0.7rem;color:#888;"> ' + relStr(back9S,back9P) + '</span></div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">Back 9</div></div>';
+                    var rel9S = relStr(front9S, front9P);
+                    var rel9Color = front9S - front9P < 0 ? '#e64545' : front9S - front9P > 0 ? '#888' : '#fff';
+                    h += '<div style="' + bigPill + '"><div style="font-size:1.5rem;font-weight:900;color:' + rel9Color + ';">' + (rel9S || front9S) + '</div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">Front 9</div></div>';
+                    var rel9bS = relStr(back9S, back9P);
+                    var rel9bColor = back9S - back9P < 0 ? '#e64545' : back9S - back9P > 0 ? '#888' : '#fff';
+                    h += '<div style="' + bigPill + '"><div style="font-size:1.5rem;font-weight:900;color:' + rel9bColor + ';">' + (rel9bS || back9S) + '</div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;">Back 9</div></div>';
                 }
                 h += '</div>';
                 h += '</div>';
@@ -4342,8 +4346,8 @@
                             h += '<tr>';
                             h += '<td style="' + tdL + 'padding-left:10px;font-weight:700;">' + c.club + '</td>';
                             h += '<td style="' + td + '">' + c.count + '</td>';
-                            h += '<td style="' + td + '">' + avg + (avg!=='—'?'y':'') + '</td>';
-                            h += '<td style="' + td + '">' + tot + (tot!=='—'?'y':'') + '</td>';
+                            h += '<td style="' + td + '">' + avg + (avg!=='—'?'ft':'') + '</td>';
+                            h += '<td style="' + td + '">' + tot + (tot!=='—'?'ft':'') + '</td>';
                             h += '</tr>';
                         });
                         h += '</tbody></table></div>';
@@ -4355,8 +4359,7 @@
                 playedHoles.forEach(function(hole) {
                     var gir = self.calcGIR(hole);
                     var vsp = self.vsParHole(hole);
-                    var vspStr = vsp===null?'':(vsp===0?' E':(vsp>0?' +'+vsp:' '+vsp));
-                    var vspColor = vsp===null?'#fff':(vsp<0?'#e64545':vsp>0?'#888':'#fff');
+                    var vsp = self.vsParHole(hole);
                     h += '<div style="' + card + '">';
                     // Hole header row
                     h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
@@ -4365,7 +4368,17 @@
                     if (hole.yards) h += ' <span style="color:#888;font-weight:400;font-size:0.75rem;">'+hole.yards+'y</span>';
                     if (hole.hcp)   h += ' <span style="color:#888;font-weight:400;font-size:0.75rem;">HCP '+hole.hcp+'</span>';
                     h += '</span>';
-                    h += '<span style="font-size:1rem;font-weight:900;color:'+vspColor+';">'+hole.shots.length+vspStr+'</span>';
+                    // Scorecard symbol
+                    (function() {
+                        var score = hole.shots.length;
+                        if (vsp === null) {
+                            h += '<span style="font-size:1rem;font-weight:900;color:#fff;">' + score + '</span>';
+                        } else {
+                            var cls = vsp <= -2 ? 'sc-eagle' : vsp === -1 ? 'sc-birdie' : vsp === 0 ? 'sc-par' : vsp === 1 ? 'sc-bogey' : vsp === 2 ? 'sc-double' : 'sc-triple';
+                            var txt = vsp >= 3 ? '+' + vsp : score;
+                            h += '<span class="sc-sym ' + cls + '">' + txt + '</span>';
+                        }
+                    })();
                     h += '</div>';
                     // Stat badges
                     h += '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">';
