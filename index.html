@@ -1925,6 +1925,10 @@
                             if (ch.flagGPS && !this.holes[idx].flag) {
                                 this.holes[idx].flag = ch.flagGPS;
                             }
+                            // Always load planPath from library (not user-entered during round)
+                            if (ch.planPath) {
+                                this.holes[idx].planPath = ch.planPath;
+                            }
                         }
                     });
                 }
@@ -1986,6 +1990,10 @@
                                 }
                                 if (ch.flagGPS && !this.holes[idx].flag) {
                                     this.holes[idx].flag = ch.flagGPS;
+                                }
+                                // Always load planPath from library
+                                if (ch.planPath) {
+                                    this.holes[idx].planPath = ch.planPath;
                                 }
                             }
                         });
@@ -4658,10 +4666,13 @@
                 // Background
                 svg += '<rect width="' + W + '" height="' + H + '" rx="8" fill="#1a2a1a"/>';
 
-                // ── Draw plan path line (yellow, behind actual shots) ──
-                if (scaled.plan && scaled.plan.length > 0) {
-                    // Full plan: tee → waypoints → flag
-                    var planPts = [scaled.tee].concat(scaled.plan.filter(Boolean)).concat([scaled.flag]);
+                // ── Draw plan path line (amber dashed, behind actual shots) ──
+                // Always draw for all holes — tee→waypoints→flag
+                // Par 3: straight tee→flag line. Par 4/5: via waypoints.
+                {
+                    var planPts = [scaled.tee]
+                        .concat((scaled.plan || []).filter(Boolean))
+                        .concat([scaled.flag]);
                     for (var p = 0; p < planPts.length - 1; p++) {
                         var pa = planPts[p], pb = planPts[p+1];
                         if (!pa || !pb) continue;
@@ -4669,8 +4680,8 @@
                                '" x2="' + pb.x.toFixed(1) + '" y2="' + pb.y.toFixed(1) +
                                '" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.45"/>';
                     }
-                    // Waypoint dots (small yellow diamonds)
-                    scaled.plan.filter(Boolean).forEach(function(pt, i) {
+                    // Waypoint diamond markers (only where waypoints exist)
+                    (scaled.plan || []).filter(Boolean).forEach(function(pt) {
                         var s = 4;
                         svg += '<rect x="' + (pt.x - s).toFixed(1) + '" y="' + (pt.y - s).toFixed(1) +
                                '" width="' + (s*2) + '" height="' + (s*2) +
