@@ -1208,7 +1208,7 @@
                 <button class="btn btn-sm btn-secondary" id="btnCloseCourse" type="button">Close</button>
             </div>
         </div>
-        <div class="sheet-body">
+        <div class="sheet-body" id="courseSheetBody">
         <div class="input-row">
             <span class="input-label">Course</span>
             <div style="display:flex; gap: var(--space-2); flex:1;">
@@ -2150,7 +2150,7 @@
                     'manageClubsBackdrop', 'manageClubsSheet', 'btnCloseManageClubs',
                     'clubList', 'shotTypeList', 'newClubInput', 'newShotTypeInput',
                     'btnAddClub', 'btnAddShotType',
-                    'courseBackdrop', 'courseSheet', 'btnCloseCourse', 'btnSaveCourse',
+                    'courseBackdrop', 'courseSheet', 'courseSheetBody', 'btnCloseCourse', 'btnSaveCourse',
                     'courseName', 'courseHoles', 'btnPickCourse', 'coursePickerList',
                     'libraryBackdrop', 'librarySheet', 'btnCloseLibrary',
                     'bagLibraryList', 'courseLibraryList',
@@ -3255,7 +3255,18 @@
                 this.hidePicker();
                 this.hide();
             },
-            
+
+            resetScroll() {
+                // Restore scroll position after keyboard dismiss so iOS
+                // recalibrates touch targets without jumping to top
+                var body = UI.els.courseSheetBody;
+                if (!body) return;
+                var saved = body.scrollTop;
+                setTimeout(function() {
+                    body.scrollTop = saved;
+                }, 50);
+            },
+
             show() {
                 if (UI.els.courseBackdrop) UI.els.courseBackdrop.classList.add('active');
                 if (UI.els.courseSheet) UI.els.courseSheet.classList.add('active');
@@ -3449,6 +3460,7 @@
                                     btn.style.borderColor = '';
                                 }, 1500);
                                 Utils.toast('H' + (idx+1) + ' ' + label + ' GPS set');
+                                self.resetScroll();
                             }, 320);
                         });
                         
@@ -3533,6 +3545,7 @@
                                             btn.style.borderColor = '';
                                         }, 1500);
                                         Utils.toast('H' + (idx+1) + ' ' + wpLabel + ' set');
+                                        self.resetScroll();
                                     }, 320);
                                 });
 
