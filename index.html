@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v41.1</title>
+    <title>Shot Tracker v41.2</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -1013,7 +1013,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v41.1</span>
+                    <span class="brand-version">v41.2</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard">📋</button>
@@ -1442,7 +1442,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.1';
+        const VERSION = 'v41.2';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -3335,28 +3335,119 @@
                 if (!UI.els.courseHoles) return;
                 
                 UI.els.courseHoles.innerHTML = '';
+                var self = this;
                 
                 State.holes.forEach((hole, idx) => {
                     const card = document.createElement('div');
                     card.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3);';
                     
+                    // ── Hole header with GPS status indicators ──
                     const header = document.createElement('div');
-                    header.style.cssText = 'font-weight: 900; margin-bottom: var(--space-2); font-size: 0.875rem;';
-                    header.textContent = `Hole ${idx + 1}`;
+                    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-weight:900;margin-bottom:var(--space-2);font-size:0.875rem;';
                     
+                    const holeLabel = document.createElement('span');
+                    holeLabel.textContent = 'Hole ' + (idx + 1);
+                    
+                    const gpsStatus = document.createElement('span');
+                    gpsStatus.style.cssText = 'font-size:0.65rem;font-weight:700;';
+                    var teeOk  = hole.tee  && hole.tee.lat;
+                    var flagOk = hole.flag && hole.flag.lat;
+                    gpsStatus.innerHTML =
+                        '<span style="color:' + (teeOk  ? '#4ade80' : '#555') + ';">T</span>' +
+                        ' <span style="color:' + (flagOk ? '#4ade80' : '#555') + ';">⛳</span>';
+                    gpsStatus.title = 'T = Tee GPS, ⛳ = Flag GPS. Green = set.';
+                    
+                    header.appendChild(holeLabel);
+                    header.appendChild(gpsStatus);
+                    
+                    // ── Par / Yards / HCP inputs ──
                     const inputs = document.createElement('div');
-                    inputs.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2);';
+                    inputs.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); margin-bottom: var(--space-3);';
                     
-                    const parInput = this.createInput('Par', hole.par || '', `par-${idx}`);
-                    const yardsInput = this.createInput('Yards', hole.yards || '', `yards-${idx}`);
-                    const hcpInput = this.createInput('HCP', hole.hcp || '', `hcp-${idx}`);
+                    const parInput   = this.createInput('Par',   hole.par   || '', 'par-'   + idx);
+                    const yardsInput = this.createInput('Yards', hole.yards || '', 'yards-' + idx);
+                    const hcpInput   = this.createInput('HCP',   hole.hcp   || '', 'hcp-'   + idx);
                     
                     inputs.appendChild(parInput);
                     inputs.appendChild(yardsInput);
                     inputs.appendChild(hcpInput);
                     
+                    // ── GPS paste section ──
+                    const gpsSect = document.createElement('div');
+                    gpsSect.style.cssText = 'border-top:1px solid rgba(255,255,255,0.06);padding-top:var(--space-2);display:flex;flex-direction:column;gap:var(--space-2);';
+                    
+                    function makeGPSRow(label, currentGPS, fieldId) {
+                        const row = document.createElement('div');
+                        row.style.cssText = 'display:flex;gap:6px;align-items:center;';
+                        
+                        const lbl = document.createElement('span');
+                        lbl.style.cssText = 'font-size:0.65rem;font-weight:700;color:var(--text-muted);width:32px;flex-shrink:0;text-transform:uppercase;';
+                        lbl.textContent = label;
+                        
+                        const inp = document.createElement('input');
+                        inp.id = fieldId;
+                        inp.type = 'text';
+                        inp.placeholder = currentGPS && currentGPS.lat
+                            ? currentGPS.lat.toFixed(6) + ', ' + currentGPS.lon.toFixed(6)
+                            : 'Paste from Google Maps';
+                        inp.style.cssText = 'flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:var(--radius-sm);padding:var(--space-2);color:var(--text-primary);font-size:0.75rem;font-family:var(--font-mono);';
+                        inp.setAttribute('enterkeyhint', 'done');
+                        inp.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter') inp.blur();
+                        });
+                        
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.textContent = 'Set';
+                        btn.style.cssText = 'padding:6px 10px;font-size:0.7rem;font-weight:700;border-radius:var(--radius-sm);border:1px solid var(--border);background:rgba(255,255,255,0.08);color:var(--text-primary);flex-shrink:0;';
+                        btn.addEventListener('click', function() {
+                            var val = inp.value.trim();
+                            if (!val) { Utils.toast('Paste coordinates first'); return; }
+                            var gps = self.parseGPS(val);
+                            if (!gps) {
+                                Utils.toast('Invalid format — use: lat, lon');
+                                inp.style.borderColor = '#e64545';
+                                return;
+                            }
+                            inp.style.borderColor = '';
+                            // Store on State hole immediately
+                            if (label === 'Tee') {
+                                State.holes[idx].tee = gps;
+                            } else {
+                                State.holes[idx].flag = gps;
+                            }
+                            // Update placeholder to show confirmed coords
+                            inp.value = '';
+                            inp.placeholder = gps.lat.toFixed(6) + ', ' + gps.lon.toFixed(6);
+                            // Update status indicator
+                            var teeNow  = State.holes[idx].tee  && State.holes[idx].tee.lat;
+                            var flagNow = State.holes[idx].flag && State.holes[idx].flag.lat;
+                            gpsStatus.innerHTML =
+                                '<span style="color:' + (teeNow  ? '#4ade80' : '#555') + ';">T</span>' +
+                                ' <span style="color:' + (flagNow ? '#4ade80' : '#555') + ';">⛳</span>';
+                            btn.textContent = '✓';
+                            btn.style.color = '#4ade80';
+                            btn.style.borderColor = '#4ade80';
+                            setTimeout(function() {
+                                btn.textContent = 'Set';
+                                btn.style.color = '';
+                                btn.style.borderColor = '';
+                            }, 1500);
+                            Utils.toast('H' + (idx+1) + ' ' + label + ' GPS set');
+                        });
+                        
+                        row.appendChild(lbl);
+                        row.appendChild(inp);
+                        row.appendChild(btn);
+                        return row;
+                    }
+                    
+                    gpsSect.appendChild(makeGPSRow('Tee',  hole.tee,  'gps-tee-'  + idx));
+                    gpsSect.appendChild(makeGPSRow('Flag', hole.flag, 'gps-flag-' + idx));
+                    
                     card.appendChild(header);
                     card.appendChild(inputs);
+                    card.appendChild(gpsSect);
                     UI.els.courseHoles.appendChild(card);
                 });
             },
@@ -3380,6 +3471,24 @@
                 wrapper.appendChild(labelEl);
                 wrapper.appendChild(input);
                 return wrapper;
+            },
+
+            // Parse "lat, lon" string from Google Maps into {lat, lon}
+            // Handles: "53.4271, -6.2439" or "53.4271,-6.2439"
+            parseGPS(str) {
+                if (!str) return null;
+                var clean = str.replace(/[^\d\s,.\-]/g, ' ').trim();
+                var parts = clean.split(/[\s,]+/).filter(function(p) { return p.length > 0; });
+                if (parts.length >= 2) {
+                    var lat = parseFloat(parts[0]);
+                    var lon = parseFloat(parts[1]);
+                    if (isFinite(lat) && isFinite(lon) &&
+                        lat >= -90 && lat <= 90 &&
+                        lon >= -180 && lon <= 180) {
+                        return { lat: lat, lon: lon };
+                    }
+                }
+                return null;
             },
             
             saveCourse() {
@@ -3408,15 +3517,18 @@
                     });
                 });
                 
-                // Save to library, preserving GPS data
+                // Save to library, preserving and updating GPS data
                 const existingCourse = Library.getCourse(courseId);
                 if (existingCourse) {
                     if (courseName) existingCourse.name = courseName;
                     holesData.forEach(function(hd, idx) {
                         if (existingCourse.holes && existingCourse.holes[idx]) {
-                            existingCourse.holes[idx].par = hd.par;
+                            existingCourse.holes[idx].par   = hd.par;
                             existingCourse.holes[idx].yards = hd.yards;
-                            existingCourse.holes[idx].hcp = hd.hcp;
+                            existingCourse.holes[idx].hcp   = hd.hcp;
+                            // Persist any GPS set via paste fields
+                            if (State.holes[idx].tee)  existingCourse.holes[idx].teeGPS  = State.holes[idx].tee;
+                            if (State.holes[idx].flag) existingCourse.holes[idx].flagGPS = State.holes[idx].flag;
                         }
                     });
                     Library.saveCourse(existingCourse);
@@ -4288,7 +4400,7 @@
         };
         
         // ============================================
-        // SHOT MAP (v41.1)
+        // SHOT MAP (v41.2)
         // ============================================
 
         const ShotMap = {
@@ -4400,19 +4512,56 @@
                 // Background
                 svg += '<rect width="' + W + '" height="' + H + '" rx="8" fill="#1a2a1a"/>';
 
-                // ── Draw shot path lines ──
-                // Build ordered list of points: tee → shot landings (GPS only) → flag
+                // ── Draw shot path lines + distance labels ──
+                // Build ordered list of points and corresponding shots:
+                // tee → shot landings (GPS only) → flag
+                // Each segment i→i+1 corresponds to shot[i] (whose distance field we use)
                 var pathPts = [scaled.tee];
-                scaled.shots.forEach(function(pt) { if (pt) pathPts.push(pt); });
+                var pathShots = []; // shot for each segment starting from tee
+                hole.shots.forEach(function(shot, idx) {
+                    if (scaled.shots[idx]) {
+                        pathPts.push(scaled.shots[idx]);
+                        pathShots.push(shot);
+                    }
+                });
+                // Last segment: last GPS point → flag — use the last putt's distance
+                var lastPutt = null;
+                for (var i = hole.shots.length - 1; i >= 0; i--) {
+                    if ((hole.shots[i].shotType || '').toLowerCase() === 'putt') {
+                        lastPutt = hole.shots[i];
+                        break;
+                    }
+                }
                 pathPts.push(scaled.flag);
+                pathShots.push(lastPutt);
 
-                // Draw dashed line between each consecutive pair
+                // Draw dashed lines
                 for (var i = 0; i < pathPts.length - 1; i++) {
                     var a = pathPts[i], b = pathPts[i+1];
                     if (!a || !b) continue;
                     svg += '<line x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) +
                            '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) +
                            '" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-dasharray="4,3"/>';
+                }
+
+                // Draw distance labels at midpoint of each segment
+                for (var i = 0; i < pathPts.length - 1; i++) {
+                    var a = pathPts[i], b = pathPts[i+1];
+                    var shot = pathShots[i];
+                    if (!a || !b || !shot || !shot.distance) continue;
+
+                    var isPutt = (shot.shotType || '').toLowerCase() === 'putt';
+                    var distLabel = shot.distance + (isPutt ? 'ft' : 'y');
+
+                    var mx = ((a.x + b.x) / 2).toFixed(1);
+                    var my = ((a.y + b.y) / 2).toFixed(1);
+
+                    // Small pill background for readability
+                    svg += '<rect x="' + (parseFloat(mx) - 13).toFixed(1) + '" y="' + (parseFloat(my) - 7).toFixed(1) +
+                           '" width="26" height="12" rx="3" fill="rgba(0,0,0,0.55)"/>';
+                    svg += '<text x="' + mx + '" y="' + (parseFloat(my) + 3).toFixed(1) +
+                           '" text-anchor="middle" font-size="7" font-weight="700" fill="#fbbf24" font-family="monospace">' +
+                           distLabel + '</text>';
                 }
 
                 // ── Draw flag marker (top) ──
@@ -4758,7 +4907,7 @@
         };
         
         // ============================================
-        // FULL BACKUP & RESTORE (v41.1)
+        // FULL BACKUP & RESTORE (v41.2)
         // ============================================
 
         const Backup = {
