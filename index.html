@@ -1135,28 +1135,11 @@
         <div class="sheet-header">
             <h3 class="sheet-title" id="bagTitle">Bag Editor</h3>
             <div class="sheet-actions">
-                <button class="btn btn-sm btn-secondary" id="btnClubIo" type="button" title="Import/Export Clubs">📋</button>
                 <button class="btn btn-sm btn-secondary" id="btnManageClubs" type="button">Manage Clubs</button>
                 <button class="btn btn-sm btn-secondary" id="btnCloseBag" type="button">Close</button>
             </div>
         </div>
-        <!-- Hidden file input for club CSV import -->
-        <input type="file" id="clubImportFile" accept=".csv,.txt" style="display:none;">
         <div class="sheet-body">
-
-        <!-- Club Import/Export panel (hidden by default) -->
-        <div id="clubIoPanel" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-3);">
-            <div style="font-size:0.7rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:var(--space-2);">Club Import / Export</div>
-            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:var(--space-3);line-height:1.5;">
-                Format: <span style="font-family:var(--font-mono);color:var(--text-primary);">club,type,carry,total</span>
-            </div>
-            <div style="display:flex;gap:var(--space-2);">
-                <button class="btn btn-sm btn-primary" id="btnClubImport" type="button" style="flex:1;">📂 Import CSV</button>
-                <button class="btn btn-sm btn-secondary" id="btnClubExport" type="button" style="flex:1;">💾 Export CSV</button>
-            </div>
-            <div id="clubIoStatus" style="display:none;margin-top:var(--space-2);font-size:0.7rem;padding:6px 8px;border-radius:var(--radius-sm);"></div>
-        </div>
-
         <div id="bagNameDisplay" style="font-size: 1rem; font-weight: 700; color: var(--green-400); margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border);"></div>
         
         <div class="input-row">
@@ -2204,7 +2187,6 @@
                     'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid',
                     'bagBackdrop', 'bagSheet', 'btnCloseBag', 'bagClub', 'bagShotType',
                     'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix', 'btnManageClubs', 'bagNameDisplay',
-                    'btnClubIo', 'clubIoPanel', 'clubIoStatus', 'btnClubImport', 'btnClubExport', 'clubImportFile',
                     'manageClubsBackdrop', 'manageClubsSheet', 'btnCloseManageClubs',
                     'clubList', 'shotTypeList', 'newClubInput', 'newShotTypeInput',
                     'btnAddClub', 'btnAddShotType',
@@ -2213,6 +2195,7 @@
                     'btnGpsIo', 'gpsIoPanel', 'gpsIoStatus', 'btnGpsImport', 'btnGpsExport', 'gpsImportFile',
                     'btnHoleIo', 'holeIoPanel', 'holeIoStatus', 'btnHoleImport', 'btnHoleExport', 'holeImportFile',
                     'libraryBackdrop', 'librarySheet', 'btnCloseLibrary',
+                    'btnAddBag', 'btnAddCourse',
                     'bagLibraryList', 'courseLibraryList',
                     'btnImportBag', 'btnImportCourse',
                     'btnExportAllBags', 'btnExportAllCourses',
@@ -3942,22 +3925,6 @@
                     });
                 });
 
-                // --- Section 3: Hole GPS & Plan Path (all 18 holes, empty if not set) ---
-                rows.push('');
-                rows.push('HOLE GPS & PLAN PATH');
-                rows.push(['Hole','Tee Lat','Tee Lon','Flag Lat','Flag Lon','W1 Lat','W1 Lon','W2 Lat','W2 Lon'].map(self.csvField).join(','));
-                for (var hi = 0; hi < 18; hi++) {
-                    var h = State.holes[hi];
-                    var tl = '', tlon = '', fl = '', flon = '', w1l = '', w1lon = '', w2l = '', w2lon = '';
-                    if (h) {
-                        if (h.tee  && h.tee.lat)  { tl   = h.tee.lat.toFixed(6);  tlon  = h.tee.lon.toFixed(6);  }
-                        if (h.flag && h.flag.lat)  { fl   = h.flag.lat.toFixed(6); flon  = h.flag.lon.toFixed(6); }
-                        if (h.planPath && h.planPath[0] && h.planPath[0].lat) { w1l  = h.planPath[0].lat.toFixed(6); w1lon = h.planPath[0].lon.toFixed(6); }
-                        if (h.planPath && h.planPath[1] && h.planPath[1].lat) { w2l  = h.planPath[1].lat.toFixed(6); w2lon = h.planPath[1].lon.toFixed(6); }
-                    }
-                    rows.push([hi+1, tl, tlon, fl, flon, w1l, w1lon, w2l, w2lon].map(self.csvField).join(','));
-                }
-
                 return rows.join('\n');
             },
 
@@ -5046,135 +5013,6 @@
         };
 
         // ============================================
-        // ============================================
-        // CLUB IMPORT / EXPORT
-        // ============================================
-
-        const ClubIO = {
-
-            toggle() {
-                var panel = UI.els.clubIoPanel;
-                if (!panel) return;
-                var visible = panel.style.display !== 'none';
-                panel.style.display = visible ? 'none' : 'block';
-                if (!visible) {
-                    var status = UI.els.clubIoStatus;
-                    if (status) status.style.display = 'none';
-                }
-            },
-
-            // ── Export ──────────────────────────────────────────────────────
-
-            exportCSV() {
-                var bag = Library.getBag(State.currentBagId);
-                if (!bag || !bag.clubs || !bag.data) {
-                    Utils.toast('No bag data to export');
-                    return;
-                }
-                var lines = ['club,type,carry,total'];
-                bag.clubs.forEach(function(club) {
-                    if (club === 'Club?') return;
-                    var clubData = bag.data[club];
-                    if (!clubData) return;
-                    Object.keys(clubData).forEach(function(shotType) {
-                        var d = clubData[shotType];
-                        if (!d) return;
-                        var carry = d.carry || '';
-                        var total = d.total || '';
-                        if (carry || total) {
-                            lines.push(club + ',' + shotType + ',' + carry + ',' + total);
-                        }
-                    });
-                });
-
-                var csv = lines.join('\n');
-                var bagName = (bag.name || 'bag').replace(/[^a-z0-9]/gi, '_').toLowerCase();
-                var filename = bagName + '_clubs.csv';
-
-                var blob = new Blob([csv], { type: 'text/csv' });
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                ClubIO.showStatus('Exported ' + (lines.length - 1) + ' entries', 'ok');
-            },
-
-            // ── Import ──────────────────────────────────────────────────────
-
-            importCSV(file) {
-                if (!file) return;
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    ClubIO.parseAndApply(e.target.result);
-                };
-                reader.onerror = function() {
-                    ClubIO.showStatus('Error reading file', 'err');
-                };
-                reader.readAsText(file);
-            },
-
-            parseAndApply(text) {
-                if (!State.bag) { ClubIO.showStatus('No bag selected', 'err'); return; }
-
-                var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
-                var loaded = 0, skipped = 0;
-
-                lines.forEach(function(line) {
-                    if (line.toLowerCase().startsWith('club')) return;
-                    var parts = line.split(',');
-                    if (parts.length < 2) { skipped++; return; }
-
-                    var club    = parts[0].trim();
-                    var type    = parts[1].trim();
-                    var carry   = parts[2] ? parseInt(parts[2]) : 0;
-                    var total   = parts[3] ? parseInt(parts[3]) : 0;
-
-                    if (!club || !type) { skipped++; return; }
-
-                    // Add club to list if not already present
-                    if (!State.bag.clubs) State.bag.clubs = [];
-                    if (State.bag.clubs.indexOf(club) === -1) {
-                        State.bag.clubs.push(club);
-                    }
-
-                    // Save distance data
-                    if (!State.bag.data) State.bag.data = {};
-                    if (!State.bag.data[club]) State.bag.data[club] = {};
-                    State.bag.data[club][type] = {
-                        carry: isNaN(carry) ? 0 : carry,
-                        total: isNaN(total) ? 0 : total
-                    };
-                    loaded++;
-                });
-
-                // Save to library
-                State.saveBag();
-
-                // Re-render bag matrix
-                setTimeout(function() {
-                    UI.render();
-                    var msg = 'Imported ' + loaded + ' entries';
-                    if (skipped > 0) msg += ', ' + skipped + ' skipped';
-                    ClubIO.showStatus(msg, 'ok');
-                }, 100);
-            },
-
-            showStatus(msg, type) {
-                var el = UI.els.clubIoStatus;
-                if (!el) return;
-                el.textContent = msg;
-                el.style.display = 'block';
-                el.style.background = type === 'ok' ? 'rgba(74,222,128,0.12)' : 'rgba(230,69,69,0.12)';
-                el.style.color      = type === 'ok' ? '#4ade80' : '#e64545';
-                el.style.border     = '1px solid ' + (type === 'ok' ? 'rgba(74,222,128,0.3)' : 'rgba(230,69,69,0.3)');
-            }
-        };
-
         // GPS IMPORT / EXPORT
         // ============================================
 
@@ -5688,7 +5526,41 @@
         const LibraryActions = {
             
             // --- BAG ACTIONS ---
-            
+
+            newBag() {
+                var name = 'My Bag ' + (Library.getBags().length + 1);
+                var bag = {
+                    id: Utils.generateId('bag'),
+                    name: name,
+                    created: Utils.nowISO(),
+                    clubs: []
+                };
+                Library.saveBag(bag);
+                LibraryUI.render();
+                Utils.toast('New bag created: ' + name);
+                // Trigger rename so user can name it immediately
+                setTimeout(function() { LibraryActions.renameBag(bag.id); }, 100);
+            },
+
+            newCourse() {
+                var name = 'New Course ' + (Library.getCourses().length + 1);
+                var holes = [];
+                for (var i = 1; i <= 18; i++) {
+                    holes.push({ hole: i, par: 0, yards: 0, hcp: 0, teeGPS: null, flagGPS: null });
+                }
+                var course = {
+                    id: Utils.generateId('course'),
+                    name: name,
+                    created: Utils.nowISO(),
+                    holes: holes
+                };
+                Library.saveCourse(course);
+                LibraryUI.render();
+                Utils.toast('New course created: ' + name);
+                // Trigger rename so user can name it immediately
+                setTimeout(function() { LibraryActions.renameCourse(course.id); }, 100);
+            },
+
             activateBag(id) {
                 const bag = Library.getBag(id);
                 if (!bag) return;
@@ -6530,20 +6402,6 @@
                 this.on('btnAddClub', 'click', () => BagEditorUI.addClub());
                 this.on('btnAddShotType', 'click', () => BagEditorUI.addShotType());
                 this.on('bagBackdrop', 'click', () => BagEditorUI.close());
-
-                // Club Import/Export
-                this.on('btnClubIo', 'click', () => ClubIO.toggle());
-                this.on('btnClubExport', 'click', () => ClubIO.exportCSV());
-                this.on('btnClubImport', 'click', () => {
-                    var fi = UI.els.clubImportFile;
-                    if (fi) { fi.value = ''; fi.click(); }
-                });
-                if (UI.els.clubImportFile) {
-                    UI.els.clubImportFile.addEventListener('change', function(e) {
-                        var file = e.target.files && e.target.files[0];
-                        if (file) ClubIO.importCSV(file);
-                    });
-                }
                 this.on('bagClub', 'change', (e) => {
                     e.stopPropagation();
                     BagEditorUI.loadCurrentSelection();
@@ -6674,6 +6532,8 @@
                 this.on('btnStartRound', 'click', () => RoundSetupUI.startRound());
                 this.on('btnLibrary', 'click', () => LibraryUI.open());
                 this.on('btnCloseLibrary', 'click', () => LibraryUI.close());
+                this.on('btnAddBag',    'click', () => LibraryActions.newBag());
+                this.on('btnAddCourse', 'click', () => LibraryActions.newCourse());
                 this.on('libraryBackdrop', 'click', () => LibraryUI.close());
                 
                 // Import / Export
