@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v41.2</title>
+    <title>Shot Tracker v41.3</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -1013,7 +1013,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v41.2</span>
+                    <span class="brand-version">v41.3</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard">📋</button>
@@ -1442,7 +1442,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.2';
+        const VERSION = 'v41.3';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -4400,7 +4400,7 @@
         };
         
         // ============================================
-        // SHOT MAP (v41.2)
+        // SHOT MAP (v41.3)
         // ============================================
 
         const ShotMap = {
@@ -4486,11 +4486,24 @@
                     };
                 }
 
-                return {
+                var result = {
                     tee:   toSVG(projected.tee),
                     flag:  toSVG(projected.flag),
                     shots: projected.shots.map(toSVG)
                 };
+
+                // Anchor tee to bottom — shift all points so tee.y = H - PAD
+                var teeY = result.tee.y;
+                var yShift = (H - PAD) - teeY;
+                function shiftY(pt) {
+                    if (!pt) return null;
+                    return { x: pt.x, y: pt.y + yShift };
+                }
+                result.tee   = shiftY(result.tee);
+                result.flag  = shiftY(result.flag);
+                result.shots = result.shots.map(shiftY);
+
+                return result;
             },
 
             // ── SVG Building ──────────────────────────
@@ -4623,8 +4636,19 @@
                 var gir   = ExportData.calcGIR(hole);
                 var putts = ExportData.puttCount(hole);
                 var vsp   = ExportData.vsParHole(hole);
-                var vspStr  = vsp === null ? '' : (vsp === 0 ? 'E' : (vsp > 0 ? '+'+vsp : String(vsp)));
-                var vspColor = vsp === null ? '#fff' : (vsp < 0 ? '#e64545' : vsp > 0 ? '#888' : '#fff');
+
+                // Scorecard symbol for score
+                function scoreSym(score, vsp) {
+                    if (vsp === null) return '<span style="font-size:1rem;font-weight:900;color:#fff;">' + score + '</span>';
+                    var cls, txt;
+                    if      (vsp <= -2) { cls = 'sc-eagle';  txt = score; }
+                    else if (vsp === -1) { cls = 'sc-birdie'; txt = score; }
+                    else if (vsp === 0)  { cls = 'sc-par';    txt = score; }
+                    else if (vsp === 1)  { cls = 'sc-bogey';  txt = score; }
+                    else if (vsp === 2)  { cls = 'sc-double'; txt = score; }
+                    else                 { cls = 'sc-triple'; txt = '+' + vsp; }
+                    return '<span class="sc-sym ' + cls + '">' + txt + '</span>';
+                }
 
                 var h = '<div style="' + card + '">';
 
@@ -4632,11 +4656,10 @@
                 h += '<div style="display:flex;justify-content:space-between;align-items:center;' +
                      'padding:6px 10px;background:rgba(0,0,0,0.3);">';
                 h += '<span style="font-weight:900;font-size:0.85rem;color:#fff;">Hole ' + hole.hole;
-                if (hole.par) h += ' <span style="color:#888;font-weight:400;font-size:0.7rem;">Par ' + hole.par + '</span>';
+                if (hole.par)   h += ' <span style="color:#888;font-weight:400;font-size:0.7rem;">Par ' + hole.par + '</span>';
                 if (hole.yards) h += ' <span style="color:#666;font-weight:400;font-size:0.7rem;">' + hole.yards + 'y</span>';
                 h += '</span>';
-                h += '<span style="font-size:1rem;font-weight:900;color:' + vspColor + ';">' +
-                     hole.shots.length + (vspStr ? ' <span style="font-size:0.7rem;">'+vspStr+'</span>' : '') + '</span>';
+                h += scoreSym(hole.shots.length, vsp);
                 h += '</div>';
 
                 // SVG map or fallback
@@ -4914,7 +4937,7 @@
         };
         
         // ============================================
-        // FULL BACKUP & RESTORE (v41.2)
+        // FULL BACKUP & RESTORE (v41.3)
         // ============================================
 
         const Backup = {
