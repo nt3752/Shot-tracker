@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v41.4</title>
+    <title>Shot Tracker v41.5</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -1013,7 +1013,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v41.4</span>
+                    <span class="brand-version">v41.5</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard">📋</button>
@@ -1204,11 +1204,28 @@
         <div class="sheet-header">
             <h3 class="sheet-title" id="courseTitle">Course Setup</h3>
             <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnGpsIo" type="button" title="Import/Export GPS">📍</button>
                 <button class="btn btn-sm btn-primary" id="btnSaveCourse" type="button">Save</button>
                 <button class="btn btn-sm btn-secondary" id="btnCloseCourse" type="button">Close</button>
             </div>
         </div>
+        <!-- Hidden file input for GPS CSV import -->
+        <input type="file" id="gpsImportFile" accept=".csv,.txt" style="display:none;">
         <div class="sheet-body" id="courseSheetBody">
+
+        <!-- GPS Import/Export panel (hidden by default) -->
+        <div id="gpsIoPanel" style="display:none;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-3);">
+            <div style="font-size:0.7rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:var(--space-2);">GPS Import / Export</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:var(--space-3);line-height:1.5;">
+                Format: <span style="font-family:var(--font-mono);color:var(--text-primary);">hole,type,lat,lon</span><br>
+                Types: <span style="font-family:var(--font-mono);color:var(--text-primary);">tee flag w1 w2</span>
+            </div>
+            <div style="display:flex;gap:var(--space-2);">
+                <button class="btn btn-sm btn-primary" id="btnGpsImport" type="button" style="flex:1;">📂 Import CSV</button>
+                <button class="btn btn-sm btn-secondary" id="btnGpsExport" type="button" style="flex:1;">💾 Export CSV</button>
+            </div>
+            <div id="gpsIoStatus" style="display:none;margin-top:var(--space-2);font-size:0.7rem;padding:6px 8px;border-radius:var(--radius-sm);"></div>
+        </div>
         <div class="input-row">
             <span class="input-label">Course</span>
             <div style="display:flex; gap: var(--space-2); flex:1;">
@@ -1442,7 +1459,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.4';
+        const VERSION = 'v41.5';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -2160,6 +2177,7 @@
                     'btnAddClub', 'btnAddShotType',
                     'courseBackdrop', 'courseSheet', 'courseSheetBody', 'btnCloseCourse', 'btnSaveCourse',
                     'courseName', 'courseHoles', 'btnPickCourse', 'coursePickerList',
+                    'btnGpsIo', 'gpsIoPanel', 'gpsIoStatus', 'btnGpsImport', 'btnGpsExport', 'gpsImportFile',
                     'libraryBackdrop', 'librarySheet', 'btnCloseLibrary',
                     'bagLibraryList', 'courseLibraryList',
                     'btnImportBag', 'btnImportCourse',
@@ -2275,9 +2293,13 @@
                     this.els.btnMark.classList.toggle('btn-pending', hasPendingShots);
                 }
                 
-                // Fairway toggle (manual — requires human eye)
+                // Fairway toggle — disabled on par 3 (no fairway)
                 if (this.els.btnFwy) {
-                    this.els.btnFwy.classList.toggle('active', !!hole.fwy);
+                    var isPar3 = hole.par === 3;
+                    this.els.btnFwy.classList.toggle('active', !!hole.fwy && !isPar3);
+                    this.els.btnFwy.disabled = isPar3;
+                    this.els.btnFwy.style.opacity = isPar3 ? '0.3' : '';
+                    this.els.btnFwy.title = isPar3 ? 'No fairway on par 3' : '';
                 }
 
                 // GIR — calculated from shot sequence, written back to hole record
@@ -2704,6 +2726,7 @@
             
             toggleFwy() {
                 const hole = State.currentHole();
+                if (hole.par === 3) { Utils.toast('No fairway on par 3'); return; }
                 hole.fwy = !hole.fwy;
                 State.save();
                 UI.render();
@@ -4534,7 +4557,7 @@
         };
         
         // ============================================
-        // SHOT MAP (v41.4)
+        // SHOT MAP (v41.5)
         // ============================================
 
         const ShotMap = {
@@ -4973,9 +4996,157 @@
         };
 
         // ============================================
+        // GPS IMPORT / EXPORT
+        // ============================================
+
+        const GpsIO = {
+
+            toggle() {
+                var panel = UI.els.gpsIoPanel;
+                if (!panel) return;
+                var visible = panel.style.display !== 'none';
+                panel.style.display = visible ? 'none' : 'block';
+                if (!visible) {
+                    // Reset status when opening
+                    var status = UI.els.gpsIoStatus;
+                    if (status) status.style.display = 'none';
+                }
+            },
+
+            // ── Export ──────────────────────────────────────────────────────
+
+            exportCSV() {
+                var courseId = CourseSetupUI.editingCourseId;
+                var course = Library.getCourse(courseId);
+                if (!course || !course.holes) {
+                    Utils.toast('No course data to export');
+                    return;
+                }
+                var lines = ['hole,type,lat,lon'];
+                course.holes.forEach(function(h, idx) {
+                    var n = idx + 1;
+                    if (h.teeGPS  && h.teeGPS.lat)  lines.push(n + ',tee,'  + h.teeGPS.lat.toFixed(6)  + ',' + h.teeGPS.lon.toFixed(6));
+                    if (h.flagGPS && h.flagGPS.lat)  lines.push(n + ',flag,' + h.flagGPS.lat.toFixed(6) + ',' + h.flagGPS.lon.toFixed(6));
+                    if (h.planPath) {
+                        h.planPath.forEach(function(wp, wi) {
+                            if (wp && wp.lat) lines.push(n + ',w' + (wi+1) + ',' + wp.lat.toFixed(6) + ',' + wp.lon.toFixed(6));
+                        });
+                    }
+                });
+                var csv = lines.join('\n');
+                var courseName = (course.name || 'course').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                var filename = courseName + '_gps.csv';
+
+                // Download via blob URL
+                var blob = new Blob([csv], { type: 'text/csv' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                var count = lines.length - 1;
+                GpsIO.showStatus('Exported ' + count + ' GPS points', 'ok');
+            },
+
+            // ── Import ──────────────────────────────────────────────────────
+
+            importCSV(file) {
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var text = e.target.result;
+                    GpsIO.parseAndApply(text);
+                };
+                reader.onerror = function() {
+                    GpsIO.showStatus('Error reading file', 'err');
+                };
+                reader.readAsText(file);
+            },
+
+            parseAndApply(text) {
+                var courseId = CourseSetupUI.editingCourseId;
+                var course = Library.getCourse(courseId);
+                if (!course) { GpsIO.showStatus('No course selected', 'err'); return; }
+
+                var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+                var loaded = 0, skipped = 0;
+
+                lines.forEach(function(line) {
+                    // Skip header row
+                    if (line.toLowerCase().startsWith('hole')) return;
+                    var parts = line.split(',');
+                    if (parts.length < 4) { skipped++; return; }
+
+                    var holeNum = parseInt(parts[0]);
+                    var type    = parts[1].trim().toLowerCase();
+                    var lat     = parseFloat(parts[2]);
+                    var lon     = parseFloat(parts[3]);
+
+                    if (isNaN(holeNum) || holeNum < 1 || holeNum > 18) { skipped++; return; }
+                    if (isNaN(lat) || isNaN(lon))                       { skipped++; return; }
+                    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) { skipped++; return; }
+
+                    var idx = holeNum - 1;
+                    if (!course.holes[idx]) { skipped++; return; }
+
+                    var gps = { lat: lat, lon: lon };
+
+                    if (type === 'tee') {
+                        course.holes[idx].teeGPS = gps;
+                        if (State.holes[idx]) State.holes[idx].tee = gps;
+                        loaded++;
+                    } else if (type === 'flag') {
+                        course.holes[idx].flagGPS = gps;
+                        if (State.holes[idx]) State.holes[idx].flag = gps;
+                        loaded++;
+                    } else if (type === 'w1' || type === 'w2' || type === 'w3') {
+                        var wIdx = parseInt(type.replace('w','')) - 1;
+                        if (!course.holes[idx].planPath) course.holes[idx].planPath = [];
+                        course.holes[idx].planPath[wIdx] = gps;
+                        if (State.holes[idx]) {
+                            if (!State.holes[idx].planPath) State.holes[idx].planPath = [];
+                            State.holes[idx].planPath[wIdx] = gps;
+                        }
+                        loaded++;
+                    } else {
+                        skipped++;
+                    }
+                });
+
+                // Save to library
+                Library.saveCourse(course);
+
+                // Re-render holes to show updated placeholders
+                var self = CourseSetupUI;
+                setTimeout(function() {
+                    self.renderHoles();
+                    var msg = 'Imported ' + loaded + ' points';
+                    if (skipped > 0) msg += ', ' + skipped + ' skipped';
+                    GpsIO.showStatus(msg, 'ok');
+                }, 100);
+            },
+
+            showStatus(msg, type) {
+                var el = UI.els.gpsIoStatus;
+                if (!el) return;
+                el.textContent = msg;
+                el.style.display = 'block';
+                el.style.background = type === 'ok'
+                    ? 'rgba(74,222,128,0.12)'
+                    : 'rgba(230,69,69,0.12)';
+                el.style.color = type === 'ok' ? '#4ade80' : '#e64545';
+                el.style.border = '1px solid ' + (type === 'ok' ? 'rgba(74,222,128,0.3)' : 'rgba(230,69,69,0.3)');
+            }
+        };
+
+        // ============================================
         // IMPORT / EXPORT (v40.4)
         // ============================================
-        
+
         const ImportExport = {
             
             // --- EXPORT ---
@@ -5101,7 +5272,7 @@
         };
         
         // ============================================
-        // FULL BACKUP & RESTORE (v41.4)
+        // FULL BACKUP & RESTORE (v41.5)
         // ============================================
 
         const Backup = {
@@ -6117,6 +6288,20 @@
                     CourseSetupUI.saveCourse();
                     CourseSetupUI.close();
                 });
+
+                // GPS Import/Export
+                this.on('btnGpsIo', 'click', () => GpsIO.toggle());
+                this.on('btnGpsExport', 'click', () => GpsIO.exportCSV());
+                this.on('btnGpsImport', 'click', () => {
+                    var fi = UI.els.gpsImportFile;
+                    if (fi) { fi.value = ''; fi.click(); }
+                });
+                if (UI.els.gpsImportFile) {
+                    UI.els.gpsImportFile.addEventListener('change', function(e) {
+                        var file = e.target.files && e.target.files[0];
+                        if (file) GpsIO.importCSV(file);
+                    });
+                }
                 
                 // Export
                 // Export sheet — open on 📊 icon, two clear choices inside
