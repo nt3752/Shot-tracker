@@ -3244,8 +3244,11 @@
                 this.editingCourseId = State.currentCourseId;
                 this.hidePicker();
                 this.show();
-                this.loadCourseData();
-                this.renderHoles();
+                var self = this;
+                setTimeout(function() {
+                    self.loadCourseData();
+                    self.renderHoles();
+                }, 320);
             },
             
             close() {
@@ -3283,6 +3286,9 @@
             showPicker() {
                 const list = UI.els.coursePickerList;
                 if (!list) return;
+                // Scroll sheet to top so picker appears at known position
+                const sheet = UI.els.courseSheet;
+                if (sheet) sheet.scrollTop = 0;
                 list.innerHTML = '';
                 const self = this;
                 Library.getCourses().forEach(function(course) {
@@ -3327,9 +3333,12 @@
                 }
                 State.save();
                 this.hidePicker();
-                this.loadCourseData();
-                this.renderHoles();
-                Utils.toast('Editing: ' + course.name);
+                var self = this;
+                setTimeout(function() {
+                    self.loadCourseData();
+                    self.renderHoles();
+                    Utils.toast('Editing: ' + course.name);
+                }, 320);
             },
             
             renderHoles() {
