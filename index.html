@@ -3401,39 +3401,45 @@
                         btn.textContent = 'Set';
                         btn.style.cssText = 'padding:6px 10px;font-size:0.7rem;font-weight:700;border-radius:var(--radius-sm);border:1px solid var(--border);background:rgba(255,255,255,0.08);color:var(--text-primary);flex-shrink:0;';
                         btn.addEventListener('click', function() {
+                            // Blur input first so keyboard dismisses and layout settles
+                            inp.blur();
                             var val = inp.value.trim();
                             if (!val) { Utils.toast('Paste coordinates first'); return; }
-                            var gps = self.parseGPS(val);
-                            if (!gps) {
-                                Utils.toast('Invalid format — use: lat, lon');
-                                inp.style.borderColor = '#e64545';
-                                return;
-                            }
-                            inp.style.borderColor = '';
-                            // Store on State hole immediately
-                            if (label === 'Tee') {
-                                State.holes[idx].tee = gps;
-                            } else {
-                                State.holes[idx].flag = gps;
-                            }
-                            // Update placeholder to show confirmed coords
-                            inp.value = '';
-                            inp.placeholder = gps.lat.toFixed(6) + ', ' + gps.lon.toFixed(6);
-                            // Update status indicator
-                            var teeNow  = State.holes[idx].tee  && State.holes[idx].tee.lat;
-                            var flagNow = State.holes[idx].flag && State.holes[idx].flag.lat;
-                            gpsStatus.innerHTML =
-                                '<span style="color:' + (teeNow  ? '#4ade80' : '#555') + ';">T</span>' +
-                                ' <span style="color:' + (flagNow ? '#4ade80' : '#555') + ';">⛳</span>';
-                            btn.textContent = '✓';
-                            btn.style.color = '#4ade80';
-                            btn.style.borderColor = '#4ade80';
+
+                            // Delay action until keyboard has dismissed and layout restabilised
                             setTimeout(function() {
-                                btn.textContent = 'Set';
-                                btn.style.color = '';
-                                btn.style.borderColor = '';
-                            }, 1500);
-                            Utils.toast('H' + (idx+1) + ' ' + label + ' GPS set');
+                                var gps = self.parseGPS(val);
+                                if (!gps) {
+                                    Utils.toast('Invalid format — use: lat, lon');
+                                    inp.style.borderColor = '#e64545';
+                                    return;
+                                }
+                                inp.style.borderColor = '';
+                                // Store on State hole immediately
+                                if (label === 'Tee') {
+                                    State.holes[idx].tee = gps;
+                                } else {
+                                    State.holes[idx].flag = gps;
+                                }
+                                // Update placeholder to show confirmed coords
+                                inp.value = '';
+                                inp.placeholder = gps.lat.toFixed(6) + ', ' + gps.lon.toFixed(6);
+                                // Update status indicator
+                                var teeNow  = State.holes[idx].tee  && State.holes[idx].tee.lat;
+                                var flagNow = State.holes[idx].flag && State.holes[idx].flag.lat;
+                                gpsStatus.innerHTML =
+                                    '<span style="color:' + (teeNow  ? '#4ade80' : '#555') + ';">T</span>' +
+                                    ' <span style="color:' + (flagNow ? '#4ade80' : '#555') + ';">⛳</span>';
+                                btn.textContent = '✓';
+                                btn.style.color = '#4ade80';
+                                btn.style.borderColor = '#4ade80';
+                                setTimeout(function() {
+                                    btn.textContent = 'Set';
+                                    btn.style.color = '';
+                                    btn.style.borderColor = '';
+                                }, 1500);
+                                Utils.toast('H' + (idx+1) + ' ' + label + ' GPS set');
+                            }, 320);
                         });
                         
                         row.appendChild(lbl);
