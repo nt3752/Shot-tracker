@@ -2950,6 +2950,18 @@
                 this.renderClubList();
                 this.renderShotTypeList();
             },
+
+            // Save active bag to both State (localStorage) AND library
+            saveBagEverywhere() {
+                State.saveBag();
+                var libBag = Library.getBag(State.currentBagId);
+                if (libBag) {
+                    libBag.clubs     = State.bag.clubs;
+                    libBag.shotTypes = State.bag.shotTypes;
+                    libBag.data      = State.bag.data;
+                    Library.saveBag(libBag);
+                }
+            },
             
             closeManageClubs() {
                 if (UI.els.manageClubsBackdrop) UI.els.manageClubsBackdrop.classList.remove('active');
@@ -3052,8 +3064,8 @@
                     total: total || 0
                 };
                 
-                // Save to localStorage
-                State.saveBag();
+                // Save to localStorage and library
+                this.saveBagEverywhere();
                 
                 // Show immediate feedback
                 Utils.toast('Saved to bag');
@@ -3115,7 +3127,7 @@
                 if (!name) { Utils.toast('Enter a club name'); return; }
                 if (State.bag.clubs.indexOf(name) >= 0) { Utils.toast('Club already exists'); return; }
                 State.bag.clubs.push(name);
-                State.saveBag();
+                this.saveBagEverywhere();
                 input.value = '';
                 this.populateSelects();
                 this.renderClubList();
@@ -3131,7 +3143,7 @@
                 if (State.bag.data[club]) {
                     delete State.bag.data[club];
                 }
-                State.saveBag();
+                this.saveBagEverywhere();
                 this.populateSelects();
                 this.renderClubList();
                 this.renderBagMatrix();
@@ -3146,7 +3158,7 @@
                 if (newIdx < 1 || newIdx >= arr.length) return;
                 arr.splice(idx, 1);
                 arr.splice(newIdx, 0, club);
-                State.saveBag();
+                this.saveBagEverywhere();
                 this.populateSelects();
                 this.renderClubList();
             },
@@ -3200,7 +3212,7 @@
                 if (!name) { Utils.toast('Enter a shot type name'); return; }
                 if (State.bag.shotTypes.indexOf(name) >= 0) { Utils.toast('Shot type already exists'); return; }
                 State.bag.shotTypes.push(name);
-                State.saveBag();
+                this.saveBagEverywhere();
                 input.value = '';
                 this.populateSelects();
                 this.renderShotTypeList();
@@ -3217,7 +3229,7 @@
                         delete State.bag.data[club][type];
                     }
                 });
-                State.saveBag();
+                this.saveBagEverywhere();
                 this.populateSelects();
                 this.renderShotTypeList();
                 this.renderBagMatrix();
@@ -3232,7 +3244,7 @@
                 if (newIdx < 1 || newIdx >= arr.length) return; // don't move past 'Type?' sentinel
                 arr.splice(idx, 1);
                 arr.splice(newIdx, 0, type);
-                State.saveBag();
+                this.saveBagEverywhere();
                 this.populateSelects();
                 this.renderShotTypeList();
             },
@@ -3281,7 +3293,7 @@
                                 if (Object.keys(State.bag.data[club]).length === 0) {
                                     delete State.bag.data[club];
                                 }
-                                State.saveBag();
+                                BagEditorUI.saveBagEverywhere();
                                 this.renderBagMatrix();
                                 Utils.toast('Deleted');
                             }
