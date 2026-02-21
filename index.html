@@ -3942,6 +3942,38 @@
                     });
                 });
 
+                // --- Section 3: Course GPS summary (all 18 holes) ---
+                rows.push('');
+                rows.push('COURSE GPS');
+                rows.push([
+                    'Hole', 'Par', 'Yards', 'HCP',
+                    'Tee Lat', 'Tee Lon',
+                    'Flag Lat', 'Flag Lon',
+                    'W1 Lat', 'W1 Lon',
+                    'W2 Lat', 'W2 Lon'
+                ].map(self.csvField).join(','));
+
+                State.holes.forEach(function(hole) {
+                    var tee  = hole.tee  && hole.tee.lat  ? hole.tee  : null;
+                    var flag = hole.flag && hole.flag.lat ? hole.flag : null;
+                    var w1   = hole.planPath && hole.planPath[0] && hole.planPath[0].lat ? hole.planPath[0] : null;
+                    var w2   = hole.planPath && hole.planPath[1] && hole.planPath[1].lat ? hole.planPath[1] : null;
+                    rows.push([
+                        hole.hole,
+                        hole.par   || '',
+                        hole.yards || '',
+                        hole.hcp   || '',
+                        tee  ? tee.lat.toFixed(6)  : '',
+                        tee  ? tee.lon.toFixed(6)  : '',
+                        flag ? flag.lat.toFixed(6) : '',
+                        flag ? flag.lon.toFixed(6) : '',
+                        w1   ? w1.lat.toFixed(6)   : '',
+                        w1   ? w1.lon.toFixed(6)   : '',
+                        w2   ? w2.lat.toFixed(6)   : '',
+                        w2   ? w2.lon.toFixed(6)   : ''
+                    ].map(self.csvField).join(','));
+                });
+
                 return rows.join('\n');
             },
 
