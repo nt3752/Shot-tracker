@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v41.6</title>
+    <title>Shot Tracker v41.7</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -1013,7 +1013,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v41.6</span>
+                    <span class="brand-version">v41.7</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard">📋</button>
@@ -1490,7 +1490,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.6';
+        const VERSION = 'v41.7';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -4623,7 +4623,7 @@
         };
         
         // ============================================
-        // SHOT MAP (v41.6)
+        // SHOT MAP (v41.7)
         // ============================================
 
         const ShotMap = {
@@ -5203,13 +5203,22 @@
                 }
                 var lines = ['hole,type,lat,lon'];
                 course.holes.forEach(function(h, idx) {
-                    var n = idx + 1;
-                    if (h.teeGPS  && h.teeGPS.lat)  lines.push(n + ',tee,'  + h.teeGPS.lat.toFixed(6)  + ',' + h.teeGPS.lon.toFixed(6));
-                    if (h.flagGPS && h.flagGPS.lat)  lines.push(n + ',flag,' + h.flagGPS.lat.toFixed(6) + ',' + h.flagGPS.lon.toFixed(6));
-                    if (h.planPath) {
-                        h.planPath.forEach(function(wp, wi) {
-                            if (wp && wp.lat) lines.push(n + ',w' + (wi+1) + ',' + wp.lat.toFixed(6) + ',' + wp.lon.toFixed(6));
-                        });
+                    var n   = idx + 1;
+                    var par = h.par || 0;
+
+                    // Tee — always output
+                    var tee = h.teeGPS && h.teeGPS.lat ? h.teeGPS : null;
+                    lines.push(n + ',tee,' + (tee ? tee.lat.toFixed(6) : '') + ',' + (tee ? tee.lon.toFixed(6) : ''));
+
+                    // Flag — always output
+                    var flag = h.flagGPS && h.flagGPS.lat ? h.flagGPS : null;
+                    lines.push(n + ',flag,' + (flag ? flag.lat.toFixed(6) : '') + ',' + (flag ? flag.lon.toFixed(6) : ''));
+
+                    // Waypoints — output based on par (par 4 = w1, par 5 = w1+w2)
+                    var wpCount = par >= 4 ? par - 3 : 0;
+                    for (var wi = 0; wi < wpCount; wi++) {
+                        var wp = h.planPath && h.planPath[wi] && h.planPath[wi].lat ? h.planPath[wi] : null;
+                        lines.push(n + ',w' + (wi+1) + ',' + (wp ? wp.lat.toFixed(6) : '') + ',' + (wp ? wp.lon.toFixed(6) : ''));
                     }
                 });
                 var csv = lines.join('\n');
@@ -5570,7 +5579,7 @@
         };
         
         // ============================================
-        // FULL BACKUP & RESTORE (v41.6)
+        // FULL BACKUP & RESTORE (v41.7)
         // ============================================
 
         const Backup = {
