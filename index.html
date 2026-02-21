@@ -5149,10 +5149,18 @@
                     loaded++;
                 });
 
-                // Save bag
-                Library.saveBag(bag);
+                // Update State.bag
                 State.bag = bag;
                 State.save();
+
+                // Also persist to library using currentBagId so findIndex matches
+                var libBag = Library.getBag(State.currentBagId);
+                if (libBag) {
+                    libBag.clubs     = bag.clubs;
+                    libBag.shotTypes = bag.shotTypes;
+                    libBag.data      = bag.data;
+                    Library.saveBag(libBag);
+                }
 
                 setTimeout(function() {
                     UI.render();
