@@ -707,6 +707,13 @@
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
+            cursor: pointer;
+            -webkit-tap-highlight-color: rgba(74,222,128,0.15);
+        }
+
+        .suggestion-item:active {
+            background: rgba(74, 222, 128, 0.08);
+            border-color: var(--green-500);
         }
         
         .suggestion-info {
@@ -727,6 +734,7 @@
         
         .suggestion-btn {
             padding: var(--space-2) var(--space-4);
+            min-height: 44px;
             background: var(--green-700);
             border: 1px solid var(--green-500);
             border-radius: var(--radius-md);
@@ -736,6 +744,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             white-space: nowrap;
+            pointer-events: none;
         }
         
         /* ===============================================
@@ -1115,18 +1124,23 @@
                 <button class="btn btn-sm btn-secondary" id="btnBagEditor" type="button">Bag</button>
                 <button class="btn btn-sm btn-secondary" id="btnCaddyMode" type="button">Carry</button>
                 <button class="btn btn-sm btn-secondary" id="btnShowAll" type="button">Show All</button>
-                <button class="btn btn-sm btn-secondary" id="btnCloseCaddy" type="button">Close</button>
             </div>
         </div>
         <div class="sheet-body">
-        <div class="input-row">
-            <span class="input-label">Target</span>
-            <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" enterkeyhint="done" maxlength="3" pattern="[0-9]*">
-            <button class="btn btn-sm btn-secondary" id="btnResetTarget" type="button">Reset</button>
+            <div class="input-row" style="margin-bottom: var(--space-3);">
+                <span class="input-label">Target</span>
+                <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" enterkeyhint="done" maxlength="3" pattern="[0-9]*">
+            </div>
+            <div class="suggestion-list" id="suggestionList"></div>
         </div>
-        
-        <div class="suggestion-list" id="suggestionList"></div>
-        </div>
+        <button id="btnCloseCaddy" type="button" style="
+            display: block; width: 100%; padding: 18px;
+            background: var(--bg-card-light); border: none;
+            border-top: 1px solid var(--border);
+            color: var(--text-primary); font-size: 0.875rem;
+            font-weight: 900; text-transform: uppercase;
+            letter-spacing: 0.5px; cursor: pointer;
+            flex-shrink: 0;">✕ Close</button>
     </div>
     
     <!-- BAG EDITOR SHEET -->
@@ -2198,7 +2212,7 @@
                     'exportBackdrop', 'exportSheet', 'btnCloseExport', 'btnDownloadCSV', 'btnViewReport', 'btnShotMap',
                     'shotsList',
                     'caddyBackdrop', 'caddySheet', 'btnCloseCaddy',
-                    'btnCaddyMode', 'btnShowAll', 'caddyTarget', 'btnResetTarget',
+                    'btnCaddyMode', 'btnShowAll', 'caddyTarget',
                     'suggestionList', 'btnBagEditor',
                     'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid',
                     'bagBackdrop', 'bagSheet', 'bagSheetBody', 'btnCloseBag', 'bagClub', 'bagShotType',
@@ -2882,32 +2896,34 @@
                 suggestions.forEach(sug => {
                     const item = document.createElement('div');
                     item.className = 'suggestion-item';
-                    
+
                     const info = document.createElement('div');
                     info.className = 'suggestion-info';
-                    
+
                     const clubName = document.createElement('div');
                     clubName.className = 'suggestion-club';
                     clubName.textContent = `${sug.club} • ${sug.shotType}`;
-                    
+
                     const meta = document.createElement('div');
                     meta.className = 'suggestion-meta';
-                    
+
                     // Show diff as +/- to indicate over/under target
                     const diffText = target ? (sug.distance > target ? `+${sug.diff}y` : (sug.distance < target ? `-${sug.diff}y` : '0y')) : '';
                     meta.textContent = `${sug.carry}y carry • ${sug.total}y total${diffText ? ' • ' + diffText : ''}`;
-                    
+
                     info.appendChild(clubName);
                     info.appendChild(meta);
-                    
-                    const btn = document.createElement('button');
+
+                    const btn = document.createElement('div');
                     btn.className = 'suggestion-btn';
                     btn.textContent = 'Select';
-                    btn.addEventListener('click', () => {
+
+                    // Entire row is the tap target
+                    item.addEventListener('click', () => {
                         Actions.addShot({ club: sug.club, shotType: sug.shotType });
                         this.close();
                     });
-                    
+
                     item.appendChild(info);
                     item.appendChild(btn);
                     UI.els.suggestionList.appendChild(item);
@@ -6541,8 +6557,14 @@
                 // Caddy
                 this.on('btnCaddy', 'click', () => CaddyUI.open());
                 this.on('btnCloseCaddy', 'click', () => CaddyUI.close());
-                this.on('caddyBackdrop', 'click', () => CaddyUI.close());
-                
+                this.on('caddyBackdrop', 'click', () => {
+                    // Blur any focused input first so keyboard dismisses,
+                    // then wait for layout to settle before closing
+                    var focused = document.activeElement;
+                    if (focused && focused !== document.body) focused.blur();
+                    setTimeout(() => CaddyUI.close(), 320);
+                });
+
                 this.on('btnCaddyMode', 'click', () => {
                     State.ui.caddyMode = State.ui.caddyMode === 'carry' ? 'total' : 'carry';
                     if (UI.els.btnCaddyMode) {
@@ -6551,36 +6573,35 @@
                     State.save();
                     CaddyUI.render();
                 });
-                
+
                 this.on('btnShowAll', 'click', () => {
                     State.ui.showAll = !State.ui.showAll;
                     if (UI.els.btnShowAll) {
-                        // Show CURRENT state, not next state
-                        // When showAll is TRUE, button says "Show All" (current state)
-                        // When showAll is FALSE, button says "Within 10" (current state)
                         UI.els.btnShowAll.textContent = State.ui.showAll ? 'Show All' : 'Within 10';
                     }
                     State.save();
                     CaddyUI.render();
                 });
-                
-                this.on('caddyTarget', 'input', () => CaddyUI.render());
-                // Dismiss keyboard on Enter/Done so touch targets settle before next tap
+
+                // Debounced input — wait 400ms after last keystroke before re-rendering
+                var caddyInputTimer = null;
+                this.on('caddyTarget', 'input', () => {
+                    clearTimeout(caddyInputTimer);
+                    caddyInputTimer = setTimeout(() => CaddyUI.render(), 400);
+                });
+
+                // Dismiss keyboard on Enter/Done, then wait 320ms for layout to settle
                 this.on('caddyTarget', 'keydown', (e) => {
                     if (e.key === 'Enter') {
                         const t = UI.els.caddyTarget;
-                        if (t) t.blur();
+                        if (t) {
+                            t.blur();
+                            clearTimeout(caddyInputTimer);
+                            setTimeout(() => CaddyUI.render(), 320);
+                        }
                     }
                 });
-                
-                this.on('btnResetTarget', 'click', () => {
-                    const toFlag = UI.getToFlagYards();
-                    if (UI.els.caddyTarget) {
-                        UI.els.caddyTarget.value = toFlag !== null ? String(toFlag) : '';
-                    }
-                    CaddyUI.render();
-                });
-                
+
                 // Bag Editor
                 this.on('btnBagEditor', 'click', () => {
                     CaddyUI.close();
