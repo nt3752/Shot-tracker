@@ -1504,7 +1504,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.7';
+        const VERSION = 'v41.8';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -1762,11 +1762,13 @@
                                     yards: h.yards || 0,
                                     hcp: h.hcp || (i + 1),
                                     teeGPS: h.teeGPS || null,
-                                    flagGPS: h.flagGPS || null
+                                    flagGPS: h.flagGPS || null,
+                                    planPath: h.planPath || [],
+                                    targets: h.targets || []
                                   }))
                                 : Array.from({length: 18}, (_, i) => ({
                                     hole: i + 1, par: 4, yards: 0, hcp: i + 1,
-                                    teeGPS: null, flagGPS: null
+                                    teeGPS: null, flagGPS: null, planPath: [], targets: []
                                   })),
                             created: Utils.nowISO()
                         });
@@ -1777,7 +1779,7 @@
                             name: 'My Course',
                             holes: Array.from({length: 18}, (_, i) => ({
                                 hole: i + 1, par: 4, yards: 0, hcp: i + 1,
-                                teeGPS: null, flagGPS: null
+                                teeGPS: null, flagGPS: null, planPath: [], targets: []
                             })),
                             created: Utils.nowISO()
                         });
@@ -1991,6 +1993,10 @@
                             if (ch.planPath) {
                                 this.holes[idx].planPath = ch.planPath;
                             }
+                            // Always load targets from library
+                            if (ch.targets) {
+                                this.holes[idx].targets = ch.targets;
+                            }
                         }
                     });
                 }
@@ -2008,6 +2014,8 @@
                     flagPending: false,
                     fwy: false,
                     gir: false,
+                    planPath: [],
+                    targets: [],
                     shots: []
                 }));
             },
@@ -2056,6 +2064,10 @@
                                 // Always load planPath from library
                                 if (ch.planPath) {
                                     this.holes[idx].planPath = ch.planPath;
+                                }
+                                // Always load targets from library
+                                if (ch.targets) {
+                                    this.holes[idx].targets = ch.targets;
                                 }
                             }
                         });
@@ -3432,6 +3444,7 @@
                             if (ch.teeGPS)   State.holes[idx].tee      = ch.teeGPS;
                             if (ch.flagGPS)  State.holes[idx].flag     = ch.flagGPS;
                             if (ch.planPath) State.holes[idx].planPath = ch.planPath;
+                            if (ch.targets)  State.holes[idx].targets  = ch.targets;
                         }
                     });
                 }
@@ -3734,6 +3747,7 @@
                             if (State.holes[idx].tee)      existingCourse.holes[idx].teeGPS   = State.holes[idx].tee;
                             if (State.holes[idx].flag)     existingCourse.holes[idx].flagGPS  = State.holes[idx].flag;
                             if (State.holes[idx].planPath) existingCourse.holes[idx].planPath = State.holes[idx].planPath;
+                            if (State.holes[idx].targets)  existingCourse.holes[idx].targets  = State.holes[idx].targets;
                         }
                     });
                     Library.saveCourse(existingCourse);
@@ -5752,7 +5766,7 @@
                 var name = 'New Course ' + (Library.getCourses().length + 1);
                 var holes = [];
                 for (var i = 1; i <= 18; i++) {
-                    holes.push({ hole: i, par: 0, yards: 0, hcp: 0, teeGPS: null, flagGPS: null });
+                    holes.push({ hole: i, par: 0, yards: 0, hcp: 0, teeGPS: null, flagGPS: null, planPath: [], targets: [] });
                 }
                 var course = {
                     id: Utils.generateId('course'),
