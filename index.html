@@ -1504,7 +1504,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.8';
+        const VERSION = 'v41.8.1';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -3640,6 +3640,13 @@
                                         // Store in planPath array
                                         if (!State.holes[idx].planPath) State.holes[idx].planPath = [];
                                         State.holes[idx].planPath[wIdx] = gps;
+                                        // Write-through to library so it persists across sessions
+                                        var wCourse = Library.getCourse(self.editingCourseId || State.currentCourseId);
+                                        if (wCourse && wCourse.holes && wCourse.holes[idx]) {
+                                            if (!wCourse.holes[idx].planPath) wCourse.holes[idx].planPath = [];
+                                            wCourse.holes[idx].planPath[wIdx] = gps;
+                                            Library.saveCourse(wCourse);
+                                        }
                                         inp.value = '';
                                         inp.placeholder = gps.lat.toFixed(6) + ', ' + gps.lon.toFixed(6);
                                         btn.textContent = '✓';
@@ -5723,7 +5730,7 @@
                     if (data.activeCourse)  Storage.save(LS_COURSE_KEY,         data.activeCourse);
 
                     // Re-initialize app from restored storage
-                    State.load();
+                    State.init();
                     State.loadBag();
                     UI.render();
                     LibraryUI.render();
