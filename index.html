@@ -4298,11 +4298,13 @@
                         if (showAll) {
                             parents.push({ tgt: tgt, repDist: null, repGPS: null, subRows: [], catLabel: tgt.category || 'point' });
                         }
+                        console.log('[Targets] ' + tgt.label + ' | cat=' + tgt.category + ' | hasPts=false | showAll=' + showAll);
                         return;
                     }
 
                     var repGPS = self.getRepGPS(tgt);
                     var cat = (tgt.category || 'point').toLowerCase();
+                    console.log('[Targets] ' + tgt.label + ' | cat=' + cat + ' | phase=' + phase + ' | showAll=' + showAll + ' | repGPS=' + (repGPS ? repGPS.lat.toFixed(5) : 'null'));
 
                     // Lane + front filter (skip when showAll)
                     if (!showAll) {
@@ -4310,7 +4312,7 @@
                         if ((phase === 'fwy' || phase === 'tee') && repGPS && pos && !self.isInFront(repGPS, pos, hole)) return;
 
                         // Get cone angle from targeting config
-                        var cfg = (State.round && State.round.targeting) || {};
+                        var cfg = TargetConfigUI.cfg();
                         var coneAngle = cfg.coneAngle || 10;
 
                         // ── Phase-specific filtering ──────────────────────
@@ -4462,6 +4464,7 @@
 
             // Get config with defaults
             cfg() {
+                if (!State.round) State.round = {};
                 if (!State.round.targeting) {
                     State.round.targeting = {
                         maxTeeDist: 250, layupFront: 40, layupBack: 90,
@@ -4586,7 +4589,11 @@
                 if (els.targetsBackdrop) els.targetsBackdrop.classList.add('active');
                 els.targetsSheet.classList.add('active');
                 try { this.renderHeader(); } catch(e) { console.error('TargetsUI.renderHeader:', e); }
-                try { this.renderList();   } catch(e) { console.error('TargetsUI.renderList:',   e); }
+                try { this.renderList();   } catch(e) {
+                    console.error('TargetsUI.renderList:', e);
+                    var list = UI.els.targetsList;
+                    if (list) list.innerHTML = '<div style="font-size:0.75rem;color:var(--red-400);padding:var(--space-4);">Error: ' + e.message + '</div>';
+                }
             },
 
             close() {
@@ -4674,12 +4681,13 @@
                 var showAllBtn = document.createElement('button');
                 // Option A: bright green = currently FILTERED (normal mode)
                 //           dim = currently showing ALL
-                showAllBtn.textContent = isShowAll ? 'Show All' : 'Filtered';
+                // Show All: bright green = active (showing all), dim = filtered mode
+                showAllBtn.textContent = 'Show All';
                 showAllBtn.style.cssText = 'font-size:0.65rem;font-weight:900;text-transform:uppercase;padding:3px 7px;border-radius:12px;border:1px solid;cursor:pointer;margin-left:auto;' +
                     (isShowAll
-                        ? 'background:transparent;color:var(--text-muted);border-color:var(--border);'
-                        : 'background:var(--green-700);color:#fff;border-color:var(--green-500);');
-                showAllBtn.title = isShowAll ? 'Showing all targets — tap to filter by phase/cone' : 'Filtered by phase/cone — tap to show all';
+                        ? 'background:var(--green-700);color:#fff;border-color:var(--green-500);'
+                        : 'background:transparent;color:var(--text-muted);border-color:var(--border);');
+                showAllBtn.title = isShowAll ? 'Showing all targets — tap to filter' : 'Tap to show all targets';
                 showAllBtn.addEventListener('click', function() {
                     if (!State.ui) State.ui = {};
                     State.ui.targetsShowAll = !State.ui.targetsShowAll;
@@ -4709,14 +4717,11 @@
 
                 var parents = TargetEngine.buildParentRows(hole, pos, lw, phase, showAll);
 
-                // If filtered list is empty but targets exist, retry with showAll
                 if (!parents || parents.length === 0) {
-                    if (!showAll) {
-                        parents = TargetEngine.buildParentRows(hole, pos, lw, phase, true);
-                    }
-                }
-                if (!parents || parents.length === 0) {
-                    list.innerHTML = '<div style="font-size:0.85rem;color:var(--text-muted);text-align:center;padding:var(--space-6);">No targets for this hole</div>';
+                    var emptyMsg = showAll
+                        ? 'No targets defined for this hole'
+                        : 'No targets in range — tap Show All to see all';
+                    list.innerHTML = '<div style="font-size:0.85rem;color:var(--text-muted);text-align:center;padding:var(--space-6);">' + emptyMsg + '</div>';
                     return;
                 }
 
