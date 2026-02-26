@@ -6044,7 +6044,9 @@
 
             // Scale projected points to fit SVG canvas with padding
             scaleToCanvas(projected, W, H, PAD) {
-                var allPts = [projected.tee, projected.flag].concat(projected.shots.filter(Boolean));
+                var allPts = [projected.tee, projected.flag]
+                    .concat(projected.shots.filter(Boolean))
+                    .concat((projected.plan || []).filter(Boolean));
                 var xs = allPts.map(function(p) { return p.x; });
                 var ys = allPts.map(function(p) { return p.y; });
                 var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
@@ -6070,17 +6072,24 @@
                     plan:  (projected.plan || []).map(toSVG)
                 };
 
-                // Anchor tee to bottom — shift all points so tee.y = H - PAD
-                var teeY = result.tee.y;
-                var yShift = (H - PAD) - teeY;
-                function shiftY(pt) {
-                    if (!pt) return null;
-                    return { x: pt.x, y: pt.y + yShift };
-                }
+                // Centre horizontally: shift all x so tee is at W/2
+                var teeSVGx = result.tee.x;
+                var xShift = (W / 2) - teeSVGx;
+                function shiftX(pt) { return pt ? { x: pt.x + xShift, y: pt.y } : null; }
+                result.tee   = shiftX(result.tee);
+                result.flag  = shiftX(result.flag);
+                result.shots = result.shots.map(shiftX);
+                result.plan  = (result.plan || []).map(shiftX);
+
+                // Anchor: flag at top (PAD), tee at bottom (H-PAD)
+                // Use flag y as the "top anchor" reference
+                var flagY = result.flag.y;
+                var flagYShift = PAD - flagY;
+                function shiftY(pt) { return pt ? { x: pt.x, y: pt.y + flagYShift } : null; }
                 result.tee   = shiftY(result.tee);
                 result.flag  = shiftY(result.flag);
                 result.shots = result.shots.map(shiftY);
-                result.plan  = result.plan.map(shiftY);
+                result.plan  = (result.plan || []).map(shiftY);
 
                 return result;
             },
@@ -6104,26 +6113,29 @@
                 // Background
                 svg += '<rect width="' + W + '" height="' + H + '" rx="8" fill="#1a2a1a"/>';
 
-                // ── Draw plan path line (amber dashed, behind actual shots) ──
-                // Always draw for all holes — tee→waypoints→flag
-                // Par 3: straight tee→flag line. Par 4/5: via waypoints.
+                // ── Draw spine: tee → W1 → W2 → flag ────────────────────────
+                // Always visible — this is the hole layout even with no shots
                 {
+                    var hasShots = hole.shots.some(function(s) { return s.position && s.position.lat; });
+                    var spineColor  = hasShots ? '#fbbf24' : '#6ee7b7'; // amber if shots, green if preview only
+                    var spineOpacity = hasShots ? '0.45' : '0.7';
                     var planPts = [scaled.tee]
                         .concat((scaled.plan || []).filter(Boolean))
                         .concat([scaled.flag]);
+                    // Solid spine line
                     for (var p = 0; p < planPts.length - 1; p++) {
                         var pa = planPts[p], pb = planPts[p+1];
                         if (!pa || !pb) continue;
                         svg += '<line x1="' + pa.x.toFixed(1) + '" y1="' + pa.y.toFixed(1) +
                                '" x2="' + pb.x.toFixed(1) + '" y2="' + pb.y.toFixed(1) +
-                               '" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.45"/>';
+                               '" stroke="' + spineColor + '" stroke-width="2" stroke-dasharray="6,4" opacity="' + spineOpacity + '"/>';
                     }
-                    // Waypoint diamond markers (only where waypoints exist)
+                    // Waypoint diamond markers
                     (scaled.plan || []).filter(Boolean).forEach(function(pt) {
                         var s = 4;
                         svg += '<rect x="' + (pt.x - s).toFixed(1) + '" y="' + (pt.y - s).toFixed(1) +
                                '" width="' + (s*2) + '" height="' + (s*2) +
-                               '" fill="#fbbf24" opacity="0.6" transform="rotate(45,' + pt.x.toFixed(1) + ',' + pt.y.toFixed(1) + ')"/>';
+                               '" fill="' + spineColor + '" opacity="0.8" transform="rotate(45,' + pt.x.toFixed(1) + ',' + pt.y.toFixed(1) + ')"/>';
                     });
                 }
 
@@ -6232,8 +6244,8 @@
 
             // ── Per-hole card HTML ─────────────────────
 
-            buildHoleCard(hole) {
-                var W = 200, H = 260;
+            buildHoleCard(hole, W, H) {
+                W = W || 200; H = H || 260;
                 var card  = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;overflow:hidden;';
                 var gir   = ExportData.calcGIR(hole);
                 var putts = ExportData.puttCount(hole);
@@ -6264,16 +6276,16 @@
                 h += scoreSym(hole.shots.length, vsp);
                 h += '</div>';
 
-                // SVG map or fallback
-                var svg = (hole.tee && hole.flag) ? this.buildHoleSVG(hole, W, H) : null;
+                // SVG map — renders if tee+flag GPS present (even with no shots)
+                var svg = (hole.tee && hole.tee.lat && hole.flag && hole.flag.lat)
+                    ? this.buildHoleSVG(hole, W, H) : null;
                 if (svg) {
                     h += svg;
                 } else {
-                    // No GPS — show a placeholder
                     h += '<div style="width:' + W + 'px;height:' + H + 'px;display:flex;flex-direction:column;' +
                          'align-items:center;justify-content:center;background:#1a2a1a;gap:6px;">';
                     h += '<div style="font-size:1.5rem;">📍</div>';
-                    h += '<div style="font-size:0.65rem;color:#555;text-align:center;padding:0 16px;">No GPS data<br>for this hole</div>';
+                    h += '<div style="font-size:0.65rem;color:#555;text-align:center;padding:0 16px;">No GPS data</div>';
                     h += '</div>';
                 }
 
@@ -6326,10 +6338,13 @@
 
             show() {
                 var self = this;
-                var playedHoles = State.holes.filter(function(h) { return h.shots.length > 0; });
+                // Show all holes that have GPS data OR shots recorded
+                var playedHoles = State.holes.filter(function(h) {
+                    return h.shots.length > 0 || (h.tee && h.tee.lat && h.flag && h.flag.lat);
+                });
 
                 if (playedHoles.length === 0) {
-                    Utils.toast('No holes played yet');
+                    Utils.toast('No holes with GPS or shots yet');
                     return;
                 }
 
@@ -6378,10 +6393,10 @@
 
                 // GPS coverage note
                 var gpsHoles  = playedHoles.filter(function(h) { return h.tee && h.flag; }).length;
+                var shotHoles = playedHoles.filter(function(h) { return h.shots.length > 0; }).length;
                 var noteDiv = document.createElement('div');
                 noteDiv.style.cssText = 'font-size:0.7rem;color:#888;margin-bottom:10px;';
-                noteDiv.textContent = gpsHoles + ' of ' + playedHoles.length +
-                                      ' holes have full GPS data. Holes without GPS show a placeholder.';
+                noteDiv.textContent = gpsHoles + ' holes with GPS · ' + shotHoles + ' holes played';
                 scrollArea.appendChild(noteDiv);
 
                 // Legend
@@ -6393,9 +6408,14 @@
                 var grid = document.createElement('div');
                 grid.style.cssText = 'display:grid;grid-template-columns:repeat(2,1fr);gap:10px;';
 
+                // Responsive card size: fit 2 cols in viewport with padding
+                var vw = Math.min(window.innerWidth || 390, 480);
+                var cardW = Math.floor((vw - 24 - 10) / 2); // 24px total padding + 10px gap
+                var cardH = Math.floor(cardW * 1.35);        // ~4:3 portrait aspect
+
                 playedHoles.forEach(function(hole) {
                     var cardDiv = document.createElement('div');
-                    cardDiv.innerHTML = self.buildHoleCard(hole);
+                    cardDiv.innerHTML = self.buildHoleCard(hole, cardW, cardH);
                     grid.appendChild(cardDiv);
                 });
 
