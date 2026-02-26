@@ -4033,6 +4033,9 @@
                 var manual = State.ui && State.ui.targetPhase;
                 if (manual && manual !== 'auto') return manual;
                 // Get configurable thresholds (fall back to defaults)
+                if (State.round && !State.round.targeting) {
+                    State.round.targeting = { maxTeeDist:250, layupFront:40, layupBack:90, apprThresh:150, grnThresh:40, coneAngle:10 };
+                }
                 var cfg = (State.round && State.round.targeting) || {};
                 var apprThresh = cfg.apprThresh || 150;
                 var grnThresh  = cfg.grnThresh  || 40;
@@ -4303,8 +4306,8 @@
 
                     // Lane + front filter (skip when showAll)
                     if (!showAll) {
-                        // Front filter — don't show targets behind current position
-                        if (repGPS && pos && !self.isInFront(repGPS, pos, hole)) return;
+                        // Front filter — only apply in FWY/TEE, not APPR/GRN
+                        if ((phase === 'fwy' || phase === 'tee') && repGPS && pos && !self.isInFront(repGPS, pos, hole)) return;
 
                         // Get cone angle from targeting config
                         var cfg = (State.round && State.round.targeting) || {};
@@ -4669,8 +4672,14 @@
 
                 // Show All toggle
                 var showAllBtn = document.createElement('button');
-                showAllBtn.textContent = isShowAll ? 'Filtered' : 'Show All';
-                showAllBtn.style.cssText = 'font-size:0.65rem;font-weight:900;text-transform:uppercase;padding:3px 7px;border-radius:12px;border:1px solid var(--border);cursor:pointer;margin-left:auto;background:' + (isShowAll ? 'var(--green-700)' : 'var(--bg-card-light)') + ';color:var(--text-primary);';
+                // Option A: bright green = currently FILTERED (normal mode)
+                //           dim = currently showing ALL
+                showAllBtn.textContent = isShowAll ? 'Show All' : 'Filtered';
+                showAllBtn.style.cssText = 'font-size:0.65rem;font-weight:900;text-transform:uppercase;padding:3px 7px;border-radius:12px;border:1px solid;cursor:pointer;margin-left:auto;' +
+                    (isShowAll
+                        ? 'background:transparent;color:var(--text-muted);border-color:var(--border);'
+                        : 'background:var(--green-700);color:#fff;border-color:var(--green-500);');
+                showAllBtn.title = isShowAll ? 'Showing all targets — tap to filter by phase/cone' : 'Filtered by phase/cone — tap to show all';
                 showAllBtn.addEventListener('click', function() {
                     if (!State.ui) State.ui = {};
                     State.ui.targetsShowAll = !State.ui.targetsShowAll;
