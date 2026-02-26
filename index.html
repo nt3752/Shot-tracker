@@ -4515,10 +4515,11 @@
             open() {
                 var els = UI.els;
                 if (!els.targetsSheet) return;
-                this.renderHeader();
-                this.renderList();
+                // Show sheet first so it's always visible even if render throws
                 if (els.targetsBackdrop) els.targetsBackdrop.classList.add('active');
                 els.targetsSheet.classList.add('active');
+                try { this.renderHeader(); } catch(e) { console.error('TargetsUI.renderHeader:', e); }
+                try { this.renderList();   } catch(e) { console.error('TargetsUI.renderList:',   e); }
             },
 
             close() {
@@ -4532,12 +4533,13 @@
             renderHeader() {
                 var el = UI.els.targetsHoleLabel;
                 if (!el) return;
+                if (!State.ui) State.ui = {};
                 var hole = State.holes[State.holeIndex];
                 var pos  = GPS.getCurrentPosition();
                 var phase = TargetEngine.getPhase(hole, pos);
-                var manualPhase = (State.ui && State.ui.targetPhase) || 'auto';
-                var lw = (State.ui && State.ui.laneWidth) || 25;
-                var isShowAll = (State.ui && State.ui.targetsShowAll);
+                var manualPhase = State.ui.targetPhase || 'auto';
+                var lw = State.ui.laneWidth || 25;
+                var isShowAll = !!State.ui.targetsShowAll;
 
                 el.innerHTML = '';
                 el.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:var(--space-3);';
@@ -4627,10 +4629,10 @@
 
                 var pos     = GPS.getCurrentPosition();
                 var phase   = TargetEngine.getPhase(hole, pos);
-                var lw      = (State.ui && State.ui.laneWidth) || 25;
-                var showAll = !!(State.ui && State.ui.targetsShowAll);
-                // expandedIds: set of tgt.id strings currently expanded
+                if (!State.ui) State.ui = {};
                 if (!State.ui.expandedTargetIds) State.ui.expandedTargetIds = {};
+                var lw      = State.ui.laneWidth  || 25;
+                var showAll = !!State.ui.targetsShowAll;
 
                 var parents = TargetEngine.buildParentRows(hole, pos, lw, phase, showAll);
 
