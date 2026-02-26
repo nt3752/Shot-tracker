@@ -1660,6 +1660,19 @@
                 return this.saneYards(yards);
             },
             
+            // Bearing in degrees (0=N, 90=E, 180=S, 270=W) from A to B
+            bearing(a, b) {
+                if (!a || !b) return 0;
+                var toRad = function(d) { return d * Math.PI / 180; };
+                var toDeg = function(r) { return r * 180 / Math.PI; };
+                var dLon = toRad(b.lon - a.lon);
+                var lat1 = toRad(a.lat);
+                var lat2 = toRad(b.lat);
+                var x = Math.sin(dLon) * Math.cos(lat2);
+                var y = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+                return (toDeg(Math.atan2(x, y)) + 360) % 360;
+            },
+
             // ISO timestamp
             nowISO() {
                 return new Date().toISOString();
