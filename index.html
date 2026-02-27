@@ -5080,8 +5080,8 @@
                                 if (!State.ui) State.ui = {};
                                 State.ui.pendingTargetMeta = {
                                     targetId:       capturedTgt.id,
-                                    targetPoint:    capturedRow ? capturedRow.pointName : 'C',
-                                    targetGPS:      capturedRow ? capturedRow.gps : null,
+                                    targetPoint:    capturedRow ? (capturedRow.repLabel || 'C') : 'C',
+                                    targetGPS:      capturedRow ? capturedRow.repGPS : null,
                                     targetYards:    Math.round(capturedDist),
                                     targetCategory: capturedTgt.category
                                 };
@@ -5089,7 +5089,7 @@
                                 Utils.toast(capturedTgt.label + ': ' + Math.round(capturedDist) + 'y');
                             }
                         };
-                    })(dist, tgt, hasExpand ? rightEl.querySelector('span') : null, subContainer, hasExpand, row));
+                    })(dist, tgt, hasExpand ? rightEl.querySelector('span') : null, subContainer, hasExpand, parent));
                 });
 
                 // ── Render layup rows (FWY/TEE phase only) ───────────────────
