@@ -1695,8 +1695,8 @@
                 if (flatYards == null || playerElevationM == null || targetElevationM == null) return null;
                 var riseMetres = targetElevationM - playerElevationM;
                 var riseFeet   = riseMetres * 3.28084;
-                // ~1 yard per foot of rise per 100 yards
-                var adj = (riseFeet / 100) * flatYards;
+                // 1 yard per foot of elevation change (standard golf rule of thumb)
+                var adj = riseFeet;
                 return Math.round(flatYards + adj);
             },
 
