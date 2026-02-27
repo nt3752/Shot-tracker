@@ -4959,18 +4959,16 @@
                         // Plays-like line (only if elevation data available)
                         var playerElev = State.ui && State.ui.playerElevation != null ? State.ui.playerElevation : null;
                         var tgtGPS = parent.repGPS || (tgt.points && tgt.points.C);
-                        var hole = State.holes[State.holeIndex];
-                        var profile = hole && hole.elevationProfile;
-                        if (playerElev != null && tgtGPS && profile && profile.length > 0) {
-                            var tgtElev = Utils.nearestElevation(tgtGPS, profile);
+                        if (playerElev != null && tgtGPS && tgtGPS.elevation != null) {
+                            var tgtElev = tgtGPS.elevation;
                             var pl = Utils.playsLike(Math.round(dist), playerElev, tgtElev);
-                            if (pl != null && pl !== Math.round(dist)) {
+                            if (pl != null) {
                                 var plEl = document.createElement('div');
                                 var diff = pl - Math.round(dist);
-                                var arrow = diff > 0 ? '↑' : '↓';
-                                var plColor = diff > 0 ? 'var(--amber-400, #f59e0b)' : 'var(--blue-400, #60a5fa)';
+                                var arrow = diff > 0 ? ' ↑' : diff < 0 ? ' ↓' : ' =';
+                                var plColor = diff > 0 ? 'var(--amber-400, #f59e0b)' : diff < 0 ? 'var(--blue-400, #60a5fa)' : 'var(--text-muted)';
                                 plEl.style.cssText = 'font-size:0.62rem;font-weight:700;color:' + plColor + ';text-align:right;margin-top:1px;';
-                                plEl.textContent = 'plays ' + pl + 'y ' + arrow;
+                                plEl.textContent = 'plays ' + pl + 'y' + arrow;
                                 distEl.appendChild(plEl);
                             }
                         }
@@ -5018,18 +5016,16 @@
                             srDist.appendChild(srUnit);
                             // Plays-like for sub-row
                             var srPlayerElev = State.ui && State.ui.playerElevation != null ? State.ui.playerElevation : null;
-                            var srHole = State.holes[State.holeIndex];
-                            var srProfile = srHole && srHole.elevationProfile;
-                            if (srPlayerElev != null && sr.gps && srProfile && srProfile.length > 0) {
-                                var srTgtElev = Utils.nearestElevation(sr.gps, srProfile);
+                            if (srPlayerElev != null && sr.gps && sr.gps.elevation != null) {
+                                var srTgtElev = sr.gps.elevation;
                                 var srPl = Utils.playsLike(Math.round(sr.dist), srPlayerElev, srTgtElev);
-                                if (srPl != null && srPl !== Math.round(sr.dist)) {
+                                if (srPl != null) {
                                     var srPlEl = document.createElement('div');
                                     var srDiff = srPl - Math.round(sr.dist);
-                                    var srArrow = srDiff > 0 ? '↑' : '↓';
-                                    var srPlColor = srDiff > 0 ? 'var(--amber-400, #f59e0b)' : 'var(--blue-400, #60a5fa)';
+                                    var srArrow = srDiff > 0 ? ' ↑' : srDiff < 0 ? ' ↓' : ' =';
+                                    var srPlColor = srDiff > 0 ? 'var(--amber-400, #f59e0b)' : srDiff < 0 ? 'var(--blue-400, #60a5fa)' : 'var(--text-muted)';
                                     srPlEl.style.cssText = 'font-size:0.58rem;font-weight:700;color:' + srPlColor + ';text-align:right;margin-top:1px;';
-                                    srPlEl.textContent = 'plays ' + srPl + 'y ' + srArrow;
+                                    srPlEl.textContent = 'plays ' + srPl + 'y' + srArrow;
                                     srDist.appendChild(srPlEl);
                                 }
                             }
