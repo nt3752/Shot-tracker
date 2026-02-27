@@ -4733,8 +4733,8 @@
                 if (els.targetsBackdrop) els.targetsBackdrop.classList.add('active');
                 els.targetsSheet.classList.add('active');
                 try { this.renderHeader(); } catch(e) { console.error('TargetsUI.renderHeader:', e); }
-                // Fetch player elevation asynchronously — re-renders list when done
-                TargetsUI._fetchPlayerElevation();
+                // Pre-fetch player elevation synchronously so renderList has it immediately
+                TargetsUI._fetchPlayerElevation(true);
                 try { this.renderList();   } catch(e) {
                     console.error('TargetsUI.renderList:', e);
                     var list = UI.els.targetsList;
@@ -4752,7 +4752,8 @@
 
             // Fetch player's current elevation from elevation profile (nearest-neighbour, no API call)
             // Then re-render list with plays-like distances
-            _fetchPlayerElevation() {
+            // silent=true: just set the value, don't re-render (caller will render)
+            _fetchPlayerElevation(silent) {
                 var pos = GPS.getCurrentPosition();
                 if (!pos || !pos.lat) return;
                 var hole = State.holes[State.holeIndex];
@@ -4761,12 +4762,11 @@
                 var elev = Utils.nearestElevation(pos, profile);
                 if (elev == null) return;
                 if (!State.ui) State.ui = {};
-                // Only re-render if elevation changed meaningfully
-                if (Math.abs((State.ui.playerElevation || 0) - elev) > 0.5) {
-                    State.ui.playerElevation = elev;
+                var changed = Math.abs((State.ui.playerElevation || 0) - elev) > 0.5;
+                State.ui.playerElevation = elev;
+                // Re-render only if elevation changed meaningfully AND not called silently
+                if (!silent && changed) {
                     try { TargetsUI.renderList(); } catch(e) {}
-                } else {
-                    State.ui.playerElevation = elev;
                 }
             },
 
