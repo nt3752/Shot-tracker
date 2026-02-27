@@ -1627,7 +1627,7 @@
             // Validate yards value
             saneYards(val) {
                 const n = Number(val);
-                if (!isFinite(n) || n < 0 || n > 1200) return null;
+                if (!isFinite(n) || n < 0 || n > 50000) return null;
                 return Math.round(n);
             },
             
