@@ -4103,7 +4103,7 @@
                 if (manual && manual !== 'auto') return manual;
                 // Get configurable thresholds (fall back to defaults)
                 if (State.round && !State.round.targeting) {
-                    State.round.targeting = { maxTeeDist:250, layupFront:40, layupBack:90, apprThresh:150, grnThresh:40, coneAngle:10 };
+                    State.round.targeting = { layupFront:40, layupBack:90, apprThresh:150, grnThresh:40, coneAngle:20 };
                 }
                 var cfg = (State.round && State.round.targeting) || {};
                 var apprThresh = cfg.apprThresh || 150;
@@ -4214,7 +4214,7 @@
                 var toBearing = Utils.bearing(pos, flag);
                 var toPt      = Utils.bearing(pos, ptGPS);
                 var diff = Math.abs(((toPt - toBearing) + 540) % 360 - 180);
-                return diff <= coneAngle;
+                return diff <= coneAngle / 2;
             },
 
             // Choose the GPS point to use for cone check for a given target+cat
@@ -4457,7 +4457,7 @@
 
                         // Get cone angle from targeting config
                         var cfg = TargetConfigUI.cfg();
-                        var coneAngle = cfg.coneAngle || 10;
+                        var coneAngle = cfg.coneAngle || 20;
 
                         // ── Phase-specific filtering ──────────────────────
                         if (phase === 'grn') {
@@ -4611,8 +4611,8 @@
                 if (!State.round) State.round = {};
                 if (!State.round.targeting) {
                     State.round.targeting = {
-                        maxTeeDist: 250, layupFront: 40, layupBack: 90,
-                        apprThresh: 150, grnThresh: 40, coneAngle: 10
+                        layupFront: 40, layupBack: 90,
+                        apprThresh: 150, grnThresh: 40, coneAngle: 20
                     };
                 }
                 return State.round.targeting;
@@ -4645,12 +4645,11 @@
 
                 // Grid of config rows
                 var fields = [
-                    { key: 'maxTeeDist', label: 'Max Tee Dist', unit: 'y',  min: 50,  max: 400, step: 5  },
-                    { key: 'layupFront', label: 'Layup Front',  unit: 'y',  min: 10,  max: 150, step: 5  },
-                    { key: 'layupBack',  label: 'Layup Back',   unit: 'y',  min: 20,  max: 200, step: 5  },
-                    { key: 'apprThresh', label: 'Appr Zone',    unit: 'y',  min: 50,  max: 250, step: 10 },
-                    { key: 'grnThresh',  label: 'Grn Zone',     unit: 'y',  min: 10,  max: 80,  step: 5  },
-                    { key: 'coneAngle',  label: 'Cone Angle',   unit: '°', min: 3,   max: 30,  step: 1  },
+                    { key: 'layupFront', label: 'Layup near Green',      unit: 'y',  min: 10,  max: 150, step: 5  },
+                    { key: 'layupBack',  label: 'Layup far Green',       unit: 'y',  min: 20,  max: 200, step: 5  },
+                    { key: 'apprThresh', label: 'Approach zone begins',  unit: 'y',  min: 50,  max: 250, step: 10 },
+                    { key: 'grnThresh',  label: 'Green zone begins',     unit: 'y',  min: 10,  max: 80,  step: 5  },
+                    { key: 'coneAngle',  label: 'Field of view',         unit: '°',  min: 3,   max: 60,  step: 1  },
                 ];
 
                 fields.forEach(function(f) {
@@ -8067,8 +8066,8 @@
                 State.round = {
                     startedAt: Utils.nowISO(),
                     targeting: {
-                        maxTeeDist: 250, layupFront: 40, layupBack: 90,
-                        apprThresh: 150, grnThresh: 40, coneAngle: 10
+                        layupFront: 40, layupBack: 90,
+                        apprThresh: 150, grnThresh: 40, coneAngle: 20
                     }
                 };
                 
