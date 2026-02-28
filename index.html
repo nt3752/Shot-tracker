@@ -1544,7 +1544,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.26';
+        const VERSION = 'v41.27';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -2094,6 +2094,8 @@
                 // Load active course data into State.holes
                 const activeCourse = Library.getCourse(this.currentCourseId);
                 if (activeCourse && activeCourse.holes) {
+                    // Always sync course name from library
+                    this.courseName = activeCourse.name || '';
                     activeCourse.holes.forEach((ch, idx) => {
                         if (this.holes[idx]) {
                             this.holes[idx].par = ch.par || this.holes[idx].par;
@@ -7665,7 +7667,25 @@
                 if (!course) return;
                 State.currentCourseId = id;
                 State.course = course;
+                State.courseName = course.name || '';
+                State.initHoles();
+                if (course.holes) {
+                    course.holes.forEach(function(ch, idx) {
+                        if (State.holes[idx]) {
+                            State.holes[idx].par   = ch.par   || 0;
+                            State.holes[idx].yards = ch.yards || 0;
+                            State.holes[idx].hcp   = ch.hcp   || 0;
+                            if (ch.teeGPS)            State.holes[idx].tee              = ch.teeGPS;
+                            if (ch.flagGPS)           State.holes[idx].flag             = ch.flagGPS;
+                            if (ch.planPath)          State.holes[idx].planPath         = ch.planPath;
+                            if (ch.targets)           State.holes[idx].targets          = ch.targets;
+                            if (ch.elevationProfile && ch.elevationProfile.length > 0)
+                                                      State.holes[idx].elevationProfile = ch.elevationProfile;
+                        }
+                    });
+                }
                 State.save();
+                UI.render();
                 LibraryUI.render();
                 Utils.toast('Course activated: ' + course.name);
             },
