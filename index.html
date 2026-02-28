@@ -1912,11 +1912,6 @@
             },
             
             deleteCourse(id) {
-                if (id === 'default-course') {
-                    Utils.toast('Cannot delete default course');
-                    return false;
-                }
-                
                 const courses = this.getCourses().filter(c => c.id !== id);
                 this.saveCourses(courses);
                 return true;
