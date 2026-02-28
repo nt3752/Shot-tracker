@@ -2157,8 +2157,9 @@
                     };
                 }
                 
-                // Load course data if exists
-                this.loadCourseData();
+                // Note: loadCourseData() (legacy LS_COURSE_KEY) intentionally removed here.
+                // loadFromLibrary() already loads the correct course. Calling loadCourseData()
+                // after it would overwrite with stale legacy data and cause course revert on reload.
             },
             
             loadCourseData() {
