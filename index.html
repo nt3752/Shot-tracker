@@ -2044,8 +2044,13 @@
                 if (saved && saved.version === VERSION) {
                     Object.assign(this, saved);
                 } else {
-                    // Initialize fresh state
+                    // Version mismatch — initialize fresh holes but preserve IDs
                     this.initHoles();
+                    if (saved) {
+                        if (saved.currentCourseId) this.currentCourseId = saved.currentCourseId;
+                        if (saved.currentBagId)    this.currentBagId    = saved.currentBagId;
+                        if (saved.holeIndex)       this.holeIndex       = saved.holeIndex;
+                    }
                 }
                 
                 // v40.1: Load from library
@@ -7372,14 +7377,10 @@
                             return;
                         }
                         let added = 0;
-                        const existing = Library.getCourses();
                         data.courses.forEach(function(course) {
                             if (!course.id || !course.name) return;
-                            const dupe = existing.find(function(c) { return c.id === course.id; });
-                            if (!dupe) {
-                                Library.saveCourse(course);
-                                added++;
-                            }
+                            Library.saveCourse(course);
+                            added++;
                         });
                         Utils.toast(added + ' course' + (added !== 1 ? 's' : '') + ' imported & saved');
                         LibraryUI.render();
