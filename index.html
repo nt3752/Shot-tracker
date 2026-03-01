@@ -4952,12 +4952,12 @@
                     info.style.cssText = 'min-width:0;flex:1;';
 
                     var topLine = document.createElement('div');
-                    topLine.style.cssText = 'font-size:0.8rem;font-weight:900;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                    topLine.style.cssText = 'font-size:1.6rem;font-weight:900;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
                     topLine.textContent = tgt.label;
                     info.appendChild(topLine);
 
                     var subLine = document.createElement('div');
-                    subLine.style.cssText = 'font-size:0.62rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-top:1px;';
+                    subLine.style.cssText = 'font-size:1.0rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-top:1px;';
                     subLine.textContent = tgt.abbrev + (parent.repLabel ? ' · ' + parent.repLabel : (tgt.category && tgt.category !== 'point' ? ' · ' + tgt.category : ''));
                     info.appendChild(subLine);
 
@@ -5019,7 +5019,7 @@
                         srEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px var(--space-3) 8px 24px;border-top:1px solid rgba(255,255,255,0.05);' + (sr.dist !== null ? 'cursor:pointer;' : '');
 
                         var srLabel = document.createElement('span');
-                        srLabel.style.cssText = 'font-size:0.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.3px;';
+                        srLabel.style.cssText = 'font-size:1.6rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.3px;';
                         srLabel.textContent = sr.pointLabel;
                         srEl.appendChild(srLabel);
 
@@ -5027,7 +5027,7 @@
                         srDist.style.cssText = 'text-align:right;flex-shrink:0;';
                         if (sr.dist !== null) {
                             var srNum = document.createElement('span');
-                            srNum.style.cssText = 'font-size:1.2rem;font-weight:900;font-family:var(--font-mono);line-height:1;color:var(--text-primary);';
+                            srNum.style.cssText = 'font-size:1.6rem;font-weight:900;font-family:var(--font-mono);line-height:1;color:var(--text-primary);';
                             srNum.textContent = Math.round(sr.dist);
                             var srUnit = document.createElement('span');
                             srUnit.style.cssText = 'font-size:0.65rem;font-weight:700;color:var(--text-muted);margin-left:2px;';
@@ -5130,14 +5130,9 @@
                     info.style.cssText = 'min-width:0;flex:1;';
 
                     var topLine = document.createElement('div');
-                    topLine.style.cssText = 'font-size:0.8rem;font-weight:900;color:#f59e0b;white-space:nowrap;';
-                    topLine.textContent = lu.label;
+                    topLine.style.cssText = 'font-size:1.6rem;font-weight:900;color:#f59e0b;white-space:nowrap;';
+                    topLine.textContent = 'Layup to ' + lu.offset + 'y';
                     info.appendChild(topLine);
-
-                    var subLine = document.createElement('div');
-                    subLine.style.cssText = 'font-size:0.62rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-top:1px;';
-                    subLine.textContent = 'Layup to ' + lu.offset + 'y';
-                    info.appendChild(subLine);
 
                     var distEl = document.createElement('div');
                     distEl.style.cssText = 'text-align:right;flex-shrink:0;';
