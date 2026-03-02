@@ -1544,7 +1544,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v41.29';
+        const VERSION = 'v41.30';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -2801,6 +2801,8 @@
                     targetYards:    (pendingMeta && pendingMeta.targetYards)    || options.targetYards    || null,
                     // Target category (v41.25) — category of selected target
                     targetCategory: (pendingMeta && pendingMeta.targetCategory) || options.targetCategory || null,
+                    // Target abbrev (v41.30) — short code for selected target
+                    targetAbbrev:   (pendingMeta && pendingMeta.targetAbbrev)   || options.targetAbbrev   || null,
                 };
                 
                 hole.shots.push(shot);
@@ -5068,7 +5070,8 @@
                                         targetPoint:    capturedSr.pointName,
                                         targetGPS:      capturedSr.gps,
                                         targetYards:    Math.round(capturedSr.dist),
-                                        targetCategory: capturedTgt.category
+                                        targetCategory: capturedTgt.category,
+                                        targetAbbrev:   capturedTgt.abbrev || ''
                                     };
                                     TargetsUI.close();
                                     Utils.toast(capturedTgt.abbrev + ' ' + capturedSr.pointLabel + ': ' + Math.round(capturedSr.dist) + 'y');
@@ -5112,7 +5115,8 @@
                                     targetPoint:    capturedRow ? (capturedRow.repLabel || 'C') : 'C',
                                     targetGPS:      capturedRow ? capturedRow.repGPS : null,
                                     targetYards:    Math.round(capturedDist),
-                                    targetCategory: capturedTgt.category
+                                    targetCategory: capturedTgt.category,
+                                    targetAbbrev:   capturedTgt.abbrev || ''
                                 };
                                 TargetsUI.close();
                                 Utils.toast(capturedTgt.label + ': ' + Math.round(capturedDist) + 'y');
@@ -5134,6 +5138,11 @@
                     topLine.textContent = 'Layup to ' + lu.offset + 'y';
                     info.appendChild(topLine);
 
+                    var subLine = document.createElement('div');
+                    subLine.style.cssText = 'font-size:0.75rem;font-weight:700;color:#f59e0b;opacity:0.7;text-transform:uppercase;letter-spacing:0.4px;margin-top:1px;';
+                    subLine.textContent = lu.label + ' · layup';
+                    info.appendChild(subLine);
+
                     var distEl = document.createElement('div');
                     distEl.style.cssText = 'text-align:right;flex-shrink:0;';
                     var distNum = document.createElement('span');
@@ -5151,6 +5160,15 @@
                     luEl.addEventListener('click', (function(capturedLu) {
                         return function() {
                             if (UI.els.attempt) UI.els.attempt.value = String(capturedLu.dist);
+                            if (!State.ui) State.ui = {};
+                            State.ui.pendingTargetMeta = {
+                                targetId:       null,
+                                targetPoint:    'C',
+                                targetGPS:      capturedLu.gps,
+                                targetYards:    capturedLu.dist,
+                                targetCategory: 'layup',
+                                targetAbbrev:   capturedLu.label
+                            };
                             TargetsUI.close();
                             Utils.toast(capturedLu.label + ': ' + capturedLu.dist + 'y');
                         };
@@ -5158,6 +5176,72 @@
 
                     list.appendChild(luEl);
                 });
+
+                // ── Render W1/W2 waypoint rows (TEE phase only) ──────────────
+                if (phase === 'tee') {
+                    var wpDefs = [
+                        { key: 'W1', idx: 0, color: '#22d3ee' },
+                        { key: 'W2', idx: 1, color: '#a78bfa' }
+                    ];
+                    wpDefs.forEach(function(wpDef) {
+                        var wpGPS = hole.planPath && hole.planPath[wpDef.idx] && hole.planPath[wpDef.idx].lat
+                            ? hole.planPath[wpDef.idx] : null;
+                        if (!wpGPS) return;
+                        // isInFront filter — only show if W1/W2 is ahead of current position
+                        if (pos && !TargetEngine.isInFront(wpGPS, pos, hole)) return;
+                        var wpDist = pos ? Math.round(Utils.distanceYards(pos, wpGPS)) : null;
+
+                        var wpEl = document.createElement('div');
+                        wpEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px var(--space-3);border-bottom:1px solid var(--border);cursor:pointer;';
+
+                        var info = document.createElement('div');
+                        info.style.cssText = 'min-width:0;flex:1;';
+
+                        var topLine = document.createElement('div');
+                        topLine.style.cssText = 'font-size:1.6rem;font-weight:900;color:' + wpDef.color + ';white-space:nowrap;';
+                        topLine.textContent = wpDef.key + ' — Waypoint';
+                        info.appendChild(topLine);
+
+                        var subLine = document.createElement('div');
+                        subLine.style.cssText = 'font-size:0.75rem;font-weight:700;color:' + wpDef.color + ';opacity:0.7;text-transform:uppercase;letter-spacing:0.4px;margin-top:1px;';
+                        subLine.textContent = wpDef.key + ' · waypoint';
+                        info.appendChild(subLine);
+
+                        var distEl = document.createElement('div');
+                        distEl.style.cssText = 'text-align:right;flex-shrink:0;';
+                        var distNum = document.createElement('span');
+                        distNum.style.cssText = 'font-size:1.6rem;font-weight:900;font-family:var(--font-mono);line-height:1;color:' + wpDef.color + ';';
+                        distNum.textContent = wpDist !== null ? wpDist : '—';
+                        var distUnit = document.createElement('span');
+                        distUnit.style.cssText = 'font-size:0.75rem;font-weight:700;color:var(--text-muted);margin-left:2px;';
+                        distUnit.textContent = wpDist !== null ? 'y' : '';
+                        distEl.appendChild(distNum);
+                        distEl.appendChild(distUnit);
+
+                        wpEl.appendChild(info);
+                        wpEl.appendChild(distEl);
+
+                        wpEl.addEventListener('click', (function(capturedKey, capturedGPS, capturedDist) {
+                            return function() {
+                                if (capturedDist === null) return;
+                                if (UI.els.attempt) UI.els.attempt.value = String(capturedDist);
+                                if (!State.ui) State.ui = {};
+                                State.ui.pendingTargetMeta = {
+                                    targetId:       null,
+                                    targetPoint:    'C',
+                                    targetGPS:      capturedGPS,
+                                    targetYards:    capturedDist,
+                                    targetCategory: 'waypoint',
+                                    targetAbbrev:   capturedKey
+                                };
+                                TargetsUI.close();
+                                Utils.toast(capturedKey + ' waypoint: ' + capturedDist + 'y');
+                            };
+                        })(wpDef.key, wpGPS, wpDist));
+
+                        list.appendChild(wpEl);
+                    });
+                }
             }
         };
 
@@ -5347,8 +5431,9 @@
                     'Shot#','Club','Type','Distance','Unit',
                     'Bag Carry (y)','Bag Total (y)',
                     'Penalty','GPS Lat','GPS Lon','Timestamp',
-                    'Target ID','Target Label','Target Category','Target Point',
-                    'Target GPS Lat','Target GPS Lon','Target Yards'
+                    'Target ID','Target Abbrev','Target Label','Target Category','Target Point',
+                    'Target GPS Lat','Target GPS Lon','Target Yards',
+                    'W1 Dist (y)','W1 ΔX (y)','W1 ΔY (y)','W1 Side'
                 ].map(self.csvField).join(','));
 
                 State.holes.forEach(function(hole) {
@@ -5356,6 +5441,8 @@
                     var gir = self.calcGIR(hole);
                     var vsp = self.vsParHole(hole);
                     var putts = self.puttCount(hole);
+                    var w1GPS = hole.planPath && hole.planPath[0] && hole.planPath[0].lat ? hole.planPath[0] : null;
+                    var teeGPS = hole.tee && hole.tee.lat ? hole.tee : null;
                     hole.shots.forEach(function(shot, idx) {
                         var bd = self.bagDist(shot);
                         // Find target label from course hole targets
@@ -5365,6 +5452,43 @@
                             if (courseHole && courseHole.targets) {
                                 var matchTgt = courseHole.targets.find(function(t) { return t.id === shot.targetId; });
                                 if (matchTgt) tgtLabel = matchTgt.label || matchTgt.abbrev || '';
+                            }
+                        }
+                        // W1 dispersion — tee shot (idx===0) on par 4/5 with W1 GPS and shot landing GPS
+                        var w1DeltaDist = '', w1DeltaX = '', w1DeltaY = '', w1Side = '';
+                        var isTeeShot = (idx === 0) && (hole.par === 4 || hole.par === 5);
+                        if (isTeeShot && w1GPS && teeGPS && shot.position && shot.position.lat) {
+                            var landPos = shot.position;
+                            // Build local XY coordinate system: origin=tee, Y-axis=tee→W1
+                            var R = 6371000;
+                            var toRad = function(d) { return d * Math.PI / 180; };
+                            var midLat = toRad((teeGPS.lat + w1GPS.lat) / 2);
+                            // W1 in local coords (tee = origin)
+                            var w1x = toRad(w1GPS.lon - teeGPS.lon) * R * Math.cos(midLat);
+                            var w1y = toRad(w1GPS.lat - teeGPS.lat) * R;
+                            var w1len = Math.sqrt(w1x*w1x + w1y*w1y);
+                            if (w1len > 0) {
+                                // Unit vectors along (uy) and perpendicular (ux) to tee→W1
+                                var ux = -w1y / w1len, uy = w1x / w1len; // perpendicular (left positive)
+                                var vx =  w1x / w1len, vy = w1y / w1len; // along axis
+                                // Landing in local coords
+                                var lx = toRad(landPos.lon - teeGPS.lon) * R * Math.cos(midLat);
+                                var ly = toRad(landPos.lat - teeGPS.lat) * R;
+                                // Difference vector: landing - W1
+                                var dx = lx - w1x, dy = ly - w1y;
+                                // Project onto axes
+                                var lateralM  = dx*ux + dy*uy; // +ve = right of tee→W1 line? let's define: +ux perpendicular right
+                                // Redefine: ux points right of travel direction
+                                // bearing tee→W1: atan2(w1x, w1y) in standard coords
+                                // right perpendicular: rotate +90° → (w1y/w1len, -w1x/w1len) in (x,y)
+                                var rightX = w1y / w1len, rightY = -w1x / w1len;
+                                var lateral  = (dx * rightX + dy * rightY) * 1.09361; // metres→yards
+                                var along    = (dx * vx    + dy * vy   ) * 1.09361;   // +ve = past W1
+                                var totalDist = Utils.distanceYards(landPos, w1GPS);
+                                w1DeltaDist = totalDist !== null ? totalDist.toFixed(1) : '';
+                                w1DeltaX    = lateral.toFixed(1);
+                                w1DeltaY    = along.toFixed(1);
+                                w1Side      = Math.abs(lateral) < 2 ? 'C' : (lateral > 0 ? 'R' : 'L');
                             }
                         }
                         rows.push([
@@ -5389,12 +5513,17 @@
                             (shot.position && shot.position.lon) ? shot.position.lon : '',
                             shot.timestamp || '',
                             shot.targetId       || '',
+                            shot.targetAbbrev   || '',
                             tgtLabel,
                             shot.targetCategory || '',
                             shot.targetPoint    || '',
                             (shot.targetGPS && shot.targetGPS.lat) ? shot.targetGPS.lat : '',
                             (shot.targetGPS && shot.targetGPS.lon) ? shot.targetGPS.lon : '',
-                            shot.targetYards    || ''
+                            shot.targetYards    || '',
+                            w1DeltaDist,
+                            w1DeltaX,
+                            w1DeltaY,
+                            w1Side
                         ].map(self.csvField).join(','));
                     });
                 });
@@ -6128,26 +6257,34 @@
                 });
 
                 // ── Shared deviation helper ──────────────────────────────────
+                // Chain: shot origin = hole.tee (idx 0) or shots[idx-1].position (idx 1+)
+                //        shot landing = s.position (set by Mark Landing)
+                //        target       = s.targetGPS (chosen before the shot)
                 function buildDeviationData(filterFn) {
                     var map = {};
                     State.holes.forEach(function(hole) {
                         hole.shots.forEach(function(s, idx) {
                             if (!s.targetGPS || !s.targetGPS.lat) return;
-                            if (!s.position  || !s.position.lat)  return;
+                            if (!s.position  || !s.position.lat)  return;  // landing not yet marked
+                            if (s.positionPending) return;                  // safety: landing not resolved
                             if (s.penalty) return;
                             if ((s.shotType || '').toLowerCase() === 'putt') return;
                             if (!filterFn(s)) return;
-                            var landingGPS = null;
-                            for (var i = idx + 1; i < hole.shots.length; i++) {
-                                if (hole.shots[i].position && hole.shots[i].position.lat) {
-                                    landingGPS = hole.shots[i].position; break;
-                                }
+                            // Origin of this shot in the chain
+                            var originGPS = null;
+                            if (idx === 0) {
+                                originGPS = hole.tee && hole.tee.lat ? hole.tee : null;
+                            } else {
+                                var prev = hole.shots[idx - 1];
+                                originGPS = prev && prev.position && prev.position.lat ? prev.position : null;
                             }
-                            if (!landingGPS) return;
-                            var intendedBearing = Utils.bearing(s.position, s.targetGPS);
-                            var actualBearing   = Utils.bearing(s.position, landingGPS);
+                            if (!originGPS) return;
+                            // Landing = this shot's own marked position
+                            var landingGPS = s.position;
+                            var intendedBearing = Utils.bearing(originGPS, s.targetGPS);
+                            var actualBearing   = Utils.bearing(originGPS, landingGPS);
                             var dev = ((actualBearing - intendedBearing) + 540) % 360 - 180;
-                            var dist = Utils.distanceYards(s.position, landingGPS) || 0;
+                            var dist = Utils.distanceYards(originGPS, landingGPS) || 0;
                             var lateralYards = Math.round(dist * Math.tan(Math.abs(dev) * Math.PI / 180));
                             var club = s.club || 'Unknown';
                             if (!map[club]) map[club] = { devs: [], laterals: [], dists: [], targetDists: [] };
@@ -6233,6 +6370,234 @@
                     h += buildDeviationTable(aimMap, false);
                     h += '</div>';
                 }
+
+                // ── Section 3: Tee Shot Dispersion vs W1 ────────────────────
+                (function() {
+                    // Collect tee shots (shot#1, par 4/5) with W1 GPS and landing GPS
+                    var teeData = [];
+                    State.holes.forEach(function(hole) {
+                        if (hole.shots.length === 0) return;
+                        if (hole.par !== 4 && hole.par !== 5) return;
+                        var w1GPS  = hole.planPath && hole.planPath[0] && hole.planPath[0].lat ? hole.planPath[0] : null;
+                        var teeGPS = hole.tee && hole.tee.lat ? hole.tee : null;
+                        if (!w1GPS || !teeGPS) return;
+                        var shot = hole.shots[0];
+                        if (!shot.position || !shot.position.lat) return;
+
+                        // XY relative to W1, axis = tee→W1
+                        var R = 6371000;
+                        var toRad = function(d) { return d * Math.PI / 180; };
+                        var midLat = toRad((teeGPS.lat + w1GPS.lat) / 2);
+                        var w1x = toRad(w1GPS.lon - teeGPS.lon) * R * Math.cos(midLat);
+                        var w1y = toRad(w1GPS.lat - teeGPS.lat) * R;
+                        var w1len = Math.sqrt(w1x*w1x + w1y*w1y);
+                        if (w1len === 0) return;
+                        var rightX = w1y / w1len, rightY = -w1x / w1len;
+                        var fwdX   = w1x / w1len, fwdY  =  w1y / w1len;
+                        var lx = toRad(shot.position.lon - teeGPS.lon) * R * Math.cos(midLat);
+                        var ly = toRad(shot.position.lat - teeGPS.lat) * R;
+                        var dx = lx - w1x, dy = ly - w1y;
+                        var lateral = (dx*rightX + dy*rightY) * 1.09361;
+                        var along   = (dx*fwdX   + dy*fwdY  ) * 1.09361;
+                        var totalDist = Utils.distanceYards(shot.position, w1GPS) || 0;
+                        teeData.push({
+                            hole: hole.hole,
+                            club: shot.club || '',
+                            lateral: lateral,   // +ve = right
+                            along: along,        // +ve = past W1, -ve = short
+                            dist: totalDist,
+                            side: Math.abs(lateral) < 2 ? 'C' : (lateral > 0 ? 'R' : 'L')
+                        });
+                    });
+
+                    if (teeData.length === 0) return;
+
+                    h += '<div style="margin-top:12px;padding:12px;background:rgba(255,255,255,0.04);border-radius:8px;">';
+                    h += '<div style="' + sectionHead + 'color:#22d3ee;">Tee Shot Dispersion vs W1</div>';
+                    h += '<div style="font-size:0.65rem;color:#888;margin-bottom:12px;">Par 4/5 tee shots with W1 waypoint set. W1 = origin (0,0). X = lateral (R+/L−). Y = along-axis (past W1+/short−).</div>';
+
+                    // ── SVG Scatter Plot ─────────────────────────────────────
+                    var W = 280, H = 260, PAD = 32;
+                    var plotW = W - PAD*2, plotH = H - PAD*2;
+
+                    // Determine axis range — at least ±30y each side
+                    var maxX = 30, maxY = 30;
+                    teeData.forEach(function(d) {
+                        if (Math.abs(d.lateral) > maxX) maxX = Math.abs(d.lateral);
+                        if (Math.abs(d.along)   > maxY) maxY = Math.abs(d.along);
+                    });
+                    maxX = Math.ceil(maxX / 10) * 10 + 10;
+                    maxY = Math.ceil(maxY / 10) * 10 + 10;
+
+                    function toSvgX(v) { return PAD + (v + maxX) / (maxX*2) * plotW; }
+                    function toSvgY(v) { return PAD + (1 - (v + maxY) / (maxY*2)) * plotH; }
+
+                    var cx = toSvgX(0), cy = toSvgY(0);
+
+                    // Grid lines every 10y
+                    var gridLines = '';
+                    for (var gx = -maxX; gx <= maxX; gx += 10) {
+                        var sx = toSvgX(gx);
+                        gridLines += '<line x1="'+sx+'" y1="'+PAD+'" x2="'+sx+'" y2="'+(H-PAD)+'" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';
+                        if (gx !== 0) gridLines += '<text x="'+sx+'" y="'+(H-PAD+12)+'" text-anchor="middle" font-size="8" fill="#666">'+gx+'</text>';
+                    }
+                    for (var gy = -maxY; gy <= maxY; gy += 10) {
+                        var sy = toSvgY(gy);
+                        gridLines += '<line x1="'+PAD+'" y1="'+sy+'" x2="'+(W-PAD)+'" y2="'+sy+'" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';
+                        if (gy !== 0) gridLines += '<text x="'+(PAD-4)+'" y="'+(sy+4)+'" text-anchor="end" font-size="8" fill="#666">'+gy+'</text>';
+                    }
+
+                    // Dots
+                    var dots = '';
+                    teeData.forEach(function(d) {
+                        var px = toSvgX(d.lateral), py = toSvgY(d.along);
+                        var col = d.side === 'C' ? '#4ade80' : d.side === 'R' ? '#f59e0b' : '#60a5fa';
+                        dots += '<circle cx="'+px+'" cy="'+py+'" r="5" fill="'+col+'" fill-opacity="0.85" stroke="#000" stroke-width="0.5"/>';
+                        dots += '<text x="'+px+'" y="'+(py-7)+'" text-anchor="middle" font-size="7" fill="#ccc">H'+d.hole+'</text>';
+                    });
+
+                    // W1 origin crosshair
+                    var cross = '<line x1="'+(cx-8)+'" y1="'+cy+'" x2="'+(cx+8)+'" y2="'+cy+'" stroke="#22d3ee" stroke-width="1.5"/>' +
+                                '<line x1="'+cx+'" y1="'+(cy-8)+'" x2="'+cx+'" y2="'+(cy+8)+'" stroke="#22d3ee" stroke-width="1.5"/>' +
+                                '<text x="'+(cx+4)+'" y="'+(cy-4)+'" font-size="7" fill="#22d3ee">W1</text>';
+
+                    // Axis labels
+                    var axLabels = '<text x="'+(W/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="8" fill="#888">← LEFT    RIGHT →  (yards)</text>' +
+                                   '<text x="10" y="'+(H/2)+'" text-anchor="middle" font-size="8" fill="#888" transform="rotate(-90,10,'+(H/2)+')">SHORT ↓  PAST ↑ (yards)</text>';
+
+                    h += '<div style="display:flex;justify-content:center;margin-bottom:12px;">';
+                    h += '<svg width="'+W+'" height="'+H+'" style="border:1px solid rgba(255,255,255,0.08);border-radius:6px;background:#111;">';
+                    h += gridLines + dots + cross + axLabels;
+                    // Axes
+                    h += '<line x1="'+PAD+'" y1="'+cy+'" x2="'+(W-PAD)+'" y2="'+cy+'" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>';
+                    h += '<line x1="'+cx+'" y1="'+PAD+'" x2="'+cx+'" y2="'+(H-PAD)+'" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>';
+                    h += '</svg></div>';
+
+                    // Legend
+                    h += '<div style="display:flex;gap:12px;justify-content:center;font-size:0.65rem;margin-bottom:14px;">';
+                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:4px;"></span>Center</span>';
+                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span>Right</span>';
+                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#60a5fa;margin-right:4px;"></span>Left</span>';
+                    h += '</div>';
+
+                    // ── Banded distance table ─────────────────────────────────
+                    // Bands: 0-10, 10-20, 20-30, 30-40, 40+  ×  short/long
+                    var bands = [
+                        { label:'0–10y',  lo:0,  hi:10  },
+                        { label:'10–20y', lo:10, hi:20  },
+                        { label:'20–30y', lo:20, hi:30  },
+                        { label:'30–40y', lo:30, hi:40  },
+                        { label:'40y+',   lo:40, hi:9999 }
+                    ];
+                    var n = teeData.length;
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Distance from W1</div>';
+                    h += '<table style="width:100%;border-collapse:collapse;font-size:0.75rem;margin-bottom:14px;">';
+                    h += '<thead><tr style="color:#888;">' +
+                         '<th style="text-align:left;padding:4px 4px;">Band</th>' +
+                         '<th style="text-align:right;padding:4px 4px;">Short</th>' +
+                         '<th style="text-align:right;padding:4px 4px;">Past</th>' +
+                         '<th style="text-align:right;padding:4px 4px;">Total</th>' +
+                         '<th style="text-align:right;padding:4px 4px;">%</th>' +
+                         '</tr></thead><tbody>';
+                    bands.forEach(function(band, bi) {
+                        var shortCount = 0, longCount = 0;
+                        teeData.forEach(function(d) {
+                            if (d.dist >= band.lo && d.dist < band.hi) {
+                                if (d.along < 0) shortCount++; else longCount++;
+                            }
+                        });
+                        var total = shortCount + longCount;
+                        var pctStr = total > 0 ? Math.round(total/n*100)+'%' : '—';
+                        var rowBg = bi % 2 === 0 ? 'background:rgba(255,255,255,0.02);' : '';
+                        h += '<tr style="'+rowBg+'border-bottom:1px solid rgba(255,255,255,0.04);">' +
+                             '<td style="padding:5px 4px;font-weight:700;">'+band.label+'</td>' +
+                             '<td style="padding:5px 4px;text-align:right;color:#60a5fa;">'+(shortCount||'—')+'</td>' +
+                             '<td style="padding:5px 4px;text-align:right;color:#f59e0b;">'+(longCount||'—')+'</td>' +
+                             '<td style="padding:5px 4px;text-align:right;font-weight:700;">'+(total||'—')+'</td>' +
+                             '<td style="padding:5px 4px;text-align:right;color:#aaa;">'+pctStr+'</td>' +
+                             '</tr>';
+                    });
+                    h += '</tbody></table>';
+
+                    // ── Cumulative % table ────────────────────────────────────
+                    var cumThresholds = [10, 20, 30, 40, 50];
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Proximity to W1 (cumulative)</div>';
+                    h += '<table style="width:100%;border-collapse:collapse;font-size:0.75rem;margin-bottom:14px;">';
+                    h += '<thead><tr style="color:#888;">' +
+                         '<th style="text-align:left;padding:4px 4px;">Within</th>' +
+                         '<th style="text-align:right;padding:4px 4px;">Count</th>' +
+                         '<th style="text-align:right;padding:4px 4px;">%</th>' +
+                         '</tr></thead><tbody>';
+                    cumThresholds.forEach(function(thresh, ti) {
+                        var cnt = teeData.filter(function(d){ return d.dist <= thresh; }).length;
+                        var pctVal = Math.round(cnt/n*100);
+                        var barW   = Math.round(pctVal * 0.8);
+                        var col    = pctVal >= 60 ? '#4ade80' : pctVal >= 40 ? '#f59e0b' : '#e64545';
+                        var rowBg  = ti % 2 === 0 ? 'background:rgba(255,255,255,0.02);' : '';
+                        h += '<tr style="'+rowBg+'border-bottom:1px solid rgba(255,255,255,0.04);">' +
+                             '<td style="padding:5px 4px;font-weight:700;">'+thresh+'y</td>' +
+                             '<td style="padding:5px 4px;text-align:right;">'+cnt+'/'+n+'</td>' +
+                             '<td style="padding:5px 4px;text-align:right;">' +
+                               '<span style="display:inline-block;width:'+barW+'px;height:6px;background:'+col+';border-radius:3px;margin-right:4px;vertical-align:middle;"></span>' +
+                               '<span style="color:'+col+'">'+pctVal+'%</span>' +
+                             '</td>' +
+                             '</tr>';
+                    });
+                    h += '</tbody></table>';
+
+                    // ── Per-hole table ────────────────────────────────────────
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Per Hole</div>';
+                    h += '<table style="width:100%;border-collapse:collapse;font-size:0.72rem;margin-bottom:14px;">';
+                    h += '<thead><tr style="color:#888;">' +
+                         '<th style="text-align:left;padding:4px 3px;">Hole</th>' +
+                         '<th style="text-align:left;padding:4px 3px;">Club</th>' +
+                         '<th style="text-align:right;padding:4px 3px;">Dist</th>' +
+                         '<th style="text-align:right;padding:4px 3px;">ΔX</th>' +
+                         '<th style="text-align:right;padding:4px 3px;">ΔY</th>' +
+                         '<th style="text-align:right;padding:4px 3px;">Side</th>' +
+                         '</tr></thead><tbody>';
+                    teeData.forEach(function(d, di) {
+                        var rowBg = di % 2 === 0 ? 'background:rgba(255,255,255,0.02);' : '';
+                        var sideCol = d.side === 'C' ? '#4ade80' : d.side === 'R' ? '#f59e0b' : '#60a5fa';
+                        var distCol = d.dist <= 20 ? '#4ade80' : d.dist <= 35 ? '#f59e0b' : '#e64545';
+                        var alongStr = (d.along >= 0 ? '+' : '') + d.along.toFixed(1);
+                        var latStr   = (d.lateral >= 0 ? '+' : '') + d.lateral.toFixed(1);
+                        h += '<tr style="'+rowBg+'border-bottom:1px solid rgba(255,255,255,0.04);">' +
+                             '<td style="padding:5px 3px;font-weight:700;">H'+d.hole+'</td>' +
+                             '<td style="padding:5px 3px;color:#aaa;">'+Utils.escHtml(d.club)+'</td>' +
+                             '<td style="padding:5px 3px;text-align:right;color:'+distCol+';font-weight:700;">'+d.dist.toFixed(1)+'y</td>' +
+                             '<td style="padding:5px 3px;text-align:right;color:'+sideCol+';">'+latStr+'y</td>' +
+                             '<td style="padding:5px 3px;text-align:right;color:#aaa;">'+alongStr+'y</td>' +
+                             '<td style="padding:5px 3px;text-align:right;font-weight:700;color:'+sideCol+';">'+d.side+'</td>' +
+                             '</tr>';
+                    });
+                    h += '</tbody></table>';
+
+                    // ── Round summary ─────────────────────────────────────────
+                    var avgDist    = teeData.reduce(function(s,d){return s+d.dist;},0) / n;
+                    var avgLat     = teeData.reduce(function(s,d){return s+d.lateral;},0) / n;
+                    var avgAlong   = teeData.reduce(function(s,d){return s+d.along;},0) / n;
+                    var avgAbsLat  = teeData.reduce(function(s,d){return s+Math.abs(d.lateral);},0) / n;
+                    var within20   = teeData.filter(function(d){return d.dist<=20;}).length;
+                    var rightCount = teeData.filter(function(d){return d.side==='R';}).length;
+                    var leftCount  = teeData.filter(function(d){return d.side==='L';}).length;
+                    var tendLabel  = Math.abs(avgLat) < 2 ? 'Straight' : avgLat > 0 ? 'Fade/Push (R)' : 'Draw/Pull (L)';
+                    var tendCol    = Math.abs(avgLat) < 2 ? '#4ade80' : avgLat > 0 ? '#f59e0b' : '#60a5fa';
+
+                    h += '<div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);border-radius:6px;padding:10px;">';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Round Summary ('+n+' holes)</div>';
+                    var sumRow = 'display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.8rem;';
+                    var sumLast = 'display:flex;justify-content:space-between;padding:4px 0;font-size:0.8rem;';
+                    h += '<div style="'+sumRow+'"><span style="color:#888;">Avg miss (total)</span><span style="font-weight:700;color:'+(avgDist<=20?'#4ade80':avgDist<=35?'#f59e0b':'#e64545')+'">'+avgDist.toFixed(1)+'y</span></div>';
+                    h += '<div style="'+sumRow+'"><span style="color:#888;">Avg lateral (abs)</span><span style="font-weight:700;">'+avgAbsLat.toFixed(1)+'y</span></div>';
+                    h += '<div style="'+sumRow+'"><span style="color:#888;">Avg ΔY (long/short)</span><span style="font-weight:700;color:'+(avgAlong>=0?'#f59e0b':'#60a5fa')+'">'+(avgAlong>=0?'+':'')+avgAlong.toFixed(1)+'y</span></div>';
+                    h += '<div style="'+sumRow+'"><span style="color:#888;">Within 20y of W1</span><span style="font-weight:700;color:#4ade80;">'+within20+'/'+n+' ('+Math.round(within20/n*100)+'%)</span></div>';
+                    h += '<div style="'+sumRow+'"><span style="color:#888;">Right / Left</span><span style="font-weight:700;">'+rightCount+'R / '+leftCount+'L</span></div>';
+                    h += '<div style="'+sumLast+'"><span style="color:#888;">Tendency</span><span style="font-weight:700;color:'+tendCol+';">'+tendLabel+'</span></div>';
+                    h += '</div>';
+
+                    h += '</div>'; // end dispersion card
+                })();
 
                 return h;
             }
