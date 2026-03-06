@@ -2537,8 +2537,11 @@
                 // Club button — opens caddy in update mode
                 const clubBtn = document.createElement('button');
                 clubBtn.type = 'button';
+                var clubLabel = (shot.club && shot.club !== 'Club?')
+                    ? (shot.club + (shot.shotType && shot.shotType !== 'full' ? ' · ' + shot.shotType : ''))
+                    : 'Club?';
                 clubBtn.style.cssText = 'font-size:0.78rem;font-weight:700;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card-light);color:' + (shot.club && shot.club !== 'Club?' ? 'var(--text-primary)' : 'var(--text-muted)') + ';cursor:pointer;white-space:nowrap;min-width:52px;text-align:center;';
-                clubBtn.textContent = (shot.club && shot.club !== 'Club?') ? shot.club : 'Club?';
+                clubBtn.textContent = clubLabel;
                 clubBtn.disabled = !!shot.penalty;
                 clubBtn.addEventListener('click', (function(capturedIdx) {
                     return function(e) {
@@ -4896,10 +4899,7 @@
 
                 var hole = State.holes[State.holeIndex];
                 var targets = hole.targets || [];
-                if (targets.length === 0) {
-                    list.innerHTML = '<div style="font-size:0.85rem;color:var(--text-muted);text-align:center;padding:var(--space-6);">No targets for this hole</div>';
-                    return;
-                }
+                // Don't early-return — flag is always injected below even with no user targets
 
                 var pos     = GPS.getCurrentPosition();
                 var phase   = TargetEngine.getPhase(hole, pos);
