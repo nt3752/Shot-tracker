@@ -2560,14 +2560,15 @@
                 tgtBtn.title = hasTarget ? ('Target: ' + (shot.targetAbbrev || '') + ' ' + (shot.targetYards || '') + 'y') : 'Set target';
                 tgtBtn.textContent = '🎯';
                 tgtBtn.disabled = !!shot.penalty;
-                tgtBtn.addEventListener('click', (function(capturedIdx) {
+                tgtBtn.addEventListener('click', (function(capturedIdx, capturedShot) {
                     return function(e) {
                         e.stopPropagation();
                         if (!State.ui) State.ui = {};
                         State.ui._updateShotIdx = capturedIdx;
+                        State.ui._currentTargetId = capturedShot.targetId || null;
                         TargetsUI.open();
                     };
-                })(idx));
+                })(idx, shot));
 
                 left.appendChild(number);
                 left.appendChild(tgtBtn);
@@ -4948,6 +4949,7 @@
                 }
 
                 var self = this;
+                var currentTargetId = (State.ui && State.ui._currentTargetId) ? State.ui._currentTargetId : null;
 
                 parents.forEach(function(parent) {
                     var tgt      = parent.tgt;
@@ -4955,10 +4957,11 @@
                     var subRows  = parent.subRows;
                     var hasExpand = subRows.length > 0;
                     var isExpanded = !!(State.ui.expandedTargetIds && State.ui.expandedTargetIds[tgt.id]);
+                    var isSelected = !!(currentTargetId && tgt.id === currentTargetId);
 
                     // ── Parent row ─────────────────────────────────────────
                     var parentEl = document.createElement('div');
-                    parentEl.style.cssText = 'border-bottom:1px solid var(--border);';
+                    parentEl.style.cssText = 'border-bottom:1px solid var(--border);' + (isSelected ? 'background:rgba(74,222,128,0.08);' : '');
 
                     var parentInner = document.createElement('div');
                     parentInner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px var(--space-3);gap:var(--space-2);' + (dist !== null ? 'cursor:pointer;' : '');
@@ -4968,12 +4971,12 @@
                     info.style.cssText = 'min-width:0;flex:1;';
 
                     var topLine = document.createElement('div');
-                    topLine.style.cssText = 'font-size:1.6rem;font-weight:900;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-                    topLine.textContent = tgt.label;
+                    topLine.style.cssText = 'font-size:1.6rem;font-weight:900;color:' + (isSelected ? '#4ade80' : 'var(--text-primary)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                    topLine.textContent = tgt.label + (isSelected ? ' ✓' : '');
                     info.appendChild(topLine);
 
                     var subLine = document.createElement('div');
-                    subLine.style.cssText = 'font-size:1.0rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-top:1px;';
+                    subLine.style.cssText = 'font-size:1.0rem;font-weight:700;color:' + (isSelected ? '#4ade80' : 'var(--text-muted)') + ';text-transform:uppercase;letter-spacing:0.4px;margin-top:1px;';
                     subLine.textContent = tgt.abbrev + (parent.repLabel ? ' · ' + parent.repLabel : (tgt.category && tgt.category !== 'point' ? ' · ' + tgt.category : ''));
                     info.appendChild(subLine);
 
@@ -5087,7 +5090,7 @@
                                     };
                                     // Capture update index BEFORE close() clears it
                                     var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
-                                    if (State.ui) State.ui._updateShotIdx = null;
+                                    if (State.ui) { State.ui._updateShotIdx = null; State.ui._currentTargetId = null; }
                                     TargetsUI.close();
                                     if (updateIdx !== null) {
                                         var hole2 = State.currentHole();
@@ -5145,7 +5148,7 @@
                                 };
                                 // Check update mode BEFORE close() — close() clears _updateShotIdx
                                 var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
-                                if (State.ui) State.ui._updateShotIdx = null;
+                                if (State.ui) { State.ui._updateShotIdx = null; State.ui._currentTargetId = null; }
                                 TargetsUI.close();
                                 if (updateIdx !== null) {
                                     // UPDATE mode: tap on shot row target icon
@@ -5213,6 +5216,7 @@
                             var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
                             if (!State.ui) State.ui = {};
                             State.ui._updateShotIdx = null;
+                            State.ui._currentTargetId = null;
                             TargetsUI.close();
                             if (updateIdx !== null) {
                                 var hole2 = State.currentHole();
@@ -5291,6 +5295,7 @@
                                 var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
                                 if (!State.ui) State.ui = {};
                                 State.ui._updateShotIdx = null;
+                                State.ui._currentTargetId = null;
                                 TargetsUI.close();
                                 if (updateIdx !== null) {
                                     var hole2 = State.currentHole();
@@ -8823,8 +8828,8 @@
                 // Caddy
                 this.on('btnCaddy', 'click', () => CaddyUI.open());
                 this.on('btnTargets', 'click', () => TargetsUI.open());
-                this.on('btnCloseTargets', 'click', () => { if (State.ui) State.ui._updateShotIdx = null; TargetsUI.close(); });
-                this.on('targetsBackdrop', 'click', () => { if (State.ui) State.ui._updateShotIdx = null; TargetsUI.close(); });
+                this.on('btnCloseTargets', 'click', () => { if (State.ui) { State.ui._updateShotIdx = null; State.ui._currentTargetId = null; } TargetsUI.close(); });
+                this.on('targetsBackdrop', 'click', () => { if (State.ui) { State.ui._updateShotIdx = null; State.ui._currentTargetId = null; } TargetsUI.close(); });
                 this.on('btnTargetConfig', 'click', () => TargetConfigUI.toggle());
                 this.on('btnCloseCaddy', 'click', () => { if (State.ui) State.ui._updateShotIdx = null; CaddyUI.close(); });
                 this.on('caddyBackdrop', 'click', () => {
