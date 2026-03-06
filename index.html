@@ -2971,7 +2971,7 @@
             
             close() {
                 this.hide();
-                if (State.ui) State.ui._updateShotIdx = null;
+                // NOTE: do NOT clear _updateShotIdx here — selection handler owns that
             },
             
             closeAllOtherSheets() {
@@ -3055,18 +3055,18 @@
 
                     // Entire row is the tap target
                     item.addEventListener('click', () => {
-                        if (State.ui && State.ui._updateShotIdx != null) {
+                        var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
+                        if (State.ui) State.ui._updateShotIdx = null;
+                        if (updateIdx !== null) {
                             // UPDATE MODE — update existing shot's club/shotType
-                            var idx = State.ui._updateShotIdx;
                             var hole2 = State.currentHole();
-                            if (hole2.shots[idx]) {
-                                hole2.shots[idx].club = sug.club;
-                                hole2.shots[idx].shotType = sug.shotType;
+                            if (hole2.shots[updateIdx]) {
+                                hole2.shots[updateIdx].club = sug.club;
+                                hole2.shots[updateIdx].shotType = sug.shotType;
                                 State.save();
                                 UI.render();
                                 Utils.toast(sug.club + ' • ' + sug.shotType + ' selected');
                             }
-                            State.ui._updateShotIdx = null;
                         } else {
                             Actions.addShot({ club: sug.club, shotType: sug.shotType });
                         }
@@ -4792,7 +4792,7 @@
                 if (els.targetsBackdrop) els.targetsBackdrop.classList.remove('active');
                 if (els.targetsSheet)    els.targetsSheet.classList.remove('active');
                 if (State.ui) State.ui.playerElevation = null;
-                if (State.ui) State.ui._updateShotIdx = null;
+                // NOTE: do NOT clear _updateShotIdx here — selection handlers own that
                 TargetConfigUI.close();
             },
 
@@ -5087,6 +5087,7 @@
                                     };
                                     // Capture update index BEFORE close() clears it
                                     var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
+                                    if (State.ui) State.ui._updateShotIdx = null;
                                     TargetsUI.close();
                                     if (updateIdx !== null) {
                                         var hole2 = State.currentHole();
@@ -5144,6 +5145,7 @@
                                 };
                                 // Check update mode BEFORE close() — close() clears _updateShotIdx
                                 var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
+                                if (State.ui) State.ui._updateShotIdx = null;
                                 TargetsUI.close();
                                 if (updateIdx !== null) {
                                     // UPDATE mode: tap on shot row target icon
@@ -5200,8 +5202,7 @@
                     luEl.addEventListener('click', (function(capturedLu) {
                         return function() {
                             if (UI.els.attempt) UI.els.attempt.value = String(capturedLu.dist);
-                            if (!State.ui) State.ui = {};
-                            State.ui.pendingTargetMeta = {
+                            var meta = {
                                 targetId:       null,
                                 targetPoint:    'C',
                                 targetGPS:      capturedLu.gps,
@@ -5209,8 +5210,22 @@
                                 targetCategory: 'layup',
                                 targetAbbrev:   capturedLu.label
                             };
+                            var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
+                            if (!State.ui) State.ui = {};
+                            State.ui._updateShotIdx = null;
                             TargetsUI.close();
-                            Utils.toast(capturedLu.label + ': ' + capturedLu.dist + 'y');
+                            if (updateIdx !== null) {
+                                var hole2 = State.currentHole();
+                                if (hole2.shots[updateIdx]) {
+                                    Object.assign(hole2.shots[updateIdx], meta);
+                                    hole2.shots[updateIdx].distance = capturedLu.dist;
+                                    State.save(); UI.render();
+                                    Utils.toast('Target updated: ' + capturedLu.label + ' ' + capturedLu.dist + 'y');
+                                }
+                            } else {
+                                State.ui.pendingTargetMeta = meta;
+                                Actions.addShot();
+                            }
                         };
                     })(lu));
 
@@ -5265,8 +5280,7 @@
                             return function() {
                                 if (capturedDist === null) return;
                                 if (UI.els.attempt) UI.els.attempt.value = String(capturedDist);
-                                if (!State.ui) State.ui = {};
-                                State.ui.pendingTargetMeta = {
+                                var meta = {
                                     targetId:       null,
                                     targetPoint:    'C',
                                     targetGPS:      capturedGPS,
@@ -5274,8 +5288,22 @@
                                     targetCategory: 'waypoint',
                                     targetAbbrev:   capturedKey
                                 };
+                                var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
+                                if (!State.ui) State.ui = {};
+                                State.ui._updateShotIdx = null;
                                 TargetsUI.close();
-                                Utils.toast(capturedKey + ' waypoint: ' + capturedDist + 'y');
+                                if (updateIdx !== null) {
+                                    var hole2 = State.currentHole();
+                                    if (hole2.shots[updateIdx]) {
+                                        Object.assign(hole2.shots[updateIdx], meta);
+                                        hole2.shots[updateIdx].distance = capturedDist;
+                                        State.save(); UI.render();
+                                        Utils.toast('Target updated: ' + capturedKey + ' ' + capturedDist + 'y');
+                                    }
+                                } else {
+                                    State.ui.pendingTargetMeta = meta;
+                                    Actions.addShot();
+                                }
                             };
                         })(wpDef.key, wpGPS, wpDist));
 
@@ -8795,10 +8823,10 @@
                 // Caddy
                 this.on('btnCaddy', 'click', () => CaddyUI.open());
                 this.on('btnTargets', 'click', () => TargetsUI.open());
-                this.on('btnCloseTargets', 'click', () => TargetsUI.close());
-                this.on('targetsBackdrop', 'click', () => TargetsUI.close());
+                this.on('btnCloseTargets', 'click', () => { if (State.ui) State.ui._updateShotIdx = null; TargetsUI.close(); });
+                this.on('targetsBackdrop', 'click', () => { if (State.ui) State.ui._updateShotIdx = null; TargetsUI.close(); });
                 this.on('btnTargetConfig', 'click', () => TargetConfigUI.toggle());
-                this.on('btnCloseCaddy', 'click', () => CaddyUI.close());
+                this.on('btnCloseCaddy', 'click', () => { if (State.ui) State.ui._updateShotIdx = null; CaddyUI.close(); });
                 this.on('caddyBackdrop', 'click', () => {
                     // Blur any focused input first so keyboard dismisses,
                     // then wait for layout to settle before closing
