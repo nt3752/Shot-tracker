@@ -5085,17 +5085,17 @@
                                         targetCategory: capturedTgt.category,
                                         targetAbbrev:   capturedTgt.abbrev || ''
                                     };
+                                    // Capture update index BEFORE close() clears it
+                                    var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
                                     TargetsUI.close();
-                                    if (State.ui && State.ui._updateShotIdx != null) {
-                                        var idx = State.ui._updateShotIdx;
+                                    if (updateIdx !== null) {
                                         var hole2 = State.currentHole();
-                                        if (hole2.shots[idx]) {
-                                            Object.assign(hole2.shots[idx], meta);
-                                            hole2.shots[idx].distance = Math.round(capturedSr.dist);
+                                        if (hole2.shots[updateIdx]) {
+                                            Object.assign(hole2.shots[updateIdx], meta);
+                                            hole2.shots[updateIdx].distance = Math.round(capturedSr.dist);
                                             State.save(); UI.render();
                                             Utils.toast('Target updated: ' + capturedTgt.abbrev + ' ' + capturedSr.pointLabel + ' ' + Math.round(capturedSr.dist) + 'y');
                                         }
-                                        State.ui._updateShotIdx = null;
                                     } else {
                                         if (!State.ui) State.ui = {};
                                         State.ui.pendingTargetMeta = meta;
@@ -5142,18 +5142,18 @@
                                     targetCategory: capturedTgt.category,
                                     targetAbbrev:   capturedTgt.abbrev || ''
                                 };
+                                // Check update mode BEFORE close() — close() clears _updateShotIdx
+                                var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
                                 TargetsUI.close();
-                                // UPDATE mode: tap on shot row target icon
-                                if (State.ui && State.ui._updateShotIdx != null) {
-                                    var idx = State.ui._updateShotIdx;
+                                if (updateIdx !== null) {
+                                    // UPDATE mode: tap on shot row target icon
                                     var hole2 = State.currentHole();
-                                    if (hole2.shots[idx]) {
-                                        Object.assign(hole2.shots[idx], meta);
-                                        hole2.shots[idx].distance = Math.round(capturedDist);
+                                    if (hole2.shots[updateIdx]) {
+                                        Object.assign(hole2.shots[updateIdx], meta);
+                                        hole2.shots[updateIdx].distance = Math.round(capturedDist);
                                         State.save(); UI.render();
                                         Utils.toast('Target updated: ' + capturedTgt.abbrev + ' ' + Math.round(capturedDist) + 'y');
                                     }
-                                    State.ui._updateShotIdx = null;
                                 } else {
                                     // NEW SHOT mode
                                     if (!State.ui) State.ui = {};
