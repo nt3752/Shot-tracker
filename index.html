@@ -1110,7 +1110,6 @@
                 
                 <div class="btn-row">
                     <button class="btn btn-danger btn-sm" id="btnPen" type="button">Pen</button>
-                    <button class="btn btn-danger btn-sm" id="btnDel" type="button">Del</button>
                     <button class="btn btn-toggle btn-sm" id="btnFwy" type="button">Fwy</button>
                     <button class="btn btn-toggle btn-sm" id="btnGir" type="button">GIR</button>
                 </div>
@@ -2370,7 +2369,7 @@
                     'roundInfo', 'toFlag', 'accBadge', 'attempt',
                     'btnTee', 'btnFlag', 'btnMark',
                     'btnPrevHole', 'btnHolePick', 'btnNextHole',
-                    'btnPen', 'btnDel', 'btnFwy', 'btnGir',
+                    'btnPen', 'btnFwy', 'btnGir',
                     'btnCaddy', 'btnSettings', 'btnExport', 'btnLibrary', 'btnBagHeader', 'btnNewRoundHeader',
                     'btnScorecard', 'scorecardBackdrop', 'scorecardSheet', 'btnCloseScorecard', 'scorecardContent',
                     'targetsBackdrop', 'targetsSheet', 'targetsSheetBody', 'targetsHoleLabel', 'targetsList', 'btnTargets', 'btnCloseTargets', 'btnTargetConfig',
@@ -8948,7 +8947,6 @@
                 
                 // Actions
                 this.on('btnPen', 'click', () => Actions.addPenalty());
-                this.on('btnDel', 'click', () => Actions.deleteLastShot());
                 this.on('btnFwy', 'click', () => Actions.toggleFwy());
                 this.on('btnGir', 'click', () => {}); // Read-only indicator — no tap action
                 
