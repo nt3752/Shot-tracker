@@ -5027,10 +5027,11 @@
                 // Don't early-return — flag is always injected below even with no user targets
 
                 var pos     = GPS.getCurrentPosition();
-                var phase   = TargetEngine.getPhase(hole, pos);
+                var isUpdateMode = !!(State.ui && State.ui._updateShotIdx != null);
+                var phase   = isUpdateMode ? 'tee' : TargetEngine.getPhase(hole, pos);
                 if (!State.ui) State.ui = {};
                 if (!State.ui.expandedTargetIds) State.ui.expandedTargetIds = {};
-                var showAll = !!State.ui.targetsShowAll;
+                var showAll = !!State.ui.targetsShowAll || isUpdateMode;
 
                 var parents = TargetEngine.buildParentRows(hole, pos, 25, phase, showAll);
 
