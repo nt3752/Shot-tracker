@@ -2123,6 +2123,13 @@
                             // Always load plan from library
                             if (ch.plan && ch.plan.length > 0) {
                                 this.holes[idx].plan = ch.plan;
+                                // If hole has stale empty shots (no planned flag, no GPS), clear them
+                                // so preload can run fresh
+                                var existingShots = this.holes[idx].shots || [];
+                                var hasRealShots = existingShots.some(function(s) {
+                                    return s.position || s.planned;
+                                });
+                                if (!hasRealShots) this.holes[idx].shots = [];
                             }
                         }
                     });
@@ -3724,11 +3731,11 @@
                 const course = Library.getCourse(courseId);
                 if (!course) return;
                 this.editingCourseId = courseId;
-                // Load into State
+                // Load into State — always reinit holes fresh from library, never from stale State
                 State.currentCourseId = courseId;
                 State.courseName = course.name || '';
                 State.course = course;
-                State.initHoles();
+                State.initHoles(); // always fresh — stale State.holes must not survive a selectCourse
                 if (course.holes) {
                     course.holes.forEach(function(ch, idx) {
                         if (State.holes[idx]) {
@@ -7987,12 +7994,57 @@
                             return;
                         }
                         let added = 0;
+                        let firstId = null;
                         data.courses.forEach(function(course) {
                             if (!course.id || !course.name) return;
                             Library.saveCourse(course);
+                            if (!firstId) firstId = course.id;
                             added++;
                         });
-                        Utils.toast(added + ' course' + (added !== 1 ? 's' : '') + ' imported & saved');
+                        // Auto-activate the imported course and trigger plan preload
+                        if (firstId) {
+                            const courseSetup = Library.getCourse(firstId);
+                            if (courseSetup) {
+                                State.currentCourseId = firstId;
+                                State.courseName = courseSetup.name || '';
+                                State.course = courseSetup;
+                                State.initHoles();
+                                if (courseSetup.holes) {
+                                    courseSetup.holes.forEach(function(ch, idx) {
+                                        if (!State.holes[idx]) return;
+                                        State.holes[idx].par    = ch.par    || 0;
+                                        State.holes[idx].yards  = ch.yards  || 0;
+                                        State.holes[idx].hcp    = ch.hcp    || 0;
+                                        if (ch.teeGPS)            State.holes[idx].tee          = ch.teeGPS;
+                                        if (ch.flagGPS)           State.holes[idx].flag         = ch.flagGPS;
+                                        if (ch.planPath)          State.holes[idx].planPath      = ch.planPath;
+                                        if (ch.targets)           State.holes[idx].targets       = ch.targets;
+                                        if (ch.plan && ch.plan.length > 0) State.holes[idx].plan = ch.plan;
+                                    });
+                                }
+                                // Preload plan shots inline (Actions not in scope here)
+                                State.holes.forEach(function(hole) {
+                                    var plan = hole.plan || [];
+                                    if (!plan.length || (hole.shots && hole.shots.length > 0)) return;
+                                    hole.shots = plan.map(function(p) {
+                                        return {
+                                            club: p.club || 'Club?', shotType: p.shotType || 'full',
+                                            distance: 0, targetDistance: 0, actualDistance: null,
+                                            penalty: false, position: null,
+                                            positionPending: (p.shotType || '').toLowerCase() !== 'putt',
+                                            timestamp: new Date().toISOString(),
+                                            targetId: p.targetId || null, targetPoint: null,
+                                            targetGPS: p.targetGPS || null, targetYards: null,
+                                            targetCategory: null, targetAbbrev: p.targetAbbrev || null,
+                                            planned: true
+                                        };
+                                    });
+                                });
+                                State.save();
+                                UI.render();
+                            }
+                        }
+                        Utils.toast(added + ' course' + (added !== 1 ? 's' : '') + ' imported & activated');
                         LibraryUI.render();
                     } catch (e) {
                         console.error('Import courses error:', e);
