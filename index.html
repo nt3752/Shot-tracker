@@ -1110,6 +1110,7 @@
                 
                 <div class="btn-row">
                     <button class="btn btn-danger btn-sm" id="btnPen" type="button">Pen</button>
+                    <button class="btn btn-sm" id="btnTapIn" type="button" style="border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,0.1);">Tap-in</button>
                     <button class="btn btn-toggle btn-sm" id="btnFwy" type="button">Fwy</button>
                     <button class="btn btn-toggle btn-sm" id="btnGir" type="button">GIR</button>
                 </div>
@@ -2134,7 +2135,7 @@
                             return {
                                 club: p.club || 'Club?', shotType: p.shotType || 'full',
                                 distance: 0, targetDistance: 0, actualDistance: null,
-                                penalty: false, position: null, positionPending: true,
+                                penalty: false, position: null, positionPending: (p.shotType || '').toLowerCase() !== 'putt',
                                 timestamp: new Date().toISOString(),
                                 targetId: p.targetId || null, targetPoint: null,
                                 targetGPS: p.targetGPS || null, targetYards: null,
@@ -2369,7 +2370,7 @@
                     'roundInfo', 'toFlag', 'accBadge', 'attempt',
                     'btnTee', 'btnFlag', 'btnMark',
                     'btnPrevHole', 'btnHolePick', 'btnNextHole',
-                    'btnPen', 'btnFwy', 'btnGir',
+                    'btnPen', 'btnTapIn', 'btnFwy', 'btnGir',
                     'btnCaddy', 'btnSettings', 'btnExport', 'btnLibrary', 'btnBagHeader', 'btnNewRoundHeader',
                     'btnScorecard', 'scorecardBackdrop', 'scorecardSheet', 'btnCloseScorecard', 'scorecardContent',
                     'targetsBackdrop', 'targetsSheet', 'targetsSheetBody', 'targetsHoleLabel', 'targetsList', 'btnTargets', 'btnCloseTargets', 'btnTargetConfig',
@@ -2579,14 +2580,15 @@
                     };
                 })(idx));
 
-                // Target icon button — color if target set, muted if not
+                // Target icon button — hidden for putts, color if target set, muted if not
+                var isPuttRow = (shot.shotType || '').toLowerCase() === 'putt';
                 var hasTarget = !!(shot.targetGPS && shot.targetGPS.lat);
                 const tgtBtn = document.createElement('button');
                 tgtBtn.type = 'button';
-                tgtBtn.style.cssText = 'font-size:0.9rem;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card-light);cursor:pointer;line-height:1;' + (hasTarget ? '' : 'filter:grayscale(1) opacity(0.45);');
+                tgtBtn.style.cssText = 'font-size:0.9rem;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card-light);cursor:pointer;line-height:1;' + (hasTarget ? '' : 'filter:grayscale(1) opacity(0.45);') + (isPuttRow ? 'display:none;' : '');
                 tgtBtn.title = hasTarget ? ('Target: ' + (shot.targetAbbrev || '') + ' ' + (shot.targetYards || '') + 'y') : 'Set target';
                 tgtBtn.textContent = '🎯';
-                tgtBtn.disabled = !!shot.penalty;
+                tgtBtn.disabled = !!shot.penalty || isPuttRow;
                 tgtBtn.addEventListener('click', (function(capturedIdx, capturedShot) {
                     return function(e) {
                         e.stopPropagation();
@@ -2811,6 +2813,7 @@
                 const attemptVal = UI.els.attempt ? UI.els.attempt.value.trim() : '';
                 const distance = attemptVal ? Utils.saneYards(attemptVal) : 0;
                 
+                const isPutt = (options.shotType || '').toLowerCase() === 'putt';
                 const shot = {
                     club: options.club || 'Club?',
                     shotType: options.shotType || 'full',
@@ -2818,8 +2821,8 @@
                     targetDistance: distance || 0,  // What they aimed for
                     actualDistance: null,  // Calculated after marking landing
                     penalty: !!options.penalty,
-                    position: null,  // ALWAYS null - GPS captured by Mark Landing
-                    positionPending: true,  // ALWAYS pending until Mark Landing
+                    position: null,
+                    positionPending: !isPutt,  // putts never need Mark Landing
                     timestamp: Utils.nowISO(),
                     // Target reference (v41.15) — null if manual yardage entered
                     targetId:       (pendingMeta && pendingMeta.targetId)       || options.targetId       || null,
@@ -2841,7 +2844,7 @@
                 
                 State.save();
                 UI.render();
-                Utils.toast('Shot added - Mark landing when you reach the ball');
+                Utils.toast(isPutt ? 'Putt recorded' : 'Shot added - Mark landing when you reach the ball');
             },
             
             addPenalty() {
@@ -2871,6 +2874,40 @@
                 Utils.toast('Penalty recorded');
             },
             
+            addTapIn() {
+                const hole = State.currentHole();
+                // Find putter club from bag
+                const putterEntry = State.bag && State.bag.clubs
+                    ? State.bag.clubs.find(function(c) {
+                        return State.bag.data && State.bag.data[c] &&
+                               Object.keys(State.bag.data[c]).some(function(t){ return t === 'putt'; });
+                      })
+                    : null;
+                const putterClub = putterEntry || 'PT';
+                const flagGPS = hole.flag && hole.flag.lat ? { lat: hole.flag.lat, lon: hole.flag.lon } : null;
+                const shot = {
+                    club:           putterClub,
+                    shotType:       'putt',
+                    distance:       1,
+                    targetDistance: 1,
+                    actualDistance: null,
+                    penalty:        false,
+                    position:       null,
+                    positionPending: false,
+                    timestamp:      Utils.nowISO(),
+                    targetId:       '__flag__',
+                    targetPoint:    'C',
+                    targetGPS:      flagGPS,
+                    targetYards:    1,
+                    targetCategory: 'green',
+                    targetAbbrev:   'FLAG',
+                };
+                hole.shots.push(shot);
+                State.save();
+                UI.render();
+                Utils.toast('Tap-in recorded');
+            },
+
             markLanding() {
                 const hole = State.currentHole();
                 const currentPos = GPS.getCurrentPosition();
@@ -2984,7 +3021,7 @@
                             actualDistance: null,
                             penalty:        false,
                             position:       null,
-                            positionPending: true,
+                            positionPending: (p.shotType || '').toLowerCase() !== 'putt',
                             timestamp:      Utils.nowISO(),
                             targetId:       p.targetId   || null,
                             targetPoint:    null,
@@ -8947,6 +8984,7 @@
                 
                 // Actions
                 this.on('btnPen', 'click', () => Actions.addPenalty());
+                this.on('btnTapIn', 'click', () => Actions.addTapIn());
                 this.on('btnFwy', 'click', () => Actions.toggleFwy());
                 this.on('btnGir', 'click', () => {}); // Read-only indicator — no tap action
                 
