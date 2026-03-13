@@ -5480,7 +5480,7 @@
 
                 // ── Render layup rows (FWY/TEE phase only) ───────────────────
                 layupRows.forEach(function(lu) {
-                    var luIsSelected = !!(currentTargetId && currentTargetId === '__layup_' + lu.dist + '__');
+                    var luIsSelected = !!(currentTargetId && currentTargetId === '__layup_' + lu.offset + '__');
                     var luEl = document.createElement('div');
                     luEl.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px var(--space-3);border-bottom:1px solid var(--border);cursor:pointer;' + (luIsSelected ? 'background:rgba(74,222,128,0.08);' : '');
 
@@ -5515,7 +5515,7 @@
                         return function() {
                             if (UI.els.attempt) UI.els.attempt.value = String(capturedLu.dist);
                             var meta = {
-                                targetId:       '__layup_' + capturedLu.dist + '__',
+                                targetId:       '__layup_' + capturedLu.offset + '__',
                                 targetPoint:    'C',
                                 targetGPS:      capturedLu.gps,
                                 targetYards:    capturedLu.dist,
@@ -9621,8 +9621,12 @@
                 this.recognition.onerror = (event) => {
                     this.listening = false;
                     if (UI.els.btnVoice) UI.els.btnVoice.classList.remove('listening', 'processing', 'success');
-                    const msg = event.error === 'no-speech' ? 'No speech detected'
-                              : event.error === 'not-allowed' ? 'Microphone permission denied'
+                    // no-speech / aborted = user cancelled or said nothing — dismiss quietly
+                    if (event.error === 'no-speech' || event.error === 'aborted') {
+                        this._hideFeedback();
+                        return;
+                    }
+                    const msg = event.error === 'not-allowed' ? 'Microphone permission denied'
                               : 'Error: ' + event.error;
                     this._showFeedback('error', 'Error', '', msg);
                     this._autoHideFeedback(3000);
@@ -9638,6 +9642,7 @@
                     UI.els.btnVoice.addEventListener('click', () => {
                         if (this.listening) {
                             this.recognition.stop();
+                            this._hideFeedback();
                         } else {
                             this.start();
                         }
@@ -9731,11 +9736,10 @@
                     'mark landing': 'mark',
                     'mark shot': 'mark',
                     'mark it': 'mark',
-                    'tee': 'tee',
+                    'mark tee': 'tee',
                     'set tee': 'tee',
-                    'flag': 'flag',
+                    'mark flag': 'flag',
                     'set flag': 'flag',
-                    'pin': 'flag',
                     'penalty': 'penalty',
                     'penalty stroke': 'penalty',
                     'tap in': 'tapIn',
@@ -9743,6 +9747,12 @@
                     'gimme': 'tapIn',
                     'next hole': 'nextHole',
                     'hole out': 'nextHole',
+                    'previous hole': 'prevHole',
+                    'prior hole': 'prevHole',
+                    'back one': 'prevHole',
+                    'go back': 'prevHole',
+                    'go to hole': 'gotoHole',
+                    'goto hole': 'gotoHole',
                     'fwy': 'fwy', 'fairway': 'fwy',
                 };
 
@@ -9847,10 +9857,10 @@
                 ];
                 layupOffsets.forEach(lu => {
                     const entry = {
-                        targetId: '__layup_auto__',   // resolved at shot-log time; dist unknown at parse time
-                        targetAbbrev: lu.label,
+                        targetId:       '__layup_' + lu.offset + '__',  // stable offset-keyed id, same as tap UI
+                        targetAbbrev:   lu.label,
                         targetCategory: 'layup',
-                        _layupOffset: lu.offset,
+                        _layupOffset:   lu.offset,
                     };
                     targetMap[lu.label.toLowerCase()] = entry;                       // "lu40"
                     targetMap['layup ' + lu.offset] = entry;                         // "layup 40"
@@ -9883,129 +9893,206 @@
                 return null;
             },
 
-            _parseTranscript(raw) {
+            // ── Multi-command processor ───────────────────────────────────
+            // Two-pass design:
+            //
+            // PASS 1 — collect all standalone commands anywhere in the utterance.
+            //   Standalone commands (mark, tee, flag, penalty, tap-in, fairway,
+            //   next hole) are positionally independent — "mark" at the start,
+            //   middle, or end means the same thing and fires once per mention.
+            //   Each occurrence is collected and the words are consumed.
+            //
+            // PASS 2 — parse remaining words left-to-right for shots.
+            //   A new shot group starts each time a club is encountered.
+            //   Shot type and target attach to the most-recently-seen club.
+            //
+            // Final dispatch order: standalone commands first (in utterance order),
+            // then shots (in utterance order).
+            _processTranscript(raw) {
                 const { clubMap, typeMap, actionMap, targetMap } = this._buildVocab();
                 const words = raw.toLowerCase()
                     .replace(/[^a-z0-9\s/-]/g, '')
-                    .trim()
-                    .split(/\s+/)
-                    .filter(Boolean);
+                    .trim().split(/\s+/).filter(Boolean);
 
-                const tokens = { club: null, shotType: null, action: null, target: null, raw };
+                const dispatched = [];
+
+                // ── PASS 1: collect standalone commands, mark consumed positions ──
+                const SOLO_ACTIONS = new Set(['mark', 'tee', 'flag', 'tapIn', 'penalty', 'fwy']);
+                const NAV_ACTIONS  = new Set(['nextHole', 'prevHole', 'gotoHole']);
+                const consumed = new Array(words.length).fill(false);
+
+                // gotoHole needs a number — scan ahead for a digit 1-18 after the keyword
+                const extractHoleNum = (startIdx) => {
+                    for (let k = startIdx; k < Math.min(startIdx + 3, words.length); k++) {
+                        if (consumed[k]) continue;
+                        const n = parseInt(words[k], 10);
+                        if (!isNaN(n) && n >= 1 && n <= 18) { consumed[k] = true; return n; }
+                    }
+                    return null;
+                };
+
                 let i = 0;
-
                 while (i < words.length) {
-                    const remaining = words.slice(i);
+                    if (consumed[i]) { i++; continue; }
+                    const rem = words.slice(i);
+                    const a = this._scan(rem, actionMap);
+                    if (a && (SOLO_ACTIONS.has(a.match) || NAV_ACTIONS.has(a.match))) {
+                        for (let k = i; k < i + a.consumed; k++) consumed[k] = true;
+                        const entry = { type: 'action', action: a.match, pos: i };
+                        if (a.match === 'gotoHole') entry.holeNum = extractHoleNum(i);
+                        dispatched.push(entry);
+                        i += a.consumed;
+                    } else {
+                        i++;
+                    }
+                }
+
+                // ── PASS 2: parse remaining words into shots ──────────────────────
+                const shotGroups = [];   // [{ club, shotType, target }]
+                let cur = null;
+
+                i = 0;
+                while (i < words.length) {
+                    if (consumed[i]) { i++; continue; }
+                    const rem = words.slice(i).filter((_, idx) => !consumed[i + idx]);
+                    // re-slice cleanly from unconsumed words starting at i
+                    const remClean = [];
+                    for (let k = i; k < words.length; k++) {
+                        if (!consumed[k]) remClean.push(words[k]);
+                        else break; // stop at first consumed gap to avoid spanning gaps
+                    }
+                    if (!remClean.length) { i++; continue; }
+
                     let found = false;
 
-                    // Try action first (takes priority for single-word commands)
-                    const a = this._scan(remaining, actionMap);
-                    if (a) {
-                        // 'penalty' is both an action and possibly a club; prefer action if no club found yet
-                        if (a.match === 'penalty' && !tokens.club) {
-                            tokens.action = 'penalty';
-                            i += a.consumed; found = true;
-                        } else if (a.match !== 'penalty') {
-                            if (!tokens.action) tokens.action = a.match;
-                            i += a.consumed; found = true;
+                    const c = this._scan(remClean, clubMap);
+                    if (c) {
+                        cur = { club: c.match, shotType: null, target: null };
+                        shotGroups.push(cur);
+                        // mark consumed
+                        let cnt = c.consumed;
+                        for (let k = i; k < words.length && cnt > 0; k++) {
+                            if (!consumed[k]) { consumed[k] = true; cnt--; }
+                        }
+                        found = true;
+                    }
+
+                    if (!found) {
+                        const t = this._scan(remClean, typeMap);
+                        if (t && cur) {
+                            cur.shotType = t.match;
+                            let cnt = t.consumed;
+                            for (let k = i; k < words.length && cnt > 0; k++) {
+                                if (!consumed[k]) { consumed[k] = true; cnt--; }
+                            }
+                            found = true;
                         }
                     }
 
                     if (!found) {
-                        const c = this._scan(remaining, clubMap);
-                        if (c) { if (!tokens.club) tokens.club = c.match; i += c.consumed; found = true; }
+                        const tgt = this._scan(remClean, targetMap);
+                        if (tgt && cur) {
+                            cur.target = tgt.match;
+                            let cnt = tgt.consumed;
+                            for (let k = i; k < words.length && cnt > 0; k++) {
+                                if (!consumed[k]) { consumed[k] = true; cnt--; }
+                            }
+                            found = true;
+                        }
                     }
 
-                    if (!found) {
-                        const t = this._scan(remaining, typeMap);
-                        if (t) { if (!tokens.shotType) tokens.shotType = t.match; i += t.consumed; found = true; }
+                    if (!found) i++;
+                    else {
+                        // advance i to next unconsumed word
+                        while (i < words.length && consumed[i]) i++;
                     }
-
-                    if (!found) {
-                        const tgt = this._scan(remaining, targetMap);
-                        if (tgt) { if (!tokens.target) tokens.target = tgt.match; i += tgt.consumed; found = true; }
-                    }
-
-                    if (!found) i++; // skip unrecognized word
                 }
 
-                return tokens;
-            },
+                // ── Dispatch: solo commands → shots → navigation (always last) ────
+                dispatched.sort((a, b) => a.pos - b.pos);
+                const soloItems = dispatched.filter(d => SOLO_ACTIONS.has(d.action));
+                const navItems  = dispatched.filter(d => NAV_ACTIONS.has(d.action));
 
-            // ── Execute ───────────────────────────────────────────────────
-            _processTranscript(raw) {
-                const tokens = this._parseTranscript(raw);
-                let actionDesc = '';
-                let ok = false;
+                const SOLO_DESCS = {
+                    mark:    () => { Actions.markLanding(); return '📍 Mark'; },
+                    tee:     () => { Actions.toggleTee();   return '🏌️ Mark tee'; },
+                    flag:    () => { Actions.toggleFlag();  return '🚩 Mark flag'; },
+                    tapIn:   () => { Actions.addTapIn();    return '⛳ Tap-in'; },
+                    penalty: () => { Actions.addPenalty();  return '⚠️ Penalty'; },
+                    fwy:     () => { Actions.toggleFwy();   return '🌿 Fairway'; },
+                };
 
-                // Pure action commands
-                if (tokens.action === 'mark' && !tokens.club) {
-                    Actions.markLanding();
-                    actionDesc = '📍 Mark Landing';
-                    ok = true;
-                } else if (tokens.action === 'tee') {
-                    Actions.toggleTee();
-                    actionDesc = '🏌️ Set Tee';
-                    ok = true;
-                } else if (tokens.action === 'flag') {
-                    Actions.toggleFlag();
-                    actionDesc = '🚩 Set Flag';
-                    ok = true;
-                } else if (tokens.action === 'tapIn') {
-                    Actions.addTapIn();
-                    actionDesc = '⛳ Tap-In';
-                    ok = true;
-                } else if (tokens.action === 'penalty') {
-                    Actions.addPenalty();
-                    actionDesc = '⚠️ Penalty';
-                    ok = true;
-                } else if (tokens.action === 'nextHole') {
-                    Actions.nextHole();
-                    actionDesc = '➡️ Next Hole';
-                    ok = true;
-                } else if (tokens.action === 'fwy') {
-                    Actions.toggleFwy();
-                    actionDesc = '🌿 Fairway toggled';
-                    ok = true;
+                const results = [];
+
+                // 1 — solo commands
+                for (const d of soloItems) {
+                    const fn = SOLO_DESCS[d.action];
+                    if (fn) results.push({ desc: fn(), ok: true });
                 }
 
-                // Shot log: need at least a club
-                if (!ok && tokens.club) {
-                    const opts = {
-                        club: tokens.club,
-                        shotType: tokens.shotType || 'full',
-                    };
-                    if (tokens.target) {
-                        opts.targetId       = tokens.target.targetId;
-                        opts.targetAbbrev   = tokens.target.targetAbbrev;
-                        opts.targetCategory = tokens.target.targetCategory || null;
+                // 2 — shots
+                for (const g of shotGroups) {
+                    const opts = { club: g.club, shotType: g.shotType || 'full' };
+                    if (g.target) {
+                        let tgt = g.target;
+                        // Layup: targetId is offset-keyed (__layup_40__, __layup_90__)
+                        // matching exactly what the tap UI stores — no GPS needed
+                        if (tgt.targetCategory === 'layup' && tgt._layupOffset != null) {
+                            tgt = {
+                                targetId:       '__layup_' + tgt._layupOffset + '__',
+                                targetAbbrev:   tgt.targetAbbrev,
+                                targetCategory: 'layup',
+                            };
+                        }
+                        opts.targetId       = tgt.targetId;
+                        opts.targetAbbrev   = tgt.targetAbbrev;
+                        opts.targetCategory = tgt.targetCategory || null;
                         opts.targetPoint    = 'C';
                     }
                     Actions.addShot(opts);
-                    const typePart = opts.shotType !== 'full' ? ' ' + opts.shotType : '';
-                    const tgtPart = tokens.target ? ' → ' + tokens.target.targetAbbrev : '';
-                    actionDesc = '⛳ ' + tokens.club + typePart + tgtPart;
-                    ok = true;
+                    const tp = opts.shotType !== 'full' ? ' ' + opts.shotType : '';
+                    const tg = g.target ? ' → ' + opts.targetAbbrev : '';
+                    results.push({ desc: '⛳ ' + g.club + tp + tg, ok: true });
                 }
 
-                if (!ok) {
-                    actionDesc = 'Not recognized';
+                // 3 — navigation (always fires after everything else)
+                for (const d of navItems) {
+                    if (d.action === 'nextHole') {
+                        Actions.nextHole();
+                        results.push({ desc: '➡️ Next hole', ok: true });
+                    } else if (d.action === 'prevHole') {
+                        Actions.prevHole();
+                        results.push({ desc: '⬅️ Prev hole', ok: true });
+                    } else if (d.action === 'gotoHole') {
+                        if (d.holeNum) {
+                            Actions.gotoHole(d.holeNum - 1);
+                            results.push({ desc: '📍 Hole ' + d.holeNum, ok: true });
+                        } else {
+                            results.push({ desc: '⚠️ Goto: no hole #', ok: false });
+                        }
+                    }
+                }
+
+                // ── Feedback & log ────────────────────────────────────────────────
+                const summary = results.map(r => r.desc).join('  ·  ') || 'Not recognized';
+                const allOk   = results.length > 0;
+
+                if (!results.length) {
                     this._showFeedback('error', 'Not recognized', raw, '"' + raw + '"');
                     this._autoHideFeedback(2500);
                 } else {
-                    this._showFeedback('success', 'Done', raw, actionDesc);
+                    this._showFeedback('success',
+                        results.length + ' action' + (results.length > 1 ? 's' : ''),
+                        raw, summary);
                     if (UI.els.btnVoice) {
                         UI.els.btnVoice.classList.remove('processing', 'listening');
                         UI.els.btnVoice.classList.add('success');
-                        setTimeout(() => {
-                            if (UI.els.btnVoice) UI.els.btnVoice.classList.remove('success');
-                        }, 1500);
+                        setTimeout(() => { if (UI.els.btnVoice) UI.els.btnVoice.classList.remove('success'); }, 1500);
                     }
-                    this._autoHideFeedback(2000);
+                    this._autoHideFeedback(2500);
                 }
 
-                // Log entry
-                this.log.unshift({ transcript: raw, action: actionDesc, ts: new Date().toLocaleTimeString() });
+                this.log.unshift({ transcript: raw, action: summary, ts: new Date().toLocaleTimeString() });
                 if (this.log.length > 50) this.log.pop();
             },
 
@@ -10031,6 +10118,11 @@
                 this._feedbackTimer = setTimeout(() => {
                     if (UI.els.voiceFeedback) UI.els.voiceFeedback.classList.remove('visible');
                 }, ms);
+            },
+
+            _hideFeedback() {
+                clearTimeout(this._feedbackTimer);
+                if (UI.els.voiceFeedback) UI.els.voiceFeedback.classList.remove('visible');
             },
 
             // ── Voice Log Sheet ───────────────────────────────────────────
