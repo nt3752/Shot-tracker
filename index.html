@@ -9781,25 +9781,30 @@
 
                     // Green targets
                     if (cat === 'green') {
-                        if (/front|short/.test(lbl))       { targetMap['front of green'] = entry; targetMap['short of green'] = entry; targetMap['front green'] = entry; }
-                        if (/back|long/.test(lbl))         { targetMap['back of green'] = entry;  targetMap['long of green'] = entry;  targetMap['back green'] = entry; }
-                        if (/center|centre|middle/.test(lbl)) { targetMap['center of green'] = entry; targetMap['centre of green'] = entry; targetMap['middle of green'] = entry; targetMap['center green'] = entry; }
-                        if (/left/.test(lbl))              { targetMap['left of green'] = entry;  targetMap['left green'] = entry; }
-                        if (/right/.test(lbl))             { targetMap['right of green'] = entry; targetMap['right green'] = entry; }
+                        if (/front|short/.test(lbl))       { targetMap['front of green'] = entry; targetMap['front of the green'] = entry; targetMap['short of green'] = entry; targetMap['front green'] = entry; }
+                        if (/back|long/.test(lbl))         { targetMap['back of green'] = entry;  targetMap['back of the green'] = entry;  targetMap['long of green'] = entry; targetMap['back green'] = entry; }
+                        if (/center|centre|middle/.test(lbl)) {
+                            targetMap['center of green'] = entry;     targetMap['center of the green'] = entry;
+                            targetMap['centre of green'] = entry;     targetMap['centre of the green'] = entry;
+                            targetMap['middle of green'] = entry;     targetMap['middle of the green'] = entry;
+                            targetMap['center green'] = entry;        targetMap['middle green'] = entry;
+                        }
+                        if (/left/.test(lbl))              { targetMap['left of green'] = entry;  targetMap['left of the green'] = entry;  targetMap['left green'] = entry; }
+                        if (/right/.test(lbl))             { targetMap['right of green'] = entry; targetMap['right of the green'] = entry; targetMap['right green'] = entry; }
                     }
 
                     // Bunker targets
                     if (cat === 'bunker' || /bunker|sand/.test(lbl)) {
-                        if (/left/.test(lbl))              { targetMap['left bunker'] = entry;  targetMap['left sand'] = entry; }
-                        if (/right/.test(lbl))             { targetMap['right bunker'] = entry; targetMap['right sand'] = entry; }
-                        if (/front/.test(lbl))             { targetMap['front bunker'] = entry; }
+                        if (/left/.test(lbl))              { targetMap['left bunker'] = entry;  targetMap['the left bunker'] = entry;  targetMap['left sand'] = entry; }
+                        if (/right/.test(lbl))             { targetMap['right bunker'] = entry; targetMap['the right bunker'] = entry; targetMap['right sand'] = entry; }
+                        if (/front/.test(lbl))             { targetMap['front bunker'] = entry; targetMap['the front bunker'] = entry; }
                         if (/fairway/.test(lbl)) {
-                            if (/left/.test(lbl))          { targetMap['left fairway bunker'] = entry; }
-                            if (/right/.test(lbl))         { targetMap['right fairway bunker'] = entry; }
+                            if (/left/.test(lbl))          { targetMap['left fairway bunker'] = entry;  targetMap['the left fairway bunker'] = entry; }
+                            if (/right/.test(lbl))         { targetMap['right fairway bunker'] = entry; targetMap['the right fairway bunker'] = entry; }
                         }
                         if (/greenside/.test(lbl)) {
-                            if (/left/.test(lbl))          { targetMap['left greenside bunker'] = entry; targetMap['left green bunker'] = entry; }
-                            if (/right/.test(lbl))         { targetMap['right greenside bunker'] = entry; targetMap['right green bunker'] = entry; }
+                            if (/left/.test(lbl))          { targetMap['left greenside bunker'] = entry; targetMap['left green bunker'] = entry; targetMap['the left greenside bunker'] = entry; }
+                            if (/right/.test(lbl))         { targetMap['right greenside bunker'] = entry; targetMap['right green bunker'] = entry; targetMap['the right greenside bunker'] = entry; }
                         }
                     }
 
@@ -9814,10 +9819,10 @@
 
                     // Water / hazard
                     if (cat === 'hazard' || /water|hazard|pond|lake/.test(lbl)) {
-                        targetMap['carry water'] = entry;
-                        targetMap['over water'] = entry;
-                        if (/left/.test(lbl))              targetMap['left water'] = entry;
-                        if (/right/.test(lbl))             targetMap['right water'] = entry;
+                        targetMap['carry water'] = entry;  targetMap['carry the water'] = entry;
+                        targetMap['over water'] = entry;   targetMap['over the water'] = entry;
+                        if (/left/.test(lbl))              { targetMap['left water'] = entry;  targetMap['the left water'] = entry; }
+                        if (/right/.test(lbl))             { targetMap['right water'] = entry; targetMap['the right water'] = entry; }
                     }
 
                     // OB / out of bounds
@@ -9850,10 +9855,18 @@
                             targetYards: wpDist ? Math.round(wpDist) : null,
                             targetPoint: 'C',
                         };
-                        targetMap[wp.key.toLowerCase()] = entry;           // "w1"
-                        targetMap['waypoint ' + (wp.idx + 1)] = entry;     // "waypoint 1"
-                        targetMap['waypoint' + (wp.idx + 1)] = entry;      // "waypoint1"
-                        targetMap['w ' + (wp.idx + 1)] = entry;            // "w 1"
+                        targetMap[wp.key.toLowerCase()] = entry;               // "w1"
+                        targetMap['waypoint ' + (wp.idx + 1)] = entry;         // "waypoint 1"
+                        targetMap['waypoint' + (wp.idx + 1)] = entry;          // "waypoint1"
+                        targetMap['w ' + (wp.idx + 1)] = entry;                // "w 1"
+                        // Word-form aliases — iOS Speech may return "one"/"two" instead of digits
+                        const wordNums = ['', 'one', 'two', 'three'];
+                        const wn = wordNums[wp.idx + 1];
+                        if (wn) {
+                            targetMap['waypoint ' + wn] = entry;               // "waypoint one"
+                            targetMap['w ' + wn] = entry;                      // "w one"
+                            targetMap['w' + wn] = entry;                       // "wone" (edge case)
+                        }
                     }
                 });
 
