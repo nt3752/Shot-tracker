@@ -1379,7 +1379,13 @@
     <div class="sheet" id="holeSheet" role="dialog" aria-modal="true" aria-labelledby="holeTitle">
         <div class="sheet-header">
             <h3 class="sheet-title" id="holeTitle">Select Hole</h3>
-            <div class="sheet-actions">
+            <div class="sheet-actions" style="display:flex;align-items:center;gap:8px;">
+                <button class="btn btn-sm" id="btnAutoHole" type="button"
+                        title="Auto-select hole based on GPS position"
+                        style="font-size:0.72rem;font-weight:700;letter-spacing:0.04em;
+                               padding:4px 10px;transition:background 0.2s,color 0.2s,opacity 0.2s;">
+                    Auto
+                </button>
                 <button class="btn btn-sm btn-secondary" id="btnCloseHole" type="button">Close</button>
             </div>
         </div>
@@ -2386,7 +2392,7 @@
                     'caddyBackdrop', 'caddySheet', 'btnCloseCaddy',
                     'btnCaddyMode', 'btnShowAll', 'caddyTarget',
                     'suggestionList', 'btnBagEditor',
-                    'holeBackdrop', 'holeSheet', 'btnCloseHole', 'holeGrid',
+                    'holeBackdrop', 'holeSheet', 'btnCloseHole', 'btnAutoHole', 'holeGrid',
                     'bagBackdrop', 'bagSheet', 'bagSheetBody', 'btnCloseBag', 'bagClub', 'bagShotType',
                     'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix', 'btnManageClubs', 'bagNameDisplay',
                     'btnClubIo', 'clubIoPanel', 'clubIoStatus', 'btnClubImport', 'btnClubExport', 'clubImportFile',
@@ -3085,6 +3091,7 @@
                     State.holeIndex--;
                     State.save();
                     UI.render();
+                    AutoHole.disable();
                 }
             },
             
@@ -3093,6 +3100,7 @@
                     State.holeIndex++;
                     State.save();
                     UI.render();
+                    AutoHole.disable();
                 }
             },
             
@@ -3101,6 +3109,8 @@
                     State.holeIndex = index;
                     State.save();
                     UI.render();
+                    // Manual hole tap disables Auto mode
+                    AutoHole.disable();
                 }
             }
         };
@@ -8534,9 +8544,147 @@
         // HOLE PICKER UI
         // ============================================
         
+
+        // ============================================
+        // AUTO HOLE DETECTION
+        // ============================================
+        const AutoHole = {
+            enabled: false,
+            intervalId: null,
+            INTERVAL_MS: 5000,
+
+            // Point-to-segment minimum distance (metres) using haversine for endpoints
+            _pointToSegmentYards(pos, a, b) {
+                // Convert to flat-earth metres for segment math (short distances, ok)
+                const toRad = d => d * Math.PI / 180;
+                const R = 6371000;
+                const latM = (pos.lat + a.lat) / 2;
+                const scaleX = Math.cos(toRad(latM));
+
+                const px = (pos.lon - a.lon) * scaleX * R * toRad(1);
+                const py = (pos.lat - a.lat)           * R * toRad(1);
+                const dx = (b.lon  - a.lon) * scaleX * R * toRad(1);
+                const dy = (b.lat  - a.lat)           * R * toRad(1);
+
+                const lenSq = dx * dx + dy * dy;
+                let t = lenSq > 0 ? Math.max(0, Math.min(1, (px*dx + py*dy) / lenSq)) : 0;
+                const nearX = t * dx - px;
+                const nearY = t * dy - py;
+                const metres = Math.sqrt(nearX*nearX + nearY*nearY);
+                return metres * 1.09361; // yards
+            },
+
+            // Minimum distance from pos to any segment of a planPath
+            _minDistToSpine(pos, planPath) {
+                if (!planPath || planPath.length < 2) {
+                    // Single-point spine — just distance to that point
+                    if (planPath && planPath.length === 1) {
+                        return Utils.distanceYards(pos, planPath[0]) || Infinity;
+                    }
+                    return Infinity;
+                }
+                let minDist = Infinity;
+                for (let i = 0; i < planPath.length - 1; i++) {
+                    const d = this._pointToSegmentYards(pos, planPath[i], planPath[i+1]);
+                    if (d < minDist) minDist = d;
+                }
+                return minDist;
+            },
+
+            // Return true if course has at least one hole with a planPath
+            courseHasSpines() {
+                return State.holes.some(h => h.planPath && h.planPath.length > 0);
+            },
+
+            // Find the best-matching hole index (0-based) for current position
+            detectHole(pos) {
+                let bestIndex = -1;
+                let bestDist  = Infinity;
+                State.holes.forEach((hole, idx) => {
+                    if (!hole.planPath || hole.planPath.length === 0) return;
+                    const d = this._minDistToSpine(pos, hole.planPath);
+                    if (d < bestDist) {
+                        bestDist  = d;
+                        bestIndex = idx;
+                    }
+                });
+                return bestIndex;
+            },
+
+            // Called on each interval tick
+            tick() {
+                if (!this.enabled) return;
+                const pos = GPS.getCurrentPosition();
+                if (!pos) return;
+                const best = this.detectHole(pos);
+                if (best >= 0 && best !== State.holeIndex) {
+                    State.holeIndex = best;
+                    State.save();
+                    UI.render();
+                    // If hole picker is open, refresh the grid highlight
+                    if (UI.els.holeSheet && UI.els.holeSheet.classList.contains('active')) {
+                        HolePickerUI.renderGrid();
+                    }
+                }
+            },
+
+            enable() {
+                if (!this.courseHasSpines()) return;
+                this.enabled = true;
+                if (!this.intervalId) {
+                    this.intervalId = setInterval(() => this.tick(), this.INTERVAL_MS);
+                }
+                this.updateButton();
+            },
+
+            disable() {
+                this.enabled = false;
+                if (this.intervalId) {
+                    clearInterval(this.intervalId);
+                    this.intervalId = null;
+                }
+                this.updateButton();
+            },
+
+            toggle() {
+                if (this.enabled) this.disable();
+                else this.enable();
+            },
+
+            // Update Auto button appearance
+            updateButton() {
+                const btn = UI.els.btnAutoHole;
+                if (!btn) return;
+                const hasSpines = this.courseHasSpines();
+                if (!hasSpines) {
+                    btn.disabled = true;
+                    btn.style.opacity  = '0.3';
+                    btn.style.cursor   = 'not-allowed';
+                    btn.style.background = '';
+                    btn.style.color    = '';
+                    btn.title = 'No spine data — add planPath to holes to enable auto detection';
+                    return;
+                }
+                btn.disabled = false;
+                btn.style.cursor = 'pointer';
+                if (this.enabled) {
+                    btn.style.opacity    = '1';
+                    btn.style.background = 'var(--green-400, #4ade80)';
+                    btn.style.color      = '#000';
+                    btn.title            = 'Auto hole ON — tap to disable';
+                } else {
+                    btn.style.opacity    = '0.4';
+                    btn.style.background = '';
+                    btn.style.color      = '';
+                    btn.title            = 'Auto hole OFF — tap to enable';
+                }
+            }
+        };
+
         const HolePickerUI = {
             init() {
-                // Intentionally empty — grid built on open() so data is fresh
+                // Grid built on open() so data is fresh; update button state now
+                AutoHole.updateButton();
             },
             
             renderGrid() {
@@ -8596,7 +8744,10 @@
                 this.show();
                 // Render after transition so iOS touch targets settle correctly
                 var self = this;
-                setTimeout(function() { self.renderGrid(); }, 320);
+                setTimeout(function() {
+                    self.renderGrid();
+                    AutoHole.updateButton();
+                }, 320);
             },
             
             close() {
@@ -9245,6 +9396,7 @@
                 
                 // Hole picker
                 this.on('btnCloseHole', 'click', () => HolePickerUI.close());
+                this.on('btnAutoHole',  'click', () => { AutoHole.toggle(); HolePickerUI.renderGrid(); });
                 this.on('holeBackdrop', 'click', () => HolePickerUI.close());
                 
                 // Library
