@@ -9758,8 +9758,18 @@
 
                 // Target tokens: abbrev → targetId
                 const targetMap = {};
+                const pos = GPS.getCurrentPosition();
                 targets.forEach(t => {
-                    const entry = { targetId: t.id, targetAbbrev: t.abbrev, targetCategory: t.category };
+                    const repGPS = TargetEngine.getRepGPS(t);
+                    const repDist = (repGPS && pos) ? Utils.distanceYards(pos, repGPS) : null;
+                    const entry = {
+                        targetId:       t.id,
+                        targetAbbrev:   t.abbrev,
+                        targetCategory: t.category,
+                        targetGPS:      repGPS  || null,
+                        targetYards:    repDist ? Math.round(repDist) : null,
+                        targetPoint:    'C',
+                    };
                     // Exact abbrev and label
                     if (t.abbrev) targetMap[t.abbrev.toLowerCase()] = entry;
                     if (t.label)  targetMap[t.label.toLowerCase()]  = entry;
@@ -9831,7 +9841,15 @@
                 ];
                 wpDefs.forEach(wp => {
                     if (hole && hole.planPath && hole.planPath[wp.idx] && hole.planPath[wp.idx].lat) {
-                        const entry = { targetId: '__' + wp.key + '__', targetAbbrev: wp.key };
+                        const wpGPS  = { lat: hole.planPath[wp.idx].lat, lon: hole.planPath[wp.idx].lon };
+                        const wpDist = pos ? Utils.distanceYards(pos, wpGPS) : null;
+                        const entry = {
+                            targetId:    '__' + wp.key + '__',
+                            targetAbbrev: wp.key,
+                            targetGPS:   wpGPS,
+                            targetYards: wpDist ? Math.round(wpDist) : null,
+                            targetPoint: 'C',
+                        };
                         targetMap[wp.key.toLowerCase()] = entry;           // "w1"
                         targetMap['waypoint ' + (wp.idx + 1)] = entry;     // "waypoint 1"
                         targetMap['waypoint' + (wp.idx + 1)] = entry;      // "waypoint1"
@@ -9841,7 +9859,16 @@
 
                 // FLAG — synthetic target, always present when hole.flag is set
                 if (hole && hole.flag && hole.flag.lat) {
-                    const flagEntry = { targetId: '__flag__', targetAbbrev: 'FLAG', targetCategory: 'green' };
+                    const flagGPS  = { lat: hole.flag.lat, lon: hole.flag.lon };
+                    const flagDist = pos ? Utils.distanceYards(pos, flagGPS) : null;
+                    const flagEntry = {
+                        targetId:       '__flag__',
+                        targetAbbrev:   'FLAG',
+                        targetCategory: 'green',
+                        targetGPS:      flagGPS,
+                        targetYards:    flagDist ? Math.round(flagDist) : null,
+                        targetPoint:    'C',
+                    };
                     targetMap['flag'] = flagEntry;
                     targetMap['pin'] = flagEntry;
                     targetMap['hole'] = flagEntry;
@@ -9855,11 +9882,16 @@
                     { offset: cfg.layupFront || 40,  label: 'LU' + (cfg.layupFront || 40)  },
                     { offset: cfg.layupBack  || 90,  label: 'LU' + (cfg.layupBack  || 90)  },
                 ];
+                const layupRows = (pos && hole) ? TargetEngine.buildLayupRows(hole, pos) : [];
                 layupOffsets.forEach(lu => {
+                    const luRow  = layupRows.find(r => r.offset === lu.offset);
                     const entry = {
-                        targetId:       '__layup_' + lu.offset + '__',  // stable offset-keyed id, same as tap UI
+                        targetId:       '__layup_' + lu.offset + '__',
                         targetAbbrev:   lu.label,
                         targetCategory: 'layup',
+                        targetGPS:      luRow ? luRow.gps  : null,
+                        targetYards:    luRow ? luRow.dist : null,
+                        targetPoint:    'C',
                         _layupOffset:   lu.offset,
                     };
                     targetMap[lu.label.toLowerCase()] = entry;                       // "lu40"
@@ -10047,7 +10079,9 @@
                         opts.targetId       = tgt.targetId;
                         opts.targetAbbrev   = tgt.targetAbbrev;
                         opts.targetCategory = tgt.targetCategory || null;
-                        opts.targetPoint    = 'C';
+                        opts.targetPoint    = tgt.targetPoint    || 'C';
+                        opts.targetGPS      = tgt.targetGPS      || null;
+                        opts.targetYards    = tgt.targetYards    || null;
                     }
                     Actions.addShot(opts);
                     const tp = opts.shotType !== 'full' ? ' ' + opts.shotType : '';
