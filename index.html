@@ -2542,8 +2542,8 @@
                     'btnNewRound', 'btnNewRoundHeader', 'btnCancelRound',
                     'btnStartRound', 'roundBagSelect', 'roundCourseSelect',
                     'btnVoice', 'voiceFeedback', 'vfStatus', 'vfTranscript', 'vfResult',
-                    'voiceLogBackdrop', 'voiceLogSheet', 'voiceLogBody',
-                    'btnCloseVoiceLog', 'btnClearVoiceLog'
+                    'voiceLogBackdrop', 'voiceLogSheet', 'voiceLogBody', 'voiceVocabBody',
+                    'btnCloseVoiceLog', 'btnClearVoiceLog', 'btnVoiceTabLog', 'btnVoiceTabVocab'
                 ];
                 
                 ids.forEach(id => {
@@ -9749,8 +9749,123 @@
                 // Target tokens: abbrev → targetId
                 const targetMap = {};
                 targets.forEach(t => {
-                    if (t.abbrev) targetMap[t.abbrev.toLowerCase()] = { targetId: t.id, targetAbbrev: t.abbrev };
-                    if (t.label) targetMap[t.label.toLowerCase()] = { targetId: t.id, targetAbbrev: t.abbrev };
+                    const entry = { targetId: t.id, targetAbbrev: t.abbrev, targetCategory: t.category };
+                    // Exact abbrev and label
+                    if (t.abbrev) targetMap[t.abbrev.toLowerCase()] = entry;
+                    if (t.label)  targetMap[t.label.toLowerCase()]  = entry;
+
+                    // Spoken aliases by category
+                    const cat = (t.category || '').toLowerCase();
+                    const lbl = (t.label || '').toLowerCase();
+                    const abbr = (t.abbrev || '').toLowerCase();
+
+                    // Green targets
+                    if (cat === 'green') {
+                        if (/front|short/.test(lbl))       { targetMap['front of green'] = entry; targetMap['short of green'] = entry; targetMap['front green'] = entry; }
+                        if (/back|long/.test(lbl))         { targetMap['back of green'] = entry;  targetMap['long of green'] = entry;  targetMap['back green'] = entry; }
+                        if (/center|centre|middle/.test(lbl)) { targetMap['center of green'] = entry; targetMap['centre of green'] = entry; targetMap['middle of green'] = entry; targetMap['center green'] = entry; }
+                        if (/left/.test(lbl))              { targetMap['left of green'] = entry;  targetMap['left green'] = entry; }
+                        if (/right/.test(lbl))             { targetMap['right of green'] = entry; targetMap['right green'] = entry; }
+                    }
+
+                    // Bunker targets
+                    if (cat === 'bunker' || /bunker|sand/.test(lbl)) {
+                        if (/left/.test(lbl))              { targetMap['left bunker'] = entry;  targetMap['left sand'] = entry; }
+                        if (/right/.test(lbl))             { targetMap['right bunker'] = entry; targetMap['right sand'] = entry; }
+                        if (/front/.test(lbl))             { targetMap['front bunker'] = entry; }
+                        if (/fairway/.test(lbl)) {
+                            if (/left/.test(lbl))          { targetMap['left fairway bunker'] = entry; }
+                            if (/right/.test(lbl))         { targetMap['right fairway bunker'] = entry; }
+                        }
+                        if (/greenside/.test(lbl)) {
+                            if (/left/.test(lbl))          { targetMap['left greenside bunker'] = entry; targetMap['left green bunker'] = entry; }
+                            if (/right/.test(lbl))         { targetMap['right greenside bunker'] = entry; targetMap['right green bunker'] = entry; }
+                        }
+                    }
+
+                    // Safe / safe landing targets
+                    if (/safe/.test(lbl) || /safe/.test(abbr)) {
+                        targetMap['safe'] = entry;
+                        targetMap['safe landing'] = entry;
+                        targetMap['safe area'] = entry;
+                        if (/left/.test(lbl))              targetMap['safe left'] = entry;
+                        if (/right/.test(lbl))             targetMap['safe right'] = entry;
+                    }
+
+                    // Water / hazard
+                    if (cat === 'hazard' || /water|hazard|pond|lake/.test(lbl)) {
+                        targetMap['carry water'] = entry;
+                        targetMap['over water'] = entry;
+                        if (/left/.test(lbl))              targetMap['left water'] = entry;
+                        if (/right/.test(lbl))             targetMap['right water'] = entry;
+                    }
+
+                    // OB / out of bounds
+                    if (/ob|out of bounds/.test(lbl) || /ob/.test(abbr)) {
+                        targetMap['ob'] = entry;
+                        targetMap['away from ob'] = entry;
+                    }
+
+                    // Generic "safe" side of a hazard — left/right landing area
+                    if (cat === 'fairway' || /landing|area|zone/.test(lbl)) {
+                        if (/left/.test(lbl))              targetMap['left side'] = entry;
+                        if (/right/.test(lbl))             targetMap['right side'] = entry;
+                        if (/center|centre|middle/.test(lbl)) { targetMap['center'] = entry; targetMap['middle'] = entry; }
+                    }
+                });
+
+                // W1/W2 waypoints live in hole.planPath, not hole.targets — add them explicitly
+                const wpDefs = [
+                    { key: 'W1', idx: 0 },
+                    { key: 'W2', idx: 1 },
+                ];
+                wpDefs.forEach(wp => {
+                    if (hole && hole.planPath && hole.planPath[wp.idx] && hole.planPath[wp.idx].lat) {
+                        const entry = { targetId: '__' + wp.key + '__', targetAbbrev: wp.key };
+                        targetMap[wp.key.toLowerCase()] = entry;           // "w1"
+                        targetMap['waypoint ' + (wp.idx + 1)] = entry;     // "waypoint 1"
+                        targetMap['waypoint' + (wp.idx + 1)] = entry;      // "waypoint1"
+                        targetMap['w ' + (wp.idx + 1)] = entry;            // "w 1"
+                    }
+                });
+
+                // FLAG — synthetic target, always present when hole.flag is set
+                if (hole && hole.flag && hole.flag.lat) {
+                    const flagEntry = { targetId: '__flag__', targetAbbrev: 'FLAG', targetCategory: 'green' };
+                    targetMap['flag'] = flagEntry;
+                    targetMap['pin'] = flagEntry;
+                    targetMap['hole'] = flagEntry;
+                    targetMap['the flag'] = flagEntry;
+                    targetMap['the pin'] = flagEntry;
+                }
+
+                // Layups — built from targeting config + planPath distance
+                const cfg = (State.round && State.round.targeting) ? State.round.targeting : {};
+                const layupOffsets = [
+                    { offset: cfg.layupFront || 40,  label: 'LU' + (cfg.layupFront || 40)  },
+                    { offset: cfg.layupBack  || 90,  label: 'LU' + (cfg.layupBack  || 90)  },
+                ];
+                layupOffsets.forEach(lu => {
+                    const entry = {
+                        targetId: '__layup_auto__',   // resolved at shot-log time; dist unknown at parse time
+                        targetAbbrev: lu.label,
+                        targetCategory: 'layup',
+                        _layupOffset: lu.offset,
+                    };
+                    targetMap[lu.label.toLowerCase()] = entry;                       // "lu40"
+                    targetMap['layup ' + lu.offset] = entry;                         // "layup 40"
+                    targetMap['layup to ' + lu.offset] = entry;                      // "layup to 40"
+                    if (lu.offset === (cfg.layupFront || 40)) {
+                        targetMap['layup'] = entry;                                  // "layup" → nearest layup
+                        targetMap['lay up'] = entry;
+                        targetMap['layup front'] = entry;
+                        targetMap['front layup'] = entry;
+                    }
+                    if (lu.offset === (cfg.layupBack || 90)) {
+                        targetMap['layup back'] = entry;
+                        targetMap['back layup'] = entry;
+                        targetMap['long layup'] = entry;
+                    }
                 });
 
                 return { clubMap, typeMap, actionMap, targetMap };
@@ -9861,8 +9976,10 @@
                         shotType: tokens.shotType || 'full',
                     };
                     if (tokens.target) {
-                        opts.targetId = tokens.target.targetId;
-                        opts.targetAbbrev = tokens.target.targetAbbrev;
+                        opts.targetId       = tokens.target.targetId;
+                        opts.targetAbbrev   = tokens.target.targetAbbrev;
+                        opts.targetCategory = tokens.target.targetCategory || null;
+                        opts.targetPoint    = 'C';
                     }
                     Actions.addShot(opts);
                     const typePart = opts.shotType !== 'full' ? ' ' + opts.shotType : '';
@@ -9918,14 +10035,34 @@
 
             // ── Voice Log Sheet ───────────────────────────────────────────
             openLog() {
+                this._showTab('log');
                 this._renderLog();
+                this._renderVocab();
                 if (UI.els.voiceLogBackdrop) UI.els.voiceLogBackdrop.classList.add('active');
                 if (UI.els.voiceLogSheet) UI.els.voiceLogSheet.classList.add('active');
+                if (UI.els.btnVoiceTabLog)   UI.els.btnVoiceTabLog.onclick   = () => this._showTab('log');
+                if (UI.els.btnVoiceTabVocab) UI.els.btnVoiceTabVocab.onclick = () => this._showTab('vocab');
             },
 
             closeLog() {
                 if (UI.els.voiceLogBackdrop) UI.els.voiceLogBackdrop.classList.remove('active');
-                if (UI.els.voiceLogSheet) UI.els.voiceLogSheet.classList.remove('active');
+                if (UI.els.voiceLogSheet)    UI.els.voiceLogSheet.classList.remove('active');
+            },
+
+            _showTab(tab) {
+                const isLog = tab === 'log';
+                if (UI.els.voiceLogBody)   UI.els.voiceLogBody.style.display   = isLog ? '' : 'none';
+                if (UI.els.voiceVocabBody) UI.els.voiceVocabBody.style.display = isLog ? 'none' : '';
+                const accent = 'var(--accent)', none = 'transparent';
+                const primary = 'var(--text-primary)', muted = 'var(--text-muted)';
+                if (UI.els.btnVoiceTabLog) {
+                    UI.els.btnVoiceTabLog.style.borderBottomColor = isLog ? accent : none;
+                    UI.els.btnVoiceTabLog.style.color = isLog ? primary : muted;
+                }
+                if (UI.els.btnVoiceTabVocab) {
+                    UI.els.btnVoiceTabVocab.style.borderBottomColor = isLog ? none : accent;
+                    UI.els.btnVoiceTabVocab.style.color = isLog ? muted : primary;
+                }
             },
 
             _renderLog() {
@@ -9941,6 +10078,38 @@
                         <div class="voice-log-time">${entry.ts}</div>
                     </div>
                 `).join('');
+            },
+
+            _renderVocab() {
+                if (!UI.els.voiceVocabBody) return;
+                const { clubMap, typeMap, actionMap, targetMap } = this._buildVocab();
+
+                const section = (title, color, map) => {
+                    const entries = Object.entries(map);
+                    if (!entries.length) return '';
+                    const rows = entries.map(([phrase, val]) => {
+                        const resolved = typeof val === 'object'
+                            ? (val.targetAbbrev || val.targetId || JSON.stringify(val))
+                            : String(val);
+                        return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+                            <span style="font-size:0.75rem;color:var(--text-secondary);font-family:var(--font-mono);">"${phrase}"</span>
+                            <span style="font-size:0.73rem;color:${color};font-weight:700;margin-left:8px;flex-shrink:0;">${resolved}</span>
+                        </div>`;
+                    }).join('');
+                    return `<div style="margin-bottom:16px;">
+                        <div style="font-size:0.68rem;font-weight:700;color:${color};letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;padding-bottom:4px;border-bottom:2px solid ${color};">${title} <span style="opacity:0.6;">(${entries.length})</span></div>
+                        ${rows}
+                    </div>`;
+                };
+
+                const hole = State.currentHole();
+                const holeLabel = hole ? 'Hole ' + ((State.holeIndex || 0) + 1) : 'No hole loaded';
+                UI.els.voiceVocabBody.innerHTML =
+                    '<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:14px;">Vocab for ' + holeLabel + ' — refreshes each time you open</div>' +
+                    section('Targets', '#22d3ee', targetMap) +
+                    section('Clubs', '#4ade80', clubMap) +
+                    section('Shot types', '#f59e0b', typeMap) +
+                    section('Actions', '#a78bfa', actionMap);
             }
         };
 
@@ -10016,14 +10185,21 @@
     <div class="backdrop" id="voiceLogBackdrop"></div>
     <div class="sheet" id="voiceLogSheet" role="dialog" aria-modal="true" aria-labelledby="voiceLogTitle">
         <div class="sheet-header">
-            <h3 class="sheet-title" id="voiceLogTitle">🎙 Voice Log</h3>
+            <h3 class="sheet-title" id="voiceLogTitle">🎙 Voice</h3>
             <div class="sheet-actions">
                 <button class="btn btn-sm btn-danger" id="btnClearVoiceLog" type="button">Clear</button>
                 <button class="btn btn-sm btn-secondary" id="btnCloseVoiceLog" type="button">Close</button>
             </div>
         </div>
-        <div class="sheet-body" id="voiceLogBody" style="padding: var(--space-4);">
+        <div style="display:flex;border-bottom:1px solid var(--border);padding:0 var(--space-4);">
+            <button id="btnVoiceTabLog"   style="flex:1;padding:8px 0;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--text-primary);font-weight:700;font-size:0.8rem;cursor:pointer;">LOG</button>
+            <button id="btnVoiceTabVocab" style="flex:1;padding:8px 0;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-weight:600;font-size:0.8rem;cursor:pointer;">VOCAB</button>
+        </div>
+        <div class="sheet-body" id="voiceLogBody" style="padding:var(--space-4);">
             <p style="font-size:0.8rem;color:var(--text-muted);">No voice commands yet.</p>
+        </div>
+        <div class="sheet-body" id="voiceVocabBody" style="padding:var(--space-4);display:none;">
+            <p style="font-size:0.8rem;color:var(--text-muted);">Open to refresh vocab.</p>
         </div>
     </div>
 
