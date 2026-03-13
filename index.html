@@ -2953,9 +2953,11 @@
                 const pendingMeta = (State.ui && State.ui.pendingTargetMeta) ? State.ui.pendingTargetMeta : null;
                 if (State.ui) State.ui.pendingTargetMeta = null; // consume
 
-                // Get distance from attempt field (user can override GPS)
+                // Get distance: voice can pass directly; otherwise read attempt field
                 const attemptVal = UI.els.attempt ? UI.els.attempt.value.trim() : '';
-                const distance = attemptVal ? Utils.saneYards(attemptVal) : 0;
+                const distance = (options.distance != null && options.distance > 0)
+                    ? options.distance
+                    : (attemptVal ? Utils.saneYards(attemptVal) : 0);
                 
                 const isPutt = (options.shotType || '').toLowerCase() === 'putt';
                 const shot = {
@@ -9720,10 +9722,11 @@
                 const typeMap = {};
                 const TYPE_ALIASES = {
                     'full swing': 'full', 'full shot': 'full',
-                    'three quarter': '3/4', 'three quarters': '3/4',
-                    'half swing': '1/2', 'half shot': '1/2',
+                    'three quarter': '3qtr', 'three quarters': '3qtr', '3/4': '3qtr', '3 quarter': '3qtr',
+                    'half swing': '1/2', 'half shot': '1/2', 'half': '1/2',
                     'chip shot': 'chip', 'pitch shot': 'pitch',
                     'penalty stroke': 'penalty',
+                    'putt': 'putt', 'putting': 'putt',
                 };
                 Object.entries(TYPE_ALIASES).forEach(([alias, type]) => {
                     typeMap[alias.toLowerCase()] = type;
@@ -9732,8 +9735,9 @@
 
                 // Action tokens
                 const actionMap = {
-                    'mark': 'mark',
                     'mark landing': 'mark',
+                    'mark location': 'mark',
+                    'mark here': 'mark',
                     'mark shot': 'mark',
                     'mark it': 'mark',
                     'mark tee': 'tee',
@@ -9993,64 +9997,125 @@
                 }
 
                 // ── PASS 2: parse remaining words into shots ──────────────────────
-                const shotGroups = [];   // [{ club, shotType, target }]
+                // Also handles:
+                //   "shot 3 seven iron center green" → update existing shot #3
+                //   "12 foot putt" / "putt from 12" → putt with feet distance
+                const shotGroups = [];   // [{ club, shotType, target, distance, updateIdx }]
                 let cur = null;
+
+                // Helper: consume N words at position i
+                const consumeAt = (startI, count) => {
+                    let cnt = count;
+                    for (let k = startI; k < words.length && cnt > 0; k++) {
+                        if (!consumed[k]) { consumed[k] = true; cnt--; }
+                    }
+                };
+
+                // Helper: word-number to integer
+                const WORD_NUMS = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,
+                    nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,
+                    sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,
+                    'twenty one':21,'twenty two':22,'twenty five':25,'thirty':30 };
+                const parseNum = (w) => {
+                    const n = parseInt(w, 10);
+                    if (!isNaN(n)) return n;
+                    return WORD_NUMS[w] || null;
+                };
 
                 i = 0;
                 while (i < words.length) {
                     if (consumed[i]) { i++; continue; }
-                    const rem = words.slice(i).filter((_, idx) => !consumed[i + idx]);
-                    // re-slice cleanly from unconsumed words starting at i
+
                     const remClean = [];
                     for (let k = i; k < words.length; k++) {
                         if (!consumed[k]) remClean.push(words[k]);
-                        else break; // stop at first consumed gap to avoid spanning gaps
+                        else break;
                     }
                     if (!remClean.length) { i++; continue; }
 
                     let found = false;
 
-                    const c = this._scan(remClean, clubMap);
-                    if (c) {
-                        cur = { club: c.match, shotType: null, target: null };
-                        shotGroups.push(cur);
-                        // mark consumed
-                        let cnt = c.consumed;
-                        for (let k = i; k < words.length && cnt > 0; k++) {
-                            if (!consumed[k]) { consumed[k] = true; cnt--; }
+                    // ── Shot number reference: "shot 3" or "update shot 3" ──
+                    // Triggers update mode for that shot index
+                    if (!found && (remClean[0] === 'shot' || remClean[0] === 'update') && remClean.length > 1) {
+                        const numWord = remClean[remClean[0] === 'update' && remClean[1] === 'shot' ? 2 : 1];
+                        const shotNum = numWord ? parseNum(numWord) : null;
+                        if (shotNum) {
+                            const wordsConsumed = (remClean[0] === 'update' && remClean[1] === 'shot') ? 3 : 2;
+                            consumeAt(i, wordsConsumed);
+                            cur = { club: null, shotType: null, target: null, distance: null, updateIdx: shotNum - 1 };
+                            shotGroups.push(cur);
+                            found = true;
                         }
-                        found = true;
                     }
 
+                    // ── Putt distance: "12 foot putt", "putt from 12", "12 feet" ──
+                    if (!found) {
+                        // Pattern A: number + foot/feet/ft + putt?
+                        const n = parseNum(remClean[0]);
+                        if (n && remClean.length > 1 && /^foot|feet|ft/.test(remClean[1])) {
+                            const hasPuttWord = remClean[2] === 'putt' || remClean[2] === 'putting';
+                            consumeAt(i, hasPuttWord ? 3 : 2);
+                            // Find putter club
+                            const putterClub = State.bag && State.bag.clubs
+                                ? (State.bag.clubs.find(c => State.bag.data && State.bag.data[c] && Object.keys(State.bag.data[c]).some(t => t === 'putt')) || 'PT')
+                                : 'PT';
+                            cur = { club: putterClub, shotType: 'putt', target: null, distance: n, updateIdx: null };
+                            shotGroups.push(cur);
+                            found = true;
+                        }
+                        // Pattern B: putt/putting + from? + number + foot/feet/ft?
+                        if (!found && (remClean[0] === 'putt' || remClean[0] === 'putting')) {
+                            let offset = 1;
+                            if (remClean[offset] === 'from') offset++;
+                            const pn = remClean[offset] ? parseNum(remClean[offset]) : null;
+                            if (pn) {
+                                const hasFt = remClean[offset+1] && /^foot|feet|ft/.test(remClean[offset+1]);
+                                consumeAt(i, offset + 1 + (hasFt ? 1 : 0));
+                                const putterClub = State.bag && State.bag.clubs
+                                    ? (State.bag.clubs.find(c => State.bag.data && State.bag.data[c] && Object.keys(State.bag.data[c]).some(t => t === 'putt')) || 'PT')
+                                    : 'PT';
+                                cur = { club: putterClub, shotType: 'putt', target: null, distance: pn, updateIdx: null };
+                                shotGroups.push(cur);
+                                found = true;
+                            }
+                        }
+                    }
+
+                    // ── Club ──
+                    if (!found) {
+                        const c = this._scan(remClean, clubMap);
+                        if (c) {
+                            cur = { club: c.match, shotType: null, target: null, distance: null, updateIdx: null };
+                            shotGroups.push(cur);
+                            consumeAt(i, c.consumed);
+                            found = true;
+                        }
+                    }
+
+                    // ── Shot type (attaches to current group) ──
                     if (!found) {
                         const t = this._scan(remClean, typeMap);
-                        if (t && cur) {
-                            cur.shotType = t.match;
-                            let cnt = t.consumed;
-                            for (let k = i; k < words.length && cnt > 0; k++) {
-                                if (!consumed[k]) { consumed[k] = true; cnt--; }
+                        if (t) {
+                            // If putt type and no club yet, auto-assign putter
+                            if (t.match === 'putt' && cur && !cur.club) {
+                                const putterClub = State.bag && State.bag.clubs
+                                    ? (State.bag.clubs.find(c => State.bag.data && State.bag.data[c] && Object.keys(State.bag.data[c]).some(tp => tp === 'putt')) || 'PT')
+                                    : 'PT';
+                                cur.club = putterClub;
                             }
-                            found = true;
+                            if (cur) { cur.shotType = t.match; consumeAt(i, t.consumed); found = true; }
                         }
                     }
 
+                    // ── Target (attaches to current group) ──
                     if (!found) {
                         const tgt = this._scan(remClean, targetMap);
-                        if (tgt && cur) {
-                            cur.target = tgt.match;
-                            let cnt = tgt.consumed;
-                            for (let k = i; k < words.length && cnt > 0; k++) {
-                                if (!consumed[k]) { consumed[k] = true; cnt--; }
-                            }
-                            found = true;
-                        }
+                        if (tgt && cur) { cur.target = tgt.match; consumeAt(i, tgt.consumed); found = true; }
                     }
 
                     if (!found) i++;
-                    else {
-                        // advance i to next unconsumed word
-                        while (i < words.length && consumed[i]) i++;
-                    }
+                    else { while (i < words.length && consumed[i]) i++; }
                 }
 
                 // ── Dispatch: solo commands → shots → navigation (always last) ────
@@ -10075,31 +10140,49 @@
                     if (fn) results.push({ desc: fn(), ok: true });
                 }
 
-                // 2 — shots
+                // 2 — shots (new) and updates (existing shot by index)
                 for (const g of shotGroups) {
-                    const opts = { club: g.club, shotType: g.shotType || 'full' };
-                    if (g.target) {
-                        let tgt = g.target;
-                        // Layup: targetId is offset-keyed (__layup_40__, __layup_90__)
-                        // matching exactly what the tap UI stores — no GPS needed
-                        if (tgt.targetCategory === 'layup' && tgt._layupOffset != null) {
-                            tgt = {
-                                targetId:       '__layup_' + tgt._layupOffset + '__',
-                                targetAbbrev:   tgt.targetAbbrev,
-                                targetCategory: 'layup',
-                            };
+                    // Resolve target GPS fields
+                    const buildTargetOpts = (tgt) => {
+                        if (!tgt) return {};
+                        return {
+                            targetId:       tgt.targetId,
+                            targetAbbrev:   tgt.targetAbbrev,
+                            targetCategory: tgt.targetCategory || null,
+                            targetPoint:    tgt.targetPoint    || 'C',
+                            targetGPS:      tgt.targetGPS      || null,
+                            targetYards:    tgt.targetYards    || null,
+                        };
+                    };
+
+                    const tgLabel = g.target ? ' → ' + g.target.targetAbbrev : '';
+
+                    if (g.updateIdx != null) {
+                        // UPDATE existing shot record
+                        const hole = State.currentHole();
+                        const shot = hole && hole.shots[g.updateIdx];
+                        if (shot) {
+                            if (g.club)     shot.club     = g.club;
+                            if (g.shotType) shot.shotType = g.shotType;
+                            if (g.distance) { shot.distance = g.distance; shot.targetDistance = g.distance; }
+                            if (g.target)   Object.assign(shot, buildTargetOpts(g.target));
+                            State.save(); UI.render();
+                            const clubPart = g.club || shot.club;
+                            const tp = (g.shotType || shot.shotType || 'full') !== 'full' ? ' ' + (g.shotType || shot.shotType) : '';
+                            results.push({ desc: '✏️ #' + (g.updateIdx + 1) + ' ' + clubPart + tp + tgLabel, ok: true });
+                        } else {
+                            results.push({ desc: '⚠️ Shot #' + (g.updateIdx + 1) + ' not found', ok: false });
                         }
-                        opts.targetId       = tgt.targetId;
-                        opts.targetAbbrev   = tgt.targetAbbrev;
-                        opts.targetCategory = tgt.targetCategory || null;
-                        opts.targetPoint    = tgt.targetPoint    || 'C';
-                        opts.targetGPS      = tgt.targetGPS      || null;
-                        opts.targetYards    = tgt.targetYards    || null;
+                    } else {
+                        // NEW shot
+                        const opts = { club: g.club, shotType: g.shotType || 'full' };
+                        if (g.distance) opts.distance = g.distance;
+                        Object.assign(opts, buildTargetOpts(g.target));
+                        Actions.addShot(opts);
+                        const tp = opts.shotType !== 'full' ? ' ' + opts.shotType : '';
+                        const distPart = g.distance ? ' ' + g.distance + (opts.shotType === 'putt' ? 'ft' : 'y') : '';
+                        results.push({ desc: '⛳ ' + g.club + tp + distPart + tgLabel, ok: true });
                     }
-                    Actions.addShot(opts);
-                    const tp = opts.shotType !== 'full' ? ' ' + opts.shotType : '';
-                    const tg = g.target ? ' → ' + opts.targetAbbrev : '';
-                    results.push({ desc: '⛳ ' + g.club + tp + tg, ok: true });
                 }
 
                 // 3 — navigation (always fires after everything else)
