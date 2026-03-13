@@ -9739,6 +9739,8 @@
                     'mark location': 'mark',
                     'mark here': 'mark',
                     'mark shot': 'mark',
+                    'mark row': 'mark',
+                    'mark line': 'mark',
                     'mark it': 'mark',
                     'mark tee': 'tee',
                     'set tee': 'tee',
@@ -9970,16 +9972,47 @@
                 const NAV_ACTIONS  = new Set(['nextHole', 'prevHole', 'gotoHole']);
                 const consumed = new Array(words.length).fill(false);
 
+                // Word-number → integer
+                const WORD_NUMS = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,
+                    nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,
+                    sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20 };
+                const parseNum = (w) => { const n = parseInt(w, 10); return !isNaN(n) ? n : (WORD_NUMS[w] || null); };
+
                 // gotoHole needs a number — scan ahead for a digit 1-18 after the keyword
                 const extractHoleNum = (startIdx) => {
                     for (let k = startIdx; k < Math.min(startIdx + 3, words.length); k++) {
                         if (consumed[k]) continue;
-                        const n = parseInt(words[k], 10);
-                        if (!isNaN(n) && n >= 1 && n <= 18) { consumed[k] = true; return n; }
+                        const n = parseNum(words[k]);
+                        if (n && n >= 1 && n <= 18) { consumed[k] = true; return n; }
                     }
                     return null;
                 };
 
+                // ── PRE-PASS: find "shot N" / "update shot N" update references ──
+                // Done before action/club scanning to avoid keyword collisions.
+                // Each match records { updateIdx, startPos, endPos } and marks words consumed.
+                const updateRefs = [];  // { updateIdx, pos }
+                for (let k = 0; k < words.length - 1; k++) {
+                    if (consumed[k]) continue;
+                    let shotNumIdx = -1;
+                    let consumeCount = 0;
+                    if (words[k] === 'row' || words[k] === 'line') {
+                        shotNumIdx = k + 1;
+                        consumeCount = 2;
+                    } else if (words[k] === 'update' && (words[k+1] === 'row' || words[k+1] === 'line') && k + 2 < words.length) {
+                        shotNumIdx = k + 2;
+                        consumeCount = 3;
+                    }
+                    if (shotNumIdx >= 0 && shotNumIdx < words.length) {
+                        const n = parseNum(words[shotNumIdx]);
+                        if (n && n >= 1 && n <= 18) {
+                            for (let j = k; j < k + consumeCount; j++) consumed[j] = true;
+                            updateRefs.push({ updateIdx: n - 1, pos: k });
+                        }
+                    }
+                }
+
+                // PASS 1: standalone + nav actions
                 let i = 0;
                 while (i < words.length) {
                     if (consumed[i]) { i++; continue; }
@@ -9988,7 +10021,7 @@
                     if (a && (SOLO_ACTIONS.has(a.match) || NAV_ACTIONS.has(a.match))) {
                         for (let k = i; k < i + a.consumed; k++) consumed[k] = true;
                         const entry = { type: 'action', action: a.match, pos: i };
-                        if (a.match === 'gotoHole') entry.holeNum = extractHoleNum(i);
+                        if (a.match === 'gotoHole') entry.holeNum = extractHoleNum(i + a.consumed);
                         dispatched.push(entry);
                         i += a.consumed;
                     } else {
@@ -9997,13 +10030,12 @@
                 }
 
                 // ── PASS 2: parse remaining words into shots ──────────────────────
-                // Also handles:
-                //   "shot 3 seven iron center green" → update existing shot #3
-                //   "12 foot putt" / "putt from 12" → putt with feet distance
+                // Uses updateRefs (from pre-pass) to start update groups at shot-N positions.
+                // Also handles: "12 foot putt" / "putt from 12" → putt with feet distance
                 const shotGroups = [];   // [{ club, shotType, target, distance, updateIdx }]
                 let cur = null;
 
-                // Helper: consume N words at position i
+                // Helper: consume N unconsumed words starting at position i
                 const consumeAt = (startI, count) => {
                     let cnt = count;
                     for (let k = startI; k < words.length && cnt > 0; k++) {
@@ -10011,15 +10043,24 @@
                     }
                 };
 
-                // Helper: word-number to integer
-                const WORD_NUMS = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,
-                    nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,
-                    sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,
-                    'twenty one':21,'twenty two':22,'twenty five':25,'thirty':30 };
-                const parseNum = (w) => {
-                    const n = parseInt(w, 10);
-                    if (!isNaN(n)) return n;
-                    return WORD_NUMS[w] || null;
+                // Build ordered update groups from pre-pass results.
+                // Pass 2 fills them sequentially: the first club/type/target after
+                // an updateRef position goes into that group.
+                updateRefs.sort((a, b) => a.pos - b.pos);
+                const updateGroups = updateRefs.map(ref => ({
+                    club: null, shotType: null, target: null, distance: null,
+                    updateIdx: ref.updateIdx, pos: ref.pos
+                }));
+                let updateGroupPtr = 0;  // next unfilled update group
+
+                // Active update group at position i: the last updateGroup whose pos <= i
+                const activeUpdateGroup = (pos) => {
+                    let g = null;
+                    for (let u = 0; u < updateGroups.length; u++) {
+                        if (updateGroups[u].pos <= pos) g = updateGroups[u];
+                        else break;
+                    }
+                    return g;
                 };
 
                 i = 0;
@@ -10034,20 +10075,6 @@
                     if (!remClean.length) { i++; continue; }
 
                     let found = false;
-
-                    // ── Shot number reference: "shot 3" or "update shot 3" ──
-                    // Triggers update mode for that shot index
-                    if (!found && (remClean[0] === 'shot' || remClean[0] === 'update') && remClean.length > 1) {
-                        const numWord = remClean[remClean[0] === 'update' && remClean[1] === 'shot' ? 2 : 1];
-                        const shotNum = numWord ? parseNum(numWord) : null;
-                        if (shotNum) {
-                            const wordsConsumed = (remClean[0] === 'update' && remClean[1] === 'shot') ? 3 : 2;
-                            consumeAt(i, wordsConsumed);
-                            cur = { club: null, shotType: null, target: null, distance: null, updateIdx: shotNum - 1 };
-                            shotGroups.push(cur);
-                            found = true;
-                        }
-                    }
 
                     // ── Putt distance: "12 foot putt", "putt from 12", "12 feet" ──
                     if (!found) {
@@ -10086,8 +10113,16 @@
                     if (!found) {
                         const c = this._scan(remClean, clubMap);
                         if (c) {
-                            cur = { club: c.match, shotType: null, target: null, distance: null, updateIdx: null };
-                            shotGroups.push(cur);
+                            const ug = activeUpdateGroup(i);
+                            if (ug && ug.club === null) {
+                                // Assign to update group
+                                ug.club = c.match;
+                                cur = ug;
+                            } else {
+                                // New shot group
+                                cur = { club: c.match, shotType: null, target: null, distance: null, updateIdx: null };
+                                shotGroups.push(cur);
+                            }
                             consumeAt(i, c.consumed);
                             found = true;
                         }
@@ -10097,21 +10132,30 @@
                     if (!found) {
                         const t = this._scan(remClean, typeMap);
                         if (t) {
-                            // If putt type and no club yet, auto-assign putter
-                            if (t.match === 'putt' && cur && !cur.club) {
-                                const putterClub = State.bag && State.bag.clubs
-                                    ? (State.bag.clubs.find(c => State.bag.data && State.bag.data[c] && Object.keys(State.bag.data[c]).some(tp => tp === 'putt')) || 'PT')
-                                    : 'PT';
-                                cur.club = putterClub;
+                            const ug = activeUpdateGroup(i);
+                            const grp = cur || ug;
+                            if (grp) {
+                                if (t.match === 'putt' && !grp.club) {
+                                    grp.club = State.bag && State.bag.clubs
+                                        ? (State.bag.clubs.find(c => State.bag.data && State.bag.data[c] && Object.keys(State.bag.data[c]).some(tp => tp === 'putt')) || 'PT')
+                                        : 'PT';
+                                }
+                                grp.shotType = t.match;
+                                cur = grp;
+                                consumeAt(i, t.consumed);
+                                found = true;
                             }
-                            if (cur) { cur.shotType = t.match; consumeAt(i, t.consumed); found = true; }
                         }
                     }
 
                     // ── Target (attaches to current group) ──
                     if (!found) {
                         const tgt = this._scan(remClean, targetMap);
-                        if (tgt && cur) { cur.target = tgt.match; consumeAt(i, tgt.consumed); found = true; }
+                        if (tgt) {
+                            const ug = activeUpdateGroup(i);
+                            const grp = cur || ug;
+                            if (grp) { grp.target = tgt.match; cur = grp; consumeAt(i, tgt.consumed); found = true; }
+                        }
                     }
 
                     if (!found) i++;
@@ -10141,7 +10185,10 @@
                 }
 
                 // 2 — shots (new) and updates (existing shot by index)
-                for (const g of shotGroups) {
+                // Merge updateGroups + shotGroups, preserving utterance order by position
+                // updateGroups have a .pos; shotGroups don't — they come after the last updateGroup
+                const allShotOps = [...updateGroups, ...shotGroups];
+                for (const g of allShotOps) {
                     // Resolve target GPS fields
                     const buildTargetOpts = (tgt) => {
                         if (!tgt) return {};
