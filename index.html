@@ -9961,213 +9961,165 @@
             //
             // Final dispatch order: standalone commands first (in utterance order),
             // then shots (in utterance order).
+            // ── Structured grammar processor ─────────────────────────────
+            // Grammar: [record_seg]* [standalone_cmd]*
+            //
+            // Record segment — starts with boundary keyword (shot/row/line):
+            //   shot NEW          → add new shot record
+            //   shot 2 / row 2   → update existing record #2
+            //   followed by any of (order-independent, all optional):
+            //     target <phrase> → target name from targetMap
+            //     club <name>     → club from clubMap
+            //     type <name>     → shot type from typeMap
+            //
+            // Standalone commands (positionally independent, no boundary needed):
+            //   mark landing / mark here / mark tee / mark flag / penalty /
+            //   tap in / fairway / next hole / previous hole / go to hole N
+            //
+            // Multiple records in one utterance:
+            //   "shot 1 club driver target w1 type full shot 2 club 7i target flag"
             _processTranscript(raw) {
                 const { clubMap, typeMap, actionMap, targetMap } = this._buildVocab();
-                const words = raw.toLowerCase()
-                    .replace(/[^a-z0-9\s/-]/g, '')
-                    .trim().split(/\s+/).filter(Boolean);
 
-                const dispatched = [];
+                // Normalise — keep letters, digits, spaces, slash, hyphen
+                const text = raw.toLowerCase().replace(/[^a-z0-9\s/-]/g, '').trim();
+                const words = text.split(/\s+/).filter(Boolean);
 
-                // ── PASS 1: collect standalone commands, mark consumed positions ──
-                const SOLO_ACTIONS = new Set(['mark', 'tee', 'flag', 'tapIn', 'penalty', 'fwy']);
-                const NAV_ACTIONS  = new Set(['nextHole', 'prevHole', 'gotoHole']);
-                const consumed = new Array(words.length).fill(false);
+                // ── Helpers ───────────────────────────────────────────────
+                const WORD_NUMS = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,
+                    eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,
+                    fifteen:15,sixteen:16,seventeen:17,eighteen:18 };
+                const parseNum = w => { const n = parseInt(w,10); return !isNaN(n) ? n : (WORD_NUMS[w]||null); };
 
-                // Word-number → integer
-                const WORD_NUMS = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,
-                    nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,
-                    sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20 };
-                const parseNum = (w) => { const n = parseInt(w, 10); return !isNaN(n) ? n : (WORD_NUMS[w] || null); };
-
-                // gotoHole needs a number — scan ahead for a digit 1-18 after the keyword
-                const extractHoleNum = (startIdx) => {
-                    for (let k = startIdx; k < Math.min(startIdx + 3, words.length); k++) {
-                        if (consumed[k]) continue;
-                        const n = parseNum(words[k]);
-                        if (n && n >= 1 && n <= 18) { consumed[k] = true; return n; }
+                // Greedy map lookup (up to 4 words)
+                const scanMap = (arr, map) => {
+                    for (let len = Math.min(4, arr.length); len >= 1; len--) {
+                        const phrase = arr.slice(0,len).join(' ');
+                        if (map[phrase] !== undefined) return { match: map[phrase], consumed: len };
                     }
                     return null;
                 };
 
-                // ── PRE-PASS: find "shot N" / "update shot N" update references ──
-                // Done before action/club scanning to avoid keyword collisions.
-                // Each match records { updateIdx, startPos, endPos } and marks words consumed.
-                const updateRefs = [];  // { updateIdx, pos }
-                for (let k = 0; k < words.length - 1; k++) {
-                    if (consumed[k]) continue;
-                    let shotNumIdx = -1;
-                    let consumeCount = 0;
-                    if (words[k] === 'row' || words[k] === 'line') {
-                        shotNumIdx = k + 1;
-                        consumeCount = 2;
-                    } else if (words[k] === 'update' && (words[k+1] === 'row' || words[k+1] === 'line') && k + 2 < words.length) {
-                        shotNumIdx = k + 2;
-                        consumeCount = 3;
-                    }
-                    if (shotNumIdx >= 0 && shotNumIdx < words.length) {
-                        const n = parseNum(words[shotNumIdx]);
-                        if (n && n >= 1 && n <= 18) {
-                            for (let j = k; j < k + consumeCount; j++) consumed[j] = true;
-                            updateRefs.push({ updateIdx: n - 1, pos: k });
+                // Segment boundary keywords
+                const RECORD_KEYS = new Set(['shot','row','line']);
+                // Standalone action keywords (subset of actionMap values)
+                const SOLO_ACTIONS = new Set(['mark','tee','flag','tapIn','penalty','fwy']);
+                const NAV_ACTIONS  = new Set(['nextHole','prevHole','gotoHole']);
+
+                // ── Step 1: split into record segments + loose words ──────
+                // Walk words; when we hit a RECORD_KEY start a new segment.
+                // Loose words (before first record key or between segments) go
+                // into a "global" bucket for standalone command scanning.
+                const segments  = [];  // [{ isNew, updateIdx, words[] }]
+                const globalWords = [];
+                let curSeg = null;
+
+                for (let i = 0; i < words.length; i++) {
+                    if (RECORD_KEYS.has(words[i])) {
+                        // Next word should be a number or "new"
+                        const next = words[i+1];
+                        const isNew = next === 'new' || next === 'add' || next === 'create';
+                        const num = next ? parseNum(next) : null;
+                        if (isNew || num) {
+                            curSeg = { isNew, updateIdx: num ? num-1 : null, segWords: [] };
+                            segments.push(curSeg);
+                            i++; // consume the number/new word
+                            continue;
                         }
                     }
+                    if (curSeg) curSeg.segWords.push(words[i]);
+                    else        globalWords.push(words[i]);
                 }
 
-                // PASS 1: standalone + nav actions
-                let i = 0;
-                while (i < words.length) {
-                    if (consumed[i]) { i++; continue; }
-                    const rem = words.slice(i);
-                    const a = this._scan(rem, actionMap);
-                    if (a && (SOLO_ACTIONS.has(a.match) || NAV_ACTIONS.has(a.match))) {
-                        for (let k = i; k < i + a.consumed; k++) consumed[k] = true;
-                        const entry = { type: 'action', action: a.match, pos: i };
-                        if (a.match === 'gotoHole') entry.holeNum = extractHoleNum(i + a.consumed);
-                        dispatched.push(entry);
-                        i += a.consumed;
-                    } else {
+                // ── Step 2: parse each segment for target/club/type ───────
+                // Prefix keywords signal what follows.
+                const TARGET_KEYS = new Set(['target','to','at']);
+                const CLUB_KEYS   = new Set(['club','with']);
+                const TYPE_KEYS   = new Set(['type','shot','swing']);
+
+                const parseSegment = (segWords) => {
+                    let club=null, shotType=null, target=null, distance=null;
+                    let i=0;
+                    while (i < segWords.length) {
+                        const w = segWords[i];
+
+                        // Target prefix
+                        if (TARGET_KEYS.has(w)) {
+                            const rest = segWords.slice(i+1);
+                            const hit  = scanMap(rest, targetMap);
+                            if (hit) { target = hit.match; i += 1 + hit.consumed; continue; }
+                        }
+
+                        // Club prefix
+                        if (CLUB_KEYS.has(w)) {
+                            const rest = segWords.slice(i+1);
+                            const hit  = scanMap(rest, clubMap);
+                            if (hit) { club = hit.match; i += 1 + hit.consumed; continue; }
+                        }
+
+                        // Type prefix
+                        if (TYPE_KEYS.has(w)) {
+                            const rest = segWords.slice(i+1);
+                            const hit  = scanMap(rest, typeMap);
+                            if (hit) { shotType = hit.match; i += 1 + hit.consumed; continue; }
+                        }
+
+                        // Putt distance: "12 foot" / "12 feet" / "12 ft"
+                        const n = parseNum(w);
+                        if (n && i+1 < segWords.length && /^f(oo|ee|)t/.test(segWords[i+1])) {
+                            distance = n;
+                            const hasPuttWord = segWords[i+2] === 'putt' || segWords[i+2] === 'putting';
+                            i += hasPuttWord ? 3 : 2;
+                            // Auto-assign putter if no club set
+                            if (!club) {
+                                club = State.bag && State.bag.clubs
+                                    ? (State.bag.clubs.find(c => State.bag.data&&State.bag.data[c]&&Object.keys(State.bag.data[c]).some(t=>t==='putt'))||'PT')
+                                    : 'PT';
+                                shotType = shotType || 'putt';
+                            }
+                            continue;
+                        }
+
+                        // No prefix — try maps directly (fallback for clipped speech)
+                        const tc = scanMap(segWords.slice(i), clubMap);
+                        if (tc && !club) { club = tc.match; i += tc.consumed; continue; }
+                        const tt = scanMap(segWords.slice(i), typeMap);
+                        if (tt && !shotType) { shotType = tt.match; i += tt.consumed; continue; }
+                        const tg = scanMap(segWords.slice(i), targetMap);
+                        if (tg && !target) { target = tg.match; i += tg.consumed; continue; }
+
+                        i++; // skip unrecognised word
+                    }
+                    return { club, shotType, target, distance };
+                };
+
+                // ── Step 3: scan global words for standalone + nav actions ─
+                const soloResults = [];
+                const navResults  = [];
+                {
+                    let i = 0;
+                    while (i < globalWords.length) {
+                        const rem = globalWords.slice(i);
+                        const a = scanMap(rem, actionMap);
+                        if (a && (SOLO_ACTIONS.has(a.match) || NAV_ACTIONS.has(a.match))) {
+                            const entry = { action: a.match };
+                            if (a.match === 'gotoHole') {
+                                // Look ahead for hole number
+                                for (let k = i + a.consumed; k < Math.min(i + a.consumed + 3, globalWords.length); k++) {
+                                    const hn = parseNum(globalWords[k]);
+                                    if (hn && hn >= 1 && hn <= 18) { entry.holeNum = hn; break; }
+                                }
+                            }
+                            if (SOLO_ACTIONS.has(a.match)) soloResults.push(entry);
+                            else navResults.push(entry);
+                            i += a.consumed; continue;
+                        }
                         i++;
                     }
                 }
 
-                // ── PASS 2: parse remaining words into shots ──────────────────────
-                // Uses updateRefs (from pre-pass) to start update groups at shot-N positions.
-                // Also handles: "12 foot putt" / "putt from 12" → putt with feet distance
-                const shotGroups = [];   // [{ club, shotType, target, distance, updateIdx }]
-                let cur = null;
-
-                // Helper: consume N unconsumed words starting at position i
-                const consumeAt = (startI, count) => {
-                    let cnt = count;
-                    for (let k = startI; k < words.length && cnt > 0; k++) {
-                        if (!consumed[k]) { consumed[k] = true; cnt--; }
-                    }
-                };
-
-                // Build ordered update groups from pre-pass results.
-                // Pass 2 fills them sequentially: the first club/type/target after
-                // an updateRef position goes into that group.
-                updateRefs.sort((a, b) => a.pos - b.pos);
-                const updateGroups = updateRefs.map(ref => ({
-                    club: null, shotType: null, target: null, distance: null,
-                    updateIdx: ref.updateIdx, pos: ref.pos
-                }));
-                let updateGroupPtr = 0;  // next unfilled update group
-
-                // Active update group at position i: the last updateGroup whose pos <= i
-                const activeUpdateGroup = (pos) => {
-                    let g = null;
-                    for (let u = 0; u < updateGroups.length; u++) {
-                        if (updateGroups[u].pos <= pos) g = updateGroups[u];
-                        else break;
-                    }
-                    return g;
-                };
-
-                i = 0;
-                while (i < words.length) {
-                    if (consumed[i]) { i++; continue; }
-
-                    const remClean = [];
-                    for (let k = i; k < words.length; k++) {
-                        if (!consumed[k]) remClean.push(words[k]);
-                        else break;
-                    }
-                    if (!remClean.length) { i++; continue; }
-
-                    let found = false;
-
-                    // ── Putt distance: "12 foot putt", "putt from 12", "12 feet" ──
-                    if (!found) {
-                        // Pattern A: number + foot/feet/ft + putt?
-                        const n = parseNum(remClean[0]);
-                        if (n && remClean.length > 1 && /^foot|feet|ft/.test(remClean[1])) {
-                            const hasPuttWord = remClean[2] === 'putt' || remClean[2] === 'putting';
-                            consumeAt(i, hasPuttWord ? 3 : 2);
-                            // Find putter club
-                            const putterClub = State.bag && State.bag.clubs
-                                ? (State.bag.clubs.find(c => State.bag.data && State.bag.data[c] && Object.keys(State.bag.data[c]).some(t => t === 'putt')) || 'PT')
-                                : 'PT';
-                            cur = { club: putterClub, shotType: 'putt', target: null, distance: n, updateIdx: null };
-                            shotGroups.push(cur);
-                            found = true;
-                        }
-                        // Pattern B: putt/putting + from? + number + foot/feet/ft?
-                        if (!found && (remClean[0] === 'putt' || remClean[0] === 'putting')) {
-                            let offset = 1;
-                            if (remClean[offset] === 'from') offset++;
-                            const pn = remClean[offset] ? parseNum(remClean[offset]) : null;
-                            if (pn) {
-                                const hasFt = remClean[offset+1] && /^foot|feet|ft/.test(remClean[offset+1]);
-                                consumeAt(i, offset + 1 + (hasFt ? 1 : 0));
-                                const putterClub = State.bag && State.bag.clubs
-                                    ? (State.bag.clubs.find(c => State.bag.data && State.bag.data[c] && Object.keys(State.bag.data[c]).some(t => t === 'putt')) || 'PT')
-                                    : 'PT';
-                                cur = { club: putterClub, shotType: 'putt', target: null, distance: pn, updateIdx: null };
-                                shotGroups.push(cur);
-                                found = true;
-                            }
-                        }
-                    }
-
-                    // ── Club ──
-                    if (!found) {
-                        const c = this._scan(remClean, clubMap);
-                        if (c) {
-                            const ug = activeUpdateGroup(i);
-                            if (ug && ug.club === null) {
-                                // Assign to update group
-                                ug.club = c.match;
-                                cur = ug;
-                            } else {
-                                // New shot group
-                                cur = { club: c.match, shotType: null, target: null, distance: null, updateIdx: null };
-                                shotGroups.push(cur);
-                            }
-                            consumeAt(i, c.consumed);
-                            found = true;
-                        }
-                    }
-
-                    // ── Shot type (attaches to current group) ──
-                    if (!found) {
-                        const t = this._scan(remClean, typeMap);
-                        if (t) {
-                            const ug = activeUpdateGroup(i);
-                            const grp = cur || ug;
-                            if (grp) {
-                                if (t.match === 'putt' && !grp.club) {
-                                    grp.club = State.bag && State.bag.clubs
-                                        ? (State.bag.clubs.find(c => State.bag.data && State.bag.data[c] && Object.keys(State.bag.data[c]).some(tp => tp === 'putt')) || 'PT')
-                                        : 'PT';
-                                }
-                                grp.shotType = t.match;
-                                cur = grp;
-                                consumeAt(i, t.consumed);
-                                found = true;
-                            }
-                        }
-                    }
-
-                    // ── Target (attaches to current group) ──
-                    if (!found) {
-                        const tgt = this._scan(remClean, targetMap);
-                        if (tgt) {
-                            const ug = activeUpdateGroup(i);
-                            const grp = cur || ug;
-                            if (grp) { grp.target = tgt.match; cur = grp; consumeAt(i, tgt.consumed); found = true; }
-                        }
-                    }
-
-                    if (!found) i++;
-                    else { while (i < words.length && consumed[i]) i++; }
-                }
-
-                // ── Dispatch: solo commands → shots → navigation (always last) ────
-                dispatched.sort((a, b) => a.pos - b.pos);
-                const soloItems = dispatched.filter(d => SOLO_ACTIONS.has(d.action));
-                const navItems  = dispatched.filter(d => NAV_ACTIONS.has(d.action));
+                // ── Step 4: dispatch ──────────────────────────────────────
+                const results = [];
 
                 const SOLO_DESCS = {
                     mark:    () => { Actions.markLanding(); return '📍 Mark'; },
@@ -10178,20 +10130,16 @@
                     fwy:     () => { Actions.toggleFwy();   return '🌿 Fairway'; },
                 };
 
-                const results = [];
-
-                // 1 — solo commands
-                for (const d of soloItems) {
+                // 1 — standalone commands
+                for (const d of soloResults) {
                     const fn = SOLO_DESCS[d.action];
                     if (fn) results.push({ desc: fn(), ok: true });
                 }
 
-                // 2 — shots (new) and updates (existing shot by index)
-                // Merge updateGroups + shotGroups, preserving utterance order by position
-                // updateGroups have a .pos; shotGroups don't — they come after the last updateGroup
-                const allShotOps = [...updateGroups, ...shotGroups];
-                for (const g of allShotOps) {
-                    // Resolve target GPS fields
+                // 2 — record segments
+                for (const seg of segments) {
+                    const { club, shotType, target, distance } = parseSegment(seg.segWords);
+
                     const buildTargetOpts = (tgt) => {
                         if (!tgt) return {};
                         return {
@@ -10204,67 +10152,60 @@
                         };
                     };
 
-                    const tgLabel = g.target ? ' → ' + g.target.targetAbbrev : '';
+                    const tgLabel = target ? ' → ' + target.targetAbbrev : '';
 
-                    if (g.updateIdx != null) {
-                        // UPDATE existing shot record
-                        const hole = State.currentHole();
-                        const shot = hole && hole.shots[g.updateIdx];
-                        if (shot) {
-                            if (g.club)     shot.club     = g.club;
-                            if (g.shotType) shot.shotType = g.shotType;
-                            if (g.distance) { shot.distance = g.distance; shot.targetDistance = g.distance; }
-                            if (g.target)   Object.assign(shot, buildTargetOpts(g.target));
-                            State.save(); UI.render();
-                            const clubPart = g.club || shot.club;
-                            const tp = (g.shotType || shot.shotType || 'full') !== 'full' ? ' ' + (g.shotType || shot.shotType) : '';
-                            results.push({ desc: '✏️ #' + (g.updateIdx + 1) + ' ' + clubPart + tp + tgLabel, ok: true });
-                        } else {
-                            results.push({ desc: '⚠️ Shot #' + (g.updateIdx + 1) + ' not found', ok: false });
-                        }
-                    } else {
-                        // NEW shot
-                        const opts = { club: g.club, shotType: g.shotType || 'full' };
-                        if (g.distance) opts.distance = g.distance;
-                        Object.assign(opts, buildTargetOpts(g.target));
+                    if (seg.isNew) {
+                        // New shot
+                        const opts = { club: club || 'Club?', shotType: shotType || 'full' };
+                        if (distance) opts.distance = distance;
+                        Object.assign(opts, buildTargetOpts(target));
                         Actions.addShot(opts);
                         const tp = opts.shotType !== 'full' ? ' ' + opts.shotType : '';
-                        const distPart = g.distance ? ' ' + g.distance + (opts.shotType === 'putt' ? 'ft' : 'y') : '';
-                        results.push({ desc: '⛳ ' + g.club + tp + distPart + tgLabel, ok: true });
-                    }
-                }
+                        const dp = distance ? ' ' + distance + (opts.shotType==='putt'?'ft':'y') : '';
+                        results.push({ desc: '⛳ ' + opts.club + tp + dp + tgLabel, ok: true });
 
-                // 3 — navigation (always fires after everything else)
-                for (const d of navItems) {
-                    if (d.action === 'nextHole') {
-                        Actions.nextHole();
-                        results.push({ desc: '➡️ Next hole', ok: true });
-                    } else if (d.action === 'prevHole') {
-                        Actions.prevHole();
-                        results.push({ desc: '⬅️ Prev hole', ok: true });
-                    } else if (d.action === 'gotoHole') {
-                        if (d.holeNum) {
-                            Actions.gotoHole(d.holeNum - 1);
-                            results.push({ desc: '📍 Hole ' + d.holeNum, ok: true });
+                    } else if (seg.updateIdx != null) {
+                        // Update existing record
+                        const hole = State.currentHole();
+                        const shot = hole && hole.shots[seg.updateIdx];
+                        if (shot) {
+                            if (club)     shot.club     = club;
+                            if (shotType) shot.shotType = shotType;
+                            if (distance) { shot.distance = distance; shot.targetDistance = distance; }
+                            if (target)   Object.assign(shot, buildTargetOpts(target));
+                            State.save(); UI.render();
+                            const dispClub = club || shot.club || '?';
+                            const tp = (shotType||shot.shotType||'full') !== 'full' ? ' '+(shotType||shot.shotType) : '';
+                            results.push({ desc: '✏️ #'+(seg.updateIdx+1)+' '+dispClub+tp+tgLabel, ok: true });
                         } else {
-                            results.push({ desc: '⚠️ Goto: no hole #', ok: false });
+                            results.push({ desc: '⚠️ #'+(seg.updateIdx+1)+' not found', ok: false });
                         }
                     }
                 }
 
-                // ── Feedback & log ────────────────────────────────────────────────
-                const summary = results.map(r => r.desc).join('  ·  ') || 'Not recognized';
-                const allOk   = results.length > 0;
+                // 3 — navigation (always last)
+                for (const d of navResults) {
+                    if (d.action === 'nextHole') {
+                        Actions.nextHole(); results.push({ desc: '➡️ Next hole', ok: true });
+                    } else if (d.action === 'prevHole') {
+                        Actions.prevHole(); results.push({ desc: '⬅️ Prev hole', ok: true });
+                    } else if (d.action === 'gotoHole' && d.holeNum) {
+                        Actions.gotoHole(d.holeNum-1);
+                        results.push({ desc: '📍 Hole '+d.holeNum, ok: true });
+                    }
+                }
 
+                // ── Feedback & log ────────────────────────────────────────
+                const summary = results.map(r => r.desc).join('  ·  ') || 'Not recognized';
                 if (!results.length) {
-                    this._showFeedback('error', 'Not recognized', raw, '"' + raw + '"');
+                    this._showFeedback('error', 'Not recognized', raw, '"'+raw+'"');
                     this._autoHideFeedback(2500);
                 } else {
                     this._showFeedback('success',
-                        results.length + ' action' + (results.length > 1 ? 's' : ''),
+                        results.length+' action'+(results.length>1?'s':''),
                         raw, summary);
                     if (UI.els.btnVoice) {
-                        UI.els.btnVoice.classList.remove('processing', 'listening');
+                        UI.els.btnVoice.classList.remove('processing','listening');
                         UI.els.btnVoice.classList.add('success');
                         setTimeout(() => { if (UI.els.btnVoice) UI.els.btnVoice.classList.remove('success'); }, 1500);
                     }
