@@ -9988,7 +9988,9 @@
                 // ── Helpers ───────────────────────────────────────────────
                 const WORD_NUMS = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,
                     eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,
-                    fifteen:15,sixteen:16,seventeen:17,eighteen:18 };
+                    fifteen:15,sixteen:16,seventeen:17,eighteen:18,
+                    // Ordinal aliases for iOS homophones: "to"→2, "for"→4
+                    second:2, fourth:4, to:2, too:2, 'for':4 };
                 const parseNum = w => { const n = parseInt(w,10); return !isNaN(n) ? n : (WORD_NUMS[w]||null); };
 
                 // Greedy map lookup (up to 4 words)
@@ -10031,11 +10033,23 @@
                     else        globalWords.push(words[i]);
                 }
 
+                // ── Step 1b: if no segment boundary was found but globalWords
+                // contain a putt-related type, treat entire utterance as shot NEW ──
+                // Handles: "putt", "12 foot putt", "type putt" without shot/row/line prefix
+                if (segments.length === 0 && globalWords.length > 0) {
+                    const hasType = scanMap(globalWords, typeMap);
+                    if (hasType && hasType.match === 'putt') {
+                        // Promote to a new shot segment
+                        segments.push({ isNew: true, updateIdx: null, segWords: [...globalWords] });
+                        globalWords.length = 0;
+                    }
+                }
+
                 // ── Step 2: parse each segment for target/club/type ───────
                 // Prefix keywords signal what follows.
-                const TARGET_KEYS = new Set(['target','to','at']);
+                const TARGET_KEYS = new Set(['target','at']);
                 const CLUB_KEYS   = new Set(['club','with']);
-                const TYPE_KEYS   = new Set(['type','shot','swing']);
+                const TYPE_KEYS   = new Set(['type','swing']);
 
                 const parseSegment = (segWords) => {
                     let club=null, shotType=null, target=null, distance=null;
