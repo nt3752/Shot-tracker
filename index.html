@@ -9592,10 +9592,14 @@
                 this.recognition.lang = 'en-US';
                 this.recognition.interimResults = true;
                 this.recognition.maxAlternatives = 3;
-                this.recognition.continuous = false;
+                this.recognition.continuous = true;
+
+                // Accumulated final transcript across all chunks in this session
+                this._accumulatedTranscript = '';
 
                 this.recognition.onstart = () => {
                     this.listening = true;
+                    this._accumulatedTranscript = '';
                     this._showFeedback('listening', 'Listening…', '');
                     if (UI.els.btnVoice) {
                         UI.els.btnVoice.classList.add('listening');
@@ -9604,22 +9608,20 @@
                 };
 
                 this.recognition.onresult = (event) => {
-                    const results = event.results;
                     let interimText = '';
-                    let finalText = '';
-                    for (let i = event.resultIndex; i < results.length; i++) {
-                        const t = results[i][0].transcript.trim();
-                        if (results[i].isFinal) finalText = t;
-                        else interimText = t;
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const t = event.results[i][0].transcript.trim();
+                        if (event.results[i].isFinal) {
+                            // Append to accumulated transcript
+                            this._accumulatedTranscript += (this._accumulatedTranscript ? ' ' : '') + t;
+                        } else {
+                            interimText = t;
+                        }
                     }
-                    if (interimText) {
-                        this._showFeedback('listening', 'Listening…', interimText, '');
-                    }
-                    if (finalText) {
-                        this._showFeedback('processing', 'Processing…', finalText, '');
-                        this.recognition.stop();
-                        setTimeout(() => this._processTranscript(finalText), 50);
-                    }
+                    // Show accumulated + current interim in feedback
+                    const displayText = this._accumulatedTranscript
+                        + (interimText ? (this._accumulatedTranscript ? ' ' : '') + interimText : '');
+                    if (displayText) this._showFeedback('listening', 'Listening…', displayText, '');
                 };
 
                 this.recognition.onerror = (event) => {
@@ -9639,6 +9641,14 @@
                 this.recognition.onend = () => {
                     this.listening = false;
                     if (UI.els.btnVoice) UI.els.btnVoice.classList.remove('listening');
+                    // If session ended naturally (not via tap-to-stop) and we have
+                    // accumulated text, process it
+                    const full = (this._accumulatedTranscript || '').trim();
+                    if (full) {
+                        this._showFeedback('processing', 'Processing…', full, '');
+                        setTimeout(() => this._processTranscript(full), 50);
+                        this._accumulatedTranscript = '';
+                    }
                 };
 
                 // Bind buttons
@@ -9647,6 +9657,12 @@
                         if (this.listening) {
                             this.recognition.stop();
                             this._hideFeedback();
+                            // Process whatever was accumulated
+                            const full = this._accumulatedTranscript.trim();
+                            if (full) {
+                                this._showFeedback('processing', 'Processing…', full, '');
+                                setTimeout(() => this._processTranscript(full), 50);
+                            }
                         } else {
                             this.start();
                         }
@@ -9680,6 +9696,8 @@
                     Utils.toast('Voice input not supported on this device');
                     return;
                 }
+                // Clear any stale visual state from previous session
+                if (UI.els.btnVoice) UI.els.btnVoice.classList.remove('listening', 'processing', 'success');
                 try {
                     this.recognition.start();
                 } catch (e) {
@@ -10221,7 +10239,10 @@
                     if (UI.els.btnVoice) {
                         UI.els.btnVoice.classList.remove('processing','listening');
                         UI.els.btnVoice.classList.add('success');
-                        setTimeout(() => { if (UI.els.btnVoice) UI.els.btnVoice.classList.remove('success'); }, 1500);
+                        setTimeout(() => {
+                            const btn = document.getElementById('btnVoice');
+                            if (btn) btn.classList.remove('success');
+                        }, 1500);
                     }
                     this._autoHideFeedback(2500);
                 }
