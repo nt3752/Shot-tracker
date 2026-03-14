@@ -2886,9 +2886,11 @@
                 const hole = State.currentHole();
                 const currentPos = GPS.getCurrentPosition();
 
-                // Block if shots already recorded on this hole
-                if (hole.shots.length > 0) {
-                    Utils.toast('Cannot change tee - shots already recorded');
+                // Block only if at least one shot has a marked GPS position
+                // Pre-loaded shots with no position yet are safe to coexist with a tee update
+                const hasMarkedShots = hole.shots.some(s => s.position && s.position.lat && !s.positionPending);
+                if (hasMarkedShots) {
+                    Utils.toast('Cannot change tee - shot positions already marked');
                     return;
                 }
 
