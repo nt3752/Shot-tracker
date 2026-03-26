@@ -7508,8 +7508,9 @@
             parseAndApply(text) {
                 var bag = State.bag;
                 if (!bag) { ClubIO.showStatus('No active bag', 'err'); return; }
-                if (!bag.data) bag.data = {};
-                if (!bag.clubs) bag.clubs = [];
+                // Replace all — clear existing clubs and data before importing
+                bag.data  = {};
+                bag.clubs = [];
 
                 var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
                 var loaded = 0, skipped = 0;
@@ -7544,9 +7545,19 @@
                 // Also persist to library using currentBagId so findIndex matches
                 var libBag = Library.getBag(State.currentBagId);
                 if (libBag) {
-                    libBag.clubs     = bag.clubs;
+                    libBag.clubs = bag.clubs;
+                    libBag.data  = bag.data;
+                    // Build shotTypes from imported data if missing or empty on new bag
+                    if (!Array.isArray(bag.shotTypes) || bag.shotTypes.length === 0) {
+                        var typeSet = {};
+                        Object.values(bag.data).forEach(function(clubData) {
+                            Object.keys(clubData).forEach(function(t) { typeSet[t] = true; });
+                        });
+                        var derivedTypes = Object.keys(typeSet);
+                        bag.shotTypes = derivedTypes.length ? derivedTypes : DEFAULT_SHOT_TYPES.slice();
+                        State.bag.shotTypes = bag.shotTypes;
+                    }
                     libBag.shotTypes = bag.shotTypes;
-                    libBag.data      = bag.data;
                     Library.saveBag(libBag);
                 }
 
@@ -8343,7 +8354,9 @@
                     id: Utils.generateId('bag'),
                     name: name,
                     created: Utils.nowISO(),
-                    clubs: []
+                    clubs: [],
+                    shotTypes: DEFAULT_SHOT_TYPES.slice(),
+                    data: {}
                 };
                 Library.saveBag(bag);
                 LibraryUI.render();
