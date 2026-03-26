@@ -7518,12 +7518,14 @@
             parseAndApply(text) {
                 var bag = sanitiseBag(State.bag);
                 if (!bag) { ClubIO.showStatus('No active bag', 'err'); return; }
-                // Replace all — clear existing clubs and data before importing
-                bag.data  = {};
-                bag.clubs = [];
+                // Replace all — clear existing clubs, shotTypes and data before importing
+                bag.data      = {};
+                bag.clubs     = [];
+                bag.shotTypes = [];
 
                 var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
                 var loaded = 0, skipped = 0;
+                var typeSet = {};
 
                 lines.forEach(function(line) {
                     if (line.toLowerCase().startsWith('club')) return;
@@ -7543,31 +7545,29 @@
                     if (club !== 'Club?' && bag.clubs.indexOf(club) === -1) {
                         bag.clubs.push(club);
                     }
+                    // Collect unique shot types in CSV order
+                    if (type !== 'Type?' && !typeSet[type]) {
+                        typeSet[type] = true;
+                        bag.shotTypes.push(type);
+                    }
                     if (!bag.data[club]) bag.data[club] = {};
                     bag.data[club][type] = { carry: carry, total: total };
                     loaded++;
                 });
 
+                // Fallback if no shot types were derived
+                if (bag.shotTypes.length === 0) bag.shotTypes = DEFAULT_SHOT_TYPES.slice();
+
                 // Update State.bag
                 State.bag = bag;
                 State.save();
 
-                // Also persist to library using currentBagId so findIndex matches
+                // Also persist to library
                 var libBag = Library.getBag(State.currentBagId);
                 if (libBag) {
-                    libBag.clubs = bag.clubs;
-                    libBag.data  = bag.data;
-                    // Build shotTypes from imported data if missing or empty on new bag
-                    if (!Array.isArray(bag.shotTypes) || bag.shotTypes.length === 0) {
-                        var typeSet = {};
-                        Object.values(bag.data).forEach(function(clubData) {
-                            Object.keys(clubData).forEach(function(t) { typeSet[t] = true; });
-                        });
-                        var derivedTypes = Object.keys(typeSet);
-                        bag.shotTypes = derivedTypes.length ? derivedTypes : DEFAULT_SHOT_TYPES.slice();
-                        State.bag.shotTypes = bag.shotTypes;
-                    }
+                    libBag.clubs     = bag.clubs;
                     libBag.shotTypes = bag.shotTypes;
+                    libBag.data      = bag.data;
                     Library.saveBag(libBag);
                 }
 
