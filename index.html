@@ -1911,6 +1911,16 @@
         // LIBRARY MANAGER
         // ============================================
         
+        // Ensures any bag object — regardless of when it was created — has all required fields.
+        // Guards against pre-v43 bags stored in localStorage with missing shotTypes or data.
+        function sanitiseBag(bag) {
+            if (!bag) return bag;
+            if (!Array.isArray(bag.clubs))     bag.clubs     = [];
+            if (!Array.isArray(bag.shotTypes)) bag.shotTypes = DEFAULT_SHOT_TYPES.slice();
+            if (!bag.data || typeof bag.data !== 'object') bag.data = {};
+            return bag;
+        }
+
         const Library = {
             // === BAGS ===
             
@@ -2215,7 +2225,7 @@
                 }
                 
                 // Load active bag into State.bag
-                const activeBag = Library.getBag(this.currentBagId);
+                const activeBag = sanitiseBag(Library.getBag(this.currentBagId));
                 if (activeBag) {
                     this.bag = {
                         name: activeBag.name || '',
@@ -7506,7 +7516,7 @@
             },
 
             parseAndApply(text) {
-                var bag = State.bag;
+                var bag = sanitiseBag(State.bag);
                 if (!bag) { ClubIO.showStatus('No active bag', 'err'); return; }
                 // Replace all — clear existing clubs and data before importing
                 bag.data  = {};
@@ -8385,7 +8395,7 @@
             },
 
             activateBag(id) {
-                const bag = Library.getBag(id);
+                const bag = sanitiseBag(Library.getBag(id));
                 if (!bag) return;
                 State.currentBagId = id;
                 State.bag = bag;
