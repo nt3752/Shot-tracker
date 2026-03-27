@@ -2543,7 +2543,10 @@
                 }
                 
                 // v40.1: Load from library
+                const _shotsBefore = (this.holes && this.holes[0] && this.holes[0].shots) ? this.holes[0].shots.length : -1;
                 this.loadFromLibrary();
+                const _shotsAfter = (this.holes && this.holes[0] && this.holes[0].shots) ? this.holes[0].shots.length : -1;
+                if (_shotsBefore !== _shotsAfter) console.warn('loadFromLibrary changed hole 1 shots: ' + _shotsBefore + ' -> ' + _shotsAfter);
                 
                 // Load bag override if exists (backward compat)
                 this.loadBag();
@@ -2615,9 +2618,9 @@
                                 // If hole has stale empty shots (no planned flag, no GPS), clear them
                                 // so preload can run fresh
                                 var existingShots = this.holes[idx].shots || [];
-                                var hasRealShots = existingShots.some(function(s) {
-                                    return s.position || s.planned;
-                                });
+                                // Only clear shots if the hole is genuinely empty —
+                                // preserve any logged shots regardless of GPS status
+                                var hasRealShots = existingShots.length > 0;
                                 if (!hasRealShots) this.holes[idx].shots = [];
                             }
                         }
