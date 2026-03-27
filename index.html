@@ -7925,6 +7925,7 @@
                 // Update State.bag
                 State.bag = bag;
                 State.save();
+                State.saveBag(); // also update legacy LS_BAG_KEY so loadBag() on refresh doesn't overwrite
 
                 // Also persist to library
                 var libBag = Library.getBag(State.currentBagId);
