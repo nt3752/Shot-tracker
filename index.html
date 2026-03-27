@@ -1340,16 +1340,16 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 300;
-            background: rgba(10, 15, 20, 0.95);
+            background: rgba(20, 26, 33, 0.97);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--border-strong);
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: var(--radius-lg);
             padding: var(--space-3) var(--space-4);
             font-size: 0.875rem;
             font-weight: 700;
-            color: var(--text-primary);
-            box-shadow: var(--shadow-lg);
+            color: #ffffff;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
             pointer-events: none;
             animation: toastSlide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -11073,6 +11073,9 @@
                     window.App = this;
                     window.LibraryActions = LibraryActions;
                     window.LibraryUI = LibraryUI;
+                    window.ShotDetailUI = ShotDetailUI;
+                    window.QuickPickerUI = QuickPickerUI;
+                    window.WakeLock = WakeLock;
                     
     
                 } catch (e) {
