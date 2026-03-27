@@ -9244,7 +9244,7 @@
                             value="${shot.distance > 0 ? shot.distance : ''}"
                             placeholder="ft"
                             style="width:80px;height:44px;font-size:1rem;font-weight:700;font-family:var(--font-mono);text-align:center;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:#ffffff;color:var(--text-primary);padding:0 8px;"
-                            onchange="(function(){var s=State.currentHole().shots[ShotDetailUI._idx];if(s){s.distance=parseInt(this.value)||0;State.save();}}).call(this)"
+                            onchange="(function(){var s=State.currentHole().shots[ShotDetailUI._idx];if(s){s.distance=parseInt(this.value)||0;State.save();UI.renderShots();}}).call(this)"
                           > <span style="font-size:0.8rem;color:var(--text-muted);">ft</span>`
                         : '— <span style="font-size:0.65rem;color:var(--text-muted);">no GPS</span>';
 
