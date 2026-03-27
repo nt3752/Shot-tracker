@@ -2543,10 +2543,7 @@
                 }
                 
                 // v40.1: Load from library
-                const _shotsBefore = (this.holes && this.holes[0] && this.holes[0].shots) ? this.holes[0].shots.length : -1;
                 this.loadFromLibrary();
-                const _shotsAfter = (this.holes && this.holes[0] && this.holes[0].shots) ? this.holes[0].shots.length : -1;
-                if (_shotsBefore !== _shotsAfter) console.warn('loadFromLibrary changed hole 1 shots: ' + _shotsBefore + ' -> ' + _shotsAfter);
                 
                 // Load bag override if exists (backward compat)
                 this.loadBag();
