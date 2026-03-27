@@ -9322,7 +9322,8 @@
 
                 this._idx = newIdx;
                 State.save();
-                UI.render();
+                // Re-render shot list only — don't full UI.render() which would close the sheet
+                UI.renderShots();
                 this._render();
             }
         };
