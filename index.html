@@ -9310,10 +9310,11 @@
 
             _move(dir) {
                 const hole = State.currentHole();
-                if (!hole) return;
+                if (!hole) { console.log('_move: no hole'); return; }
                 const idx = this._idx;
                 const newIdx = idx + dir;
-                if (newIdx < 0 || newIdx >= hole.shots.length) return;
+                console.log('_move called: idx=' + idx + ' dir=' + dir + ' newIdx=' + newIdx + ' total=' + hole.shots.length);
+                if (newIdx < 0 || newIdx >= hole.shots.length) { console.log('_move: out of bounds'); return; }
 
                 // Swap shots
                 const tmp = hole.shots[idx];
@@ -9322,9 +9323,9 @@
 
                 this._idx = newIdx;
                 State.save();
-                // Re-render shot list only — don't full UI.render() which would close the sheet
                 UI.renderShots();
                 this._render();
+                console.log('_move: done, new idx=' + this._idx);
             }
         };
 
