@@ -9245,7 +9245,7 @@
                             value="${shot.distance > 0 ? shot.distance : ''}"
                             placeholder="ft"
                             style="width:80px;height:44px;font-size:1rem;font-weight:700;font-family:var(--font-mono);text-align:center;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:#ffffff;color:var(--text-primary);padding:0 8px;"
-                            onfocus="this.select()"
+                            onfocus="this.select();setTimeout(function(){this.scrollIntoView({behavior:'smooth',block:'center'});}.bind(this),300)"
                             oninput="(function(){var v=parseInt(this.value);var s=State.currentHole().shots[ShotDetailUI._idx];if(s&&!isNaN(v)){s.distance=v;State.save();UI.renderShots();}}).call(this)"
                           > <span style="font-size:0.8rem;color:var(--text-muted);">ft</span>`
                         : '— <span style="font-size:0.65rem;color:var(--text-muted);">no GPS</span>';
@@ -9272,10 +9272,15 @@
                     </div>
                 </div>
 
+                ${isPutt ? `
+                <div class="sd-row" style="background:rgba(96,165,250,0.06);border-radius:var(--radius-sm);padding:var(--space-3);">
+                    <span class="sd-label">Putt Distance</span>
+                    <span class="sd-value">${distVal}</span>
+                </div>` : `
                 <div class="sd-row">
                     <span class="sd-label">Distance</span>
                     <span class="sd-value">${distVal}</span>
-                </div>
+                </div>`}
 
                 <div class="sd-row">
                     <span class="sd-label">GPS</span>
