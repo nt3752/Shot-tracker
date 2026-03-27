@@ -170,6 +170,7 @@
             font-weight: 900;
             letter-spacing: 0.3px;
             text-transform: uppercase;
+            color: #ffffff;
         }
         
         .brand-version {
@@ -470,6 +471,18 @@
             border-color: rgba(230, 69, 69, 0.4);
             background: rgba(230, 69, 69, 0.15);
         }
+
+        .accuracy-badge.lost {
+            color: #8b2020;
+            border-color: rgba(139,32,32,0.5);
+            background: rgba(139,32,32,0.12);
+            animation: gpsLostPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes gpsLostPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
         
         /* ===============================================
            INPUTS
@@ -588,6 +601,18 @@
             background: var(--bg-card-light);
             border-color: var(--border-strong);
             color: var(--text-primary);
+        }
+        
+        /* Tee and Flag — sit on light card background */
+        #btnTee, #btnFlag {
+            background: var(--bg-card-light);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
+        }
+        #btnTee.lit, #btnFlag.lit {
+            background: linear-gradient(135deg, var(--green-600) 0%, var(--green-500) 100%);
+            border-color: var(--green-400);
+            color: #ffffff;
         }
         
         .btn-danger {
@@ -945,6 +970,209 @@
         }
         
         /* ===============================================
+           SHOT DETAIL SCREEN
+           =============================================== */
+
+        .sd-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-3) 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .sd-row:last-child { border-bottom: none; }
+
+        .sd-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .sd-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+
+        .sd-toggle {
+            width: 56px;
+            height: 30px;
+            border-radius: 15px;
+            border: 2px solid var(--border-strong);
+            background: var(--bg-card-light);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .sd-toggle::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s ease;
+        }
+        .sd-toggle.on {
+            background: var(--green-600);
+            border-color: var(--green-500);
+        }
+        .sd-toggle.on::after {
+            background: #ffffff;
+            left: 28px;
+        }
+
+        .sd-move-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-strong);
+            background: var(--bg-card-light);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+        .sd-move-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* ===============================================
+           QUICK CLUB PICKER
+           =============================================== */
+
+        .qp-club-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .qp-club-btn {
+            min-height: 72px;
+            background: #ffffff;
+            border: 1.5px solid var(--border-strong);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: var(--space-2) var(--space-1);
+            transition: all 0.12s ease;
+            cursor: pointer;
+        }
+
+        .qp-club-btn:active {
+            transform: scale(0.95);
+        }
+
+        .qp-club-btn.selected {
+            background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
+            border-color: var(--green-500);
+            box-shadow: 0 0 0 2px rgba(39,160,111,0.25);
+        }
+
+        .qp-club-name {
+            font-size: 1.1rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            line-height: 1;
+            color: var(--text-primary);
+        }
+
+        .qp-club-btn.selected .qp-club-name {
+            color: #ffffff;
+        }
+
+        .qp-club-dist {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .qp-club-btn.selected .qp-club-dist {
+            color: rgba(255,255,255,0.7);
+        }
+
+        .qp-type-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .qp-type-btn {
+            padding: 10px 16px;
+            border-radius: var(--radius-full);
+            border: 1.5px solid var(--border-strong);
+            background: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.12s ease;
+            white-space: nowrap;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+        }
+
+        .qp-type-btn.selected {
+            background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
+            border-color: var(--green-500);
+            color: #ffffff;
+        }
+
+        .qp-type-btn.full-type {
+            font-size: 0.9rem;
+            padding: 10px 20px;
+        }
+
+        .qp-confirm-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
+            border: none;
+            border-radius: var(--radius-md);
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .qp-confirm-btn:active {
+            transform: scale(0.98);
+        }
+
+        .qp-confirm-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .qp-section-label {
+            font-size: 0.65rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        /* ===============================================
            SCORECARD
            =============================================== */
         
@@ -1221,18 +1449,18 @@
                             </div>
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;flex:1;gap:var(--space-2);">
-                            <div class="accuracy-badge bad" id="accBadge">ACC --</div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div class="accuracy-badge bad" id="accBadge">ACC --</div>
+                                <button id="btnWakeLock" type="button" title="Screen wake lock — tap to toggle" style="font-size:1rem;width:32px;height:32px;border-radius:var(--radius-sm);border:1.5px solid var(--border-strong);background:var(--bg-card-light);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🔒</button>
+                            </div>
                             <button id="btnTargets" type="button" style="padding:14px 14px;font-size:0.75rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-card-light);color:var(--text-primary);cursor:pointer;white-space:nowrap;">🎯 Targets</button>
                         </div>
                     </div>
                 </div>
                 
-                <div class="input-row">
-                    <span class="input-label">Target</span>
-                    <input type="text" class="input-field compact" id="attempt" placeholder="--" inputmode="numeric" maxlength="3" pattern="[0-9]*">
-                    <button class="btn btn-primary btn-sm" id="btnCaddy" type="button" style="padding:14px var(--space-3);">Caddy</button>
-                </div>
-                
+                <!-- Target distance input hidden — lives inside caddy sheet only -->
+                <input type="text" class="input-field compact" id="attempt" placeholder="--" inputmode="numeric" maxlength="3" pattern="[0-9]*" style="display:none;">
+
                 <div class="btn-row">
                     <button class="btn btn-secondary" id="btnTee" type="button">Tee</button>
                     <button class="btn btn-secondary" id="btnFlag" type="button">Flag</button>
@@ -1248,14 +1476,16 @@
                 <div class="btn-row">
                     <button class="btn btn-danger btn-sm" id="btnPen" type="button">Pen</button>
                     <button class="btn btn-sm" id="btnTapIn" type="button" style="border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,0.1);">Tap-in</button>
-                    <button class="btn btn-toggle btn-sm" id="btnFwy" type="button">Fwy</button>
-                    <button class="btn btn-toggle btn-sm" id="btnGir" type="button">GIR</button>
+                    <button class="btn btn-sm btn-secondary" id="btnCaddy" type="button">🎯 Caddy</button>
                 </div>
             </section>
             
             <!-- SHOTS SECTION -->
             <section class="section">
-                <h2 class="section-title">Shots</h2>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+                    <h2 class="section-title" style="margin-bottom:0;">Shots</h2>
+                    <button id="btnAddShot" type="button" style="font-size:0.8rem;font-weight:900;padding:10px 16px;min-height:44px;border-radius:var(--radius-md);border:1.5px solid var(--green-500);background:linear-gradient(135deg,var(--green-700) 0%,var(--green-600) 100%);color:#ffffff;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">＋ Add Shot</button>
+                </div>
                 <div class="shot-list" id="shotsList">
                     <div class="shot-list-empty">No shots yet</div>
                 </div>
@@ -1291,6 +1521,38 @@
             flex-shrink: 0;">✕ Close</button>
     </div>
     
+    <!-- SHOT DETAIL SHEET -->
+    <div class="backdrop" id="sdBackdrop"></div>
+    <div class="sheet" id="sdSheet" role="dialog" aria-modal="true" aria-labelledby="sdTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="sdTitle">Shot Detail</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCloseSD" type="button">Done</button>
+            </div>
+        </div>
+        <div class="sheet-body" id="sdBody">
+            <!-- Populated dynamically -->
+        </div>
+    </div>
+
+    <!-- QUICK CLUB PICKER SHEET -->
+    <div class="backdrop" id="qpBackdrop"></div>
+    <div class="sheet" id="qpSheet" role="dialog" aria-modal="true" aria-labelledby="qpTitle">
+        <div class="sheet-header">
+            <h3 class="sheet-title" id="qpTitle">Pick Club</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCloseQP" type="button">Cancel</button>
+            </div>
+        </div>
+        <div class="sheet-body" id="qpBody">
+            <div class="qp-section-label">Club</div>
+            <div class="qp-club-grid" id="qpClubGrid"></div>
+            <div class="qp-section-label">Shot Type</div>
+            <div class="qp-type-row" id="qpTypeRow"></div>
+            <button class="qp-confirm-btn" id="btnQPConfirm" disabled>Add Shot</button>
+        </div>
+    </div>
+
     <!-- BAG EDITOR SHEET -->
     <div class="backdrop" id="bagBackdrop"></div>
     <div class="sheet" id="bagSheet" role="dialog" aria-modal="true" aria-labelledby="bagTitle">
@@ -2077,6 +2339,78 @@
         };
         
         // ============================================
+        // ============================================
+        // WAKE LOCK MANAGER
+        // ============================================
+
+        const WakeLock = {
+            _lock: null,
+            enabled: false,  // user-controlled toggle
+
+            async acquire() {
+                if (!this.enabled) return;
+                if (!('wakeLock' in navigator)) {
+                    Utils.toast('Wake lock not supported on this browser');
+                    return;
+                }
+                try {
+                    this._lock = await navigator.wakeLock.request('screen');
+                    this._lock.addEventListener('release', () => {
+                        this._lock = null;
+                    });
+                } catch (e) {
+                    console.warn('Wake lock failed:', e);
+                }
+                this._updateBtn();
+            },
+
+            release() {
+                if (this._lock) {
+                    this._lock.release();
+                    this._lock = null;
+                }
+                this._updateBtn();
+            },
+
+            toggle() {
+                this.enabled = !this.enabled;
+                if (this.enabled) {
+                    this.acquire();
+                    Utils.toast('Screen will stay on ☀️');
+                } else {
+                    this.release();
+                    Utils.toast('Screen wake lock off');
+                }
+                this._updateBtn();
+            },
+
+            // Re-acquire after page visibility change (iOS releases on background)
+            async reacquire() {
+                if (document.visibilityState === 'visible' && this.enabled && State.round) {
+                    await this.acquire();
+                }
+            },
+
+            _updateBtn() {
+                const btn = document.getElementById('btnWakeLock');
+                if (!btn) return;
+                if (this.enabled) {
+                    btn.style.background = 'linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%)';
+                    btn.style.borderColor = 'var(--green-500)';
+                    btn.style.color = '#ffffff';
+                    btn.title = 'Screen wake lock ON — tap to turn off';
+                } else {
+                    btn.style.background = 'var(--bg-card-light)';
+                    btn.style.borderColor = 'var(--border-strong)';
+                    btn.style.color = 'var(--text-muted)';
+                    btn.title = 'Screen wake lock OFF — tap to turn on';
+                }
+            }
+        };
+
+        // Re-acquire wake lock when app comes back to foreground
+        document.addEventListener('visibilitychange', () => WakeLock.reacquire());
+
         // GPS MANAGER
         // ============================================
         
@@ -2528,9 +2862,11 @@
                 const ids = [
                     'sbHole', 'sbShots', 'sbTotal', 'sbPar', 'sbYards',
                     'roundInfo', 'toFlag', 'accBadge', 'attempt',
-                    'btnTee', 'btnFlag', 'btnMark',
+                    'btnTee', 'btnFlag', 'btnMark', 'btnWakeLock',
                     'btnPrevHole', 'btnHolePick', 'btnNextHole',
                     'btnPen', 'btnTapIn', 'btnFwy', 'btnGir',
+                    'sdBackdrop', 'sdSheet', 'sdBody', 'btnCloseSD',
+                    'qpBackdrop', 'qpSheet', 'qpClubGrid', 'qpTypeRow', 'btnQPConfirm', 'btnCloseQP', 'btnAddShot',
                     'btnCaddy', 'btnSettings', 'btnExport', 'btnLibrary', 'btnBagHeader', 'btnNewRoundHeader',
                     'btnScorecard', 'scorecardBackdrop', 'scorecardSheet', 'btnCloseScorecard', 'scorecardContent',
                     'targetsBackdrop', 'targetsSheet', 'targetsSheetBody', 'targetsHoleLabel', 'targetsList', 'btnTargets', 'btnCloseTargets', 'btnTargetConfig',
@@ -2627,11 +2963,16 @@
                 }
                 
                 if (this.els.accBadge) {
-                    const accY = GPS.lastFix ? GPS.lastFix.accY : null;
-                    this.els.accBadge.classList.remove('good', 'warn', 'bad');
-                    
-                    if (accY !== null) {
-                        this.els.accBadge.textContent = `±${accY}y`;
+                    const accY    = GPS.lastFix ? GPS.lastFix.accY : null;
+                    const fixAge  = GPS.lastFix ? (Date.now() - GPS.lastFix.timestamp) : null;
+                    const isStale = fixAge === null || fixAge > 10000;
+                    this.els.accBadge.classList.remove('good', 'warn', 'bad', 'lost');
+
+                    if (isStale) {
+                        this.els.accBadge.textContent = '⚠ GPS LOST';
+                        this.els.accBadge.classList.add('lost');
+                    } else if (accY !== null) {
+                        this.els.accBadge.textContent = `GPS ±${accY}y`;
                         if (accY <= 10) {
                             this.els.accBadge.classList.add('good');
                         } else if (accY <= 30) {
@@ -2640,8 +2981,8 @@
                             this.els.accBadge.classList.add('bad');
                         }
                     } else {
-                        this.els.accBadge.textContent = 'ACC --';
-                        this.els.accBadge.classList.add('bad');
+                        this.els.accBadge.textContent = '⚠ GPS LOST';
+                        this.els.accBadge.classList.add('lost');
                     }
                 }
                 
@@ -2717,6 +3058,10 @@
             createShotItem(shot, idx) {
                 const item = document.createElement('div');
                 item.className = 'shot-item' + (shot.planned && shot.positionPending ? ' planned' : '');
+                item.style.cursor = 'pointer';
+                item.addEventListener('click', (function(capturedIdx) {
+                    return function() { ShotDetailUI.open(capturedIdx); };
+                })(idx));
                 
                 const left = document.createElement('div');
                 left.className = 'shot-left';
@@ -2737,9 +3082,7 @@
                 clubBtn.addEventListener('click', (function(capturedIdx) {
                     return function(e) {
                         e.stopPropagation();
-                        if (!State.ui) State.ui = {};
-                        State.ui._updateShotIdx = capturedIdx;
-                        CaddyUI.open();
+                        QuickPickerUI.open(capturedIdx);
                     };
                 })(idx));
 
@@ -8863,6 +9206,284 @@
             }
         };
 
+        // ============================================
+        // SHOT DETAIL UI
+        // ============================================
+
+        const ShotDetailUI = {
+            _idx: null,
+
+            open(idx) {
+                this._idx = idx;
+                this._render();
+                if (UI.els.sdBackdrop) UI.els.sdBackdrop.classList.add('active');
+                if (UI.els.sdSheet)    UI.els.sdSheet.classList.add('active');
+            },
+
+            close() {
+                if (UI.els.sdBackdrop) UI.els.sdBackdrop.classList.remove('active');
+                if (UI.els.sdSheet)    UI.els.sdSheet.classList.remove('active');
+            },
+
+            _render() {
+                const body = UI.els.sdBody;
+                if (!body) return;
+
+                const hole  = State.currentHole();
+                const shot  = hole && hole.shots[this._idx];
+                if (!shot) { body.innerHTML = '<div style="padding:20px;color:var(--text-muted);">Shot not found</div>'; return; }
+
+                const isPutt    = (shot.shotType || '').toLowerCase() === 'putt';
+                const isPenalty = shot.penalty || (shot.shotType || '').toLowerCase() === 'penalty';
+                const isDriver  = (shot.club || '').toLowerCase() === 'driver';
+                const totalShots = hole.shots.length;
+
+                // Distance display
+                const distVal = shot.actualDistance > 0
+                    ? Math.round(shot.actualDistance) + (isPutt ? 'ft' : 'y') + ' <span style="font-size:0.65rem;color:var(--text-muted);">GPS</span>'
+                    : isPutt
+                        ? (shot.distance || 0) + 'ft'
+                        : '— <span style="font-size:0.65rem;color:var(--text-muted);">no GPS</span>';
+
+                // GPS status
+                const gpsStatus = shot.positionPending
+                    ? '⏳ Pending'
+                    : shot.position
+                        ? '📍 Marked'
+                        : '— Not marked';
+
+                body.innerHTML = `
+                <div style="background:var(--bg-card-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-3);display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <div style="font-size:1.4rem;font-weight:900;font-family:var(--font-mono);color:var(--text-primary);">${shot.club || '?'}</div>
+                        <div style="font-size:0.8rem;font-weight:600;color:var(--text-muted);margin-top:2px;">${shot.shotType || '?'}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);">Shot #${this._idx + 1}</div>
+                        ${!isPenalty ? `<button type="button" onclick="QuickPickerUI.open(${this._idx}); ShotDetailUI.close();"
+                            style="margin-top:6px;font-size:0.72rem;font-weight:700;padding:6px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border-strong);background:#ffffff;color:var(--text-primary);cursor:pointer;">
+                            ✏️ Change
+                        </button>` : ''}
+                    </div>
+                </div>
+
+                <div class="sd-row">
+                    <span class="sd-label">Distance</span>
+                    <span class="sd-value">${distVal}</span>
+                </div>
+
+                <div class="sd-row">
+                    <span class="sd-label">GPS</span>
+                    <span class="sd-value" style="font-family:inherit;font-size:0.85rem;">${gpsStatus}</span>
+                </div>
+
+                ${!isPutt && !isPenalty ? `
+                <div class="sd-row">
+                    <span class="sd-label">🏖️ Bunker</span>
+                    <button type="button" class="sd-toggle ${shot.bunker ? 'on' : ''}" id="sdBunkerToggle" onclick="ShotDetailUI._toggle('bunker')"></button>
+                </div>` : ''}
+
+                ${isDriver && !isPenalty ? `
+                <div class="sd-row">
+                    <span class="sd-label">🌿 Fairway</span>
+                    <button type="button" class="sd-toggle ${shot.fwy ? 'on' : ''}" id="sdFwyToggle" onclick="ShotDetailUI._toggle('fwy')"></button>
+                </div>` : ''}
+
+                ${isPenalty ? '' : `
+                <div class="sd-row">
+                    <span class="sd-label">Move in list</span>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="sd-move-btn" ${this._idx === 0 ? 'disabled' : ''} onclick="ShotDetailUI._move(-1)">▲</button>
+                        <button type="button" class="sd-move-btn" ${this._idx >= totalShots - 1 ? 'disabled' : ''} onclick="ShotDetailUI._move(1)">▼</button>
+                    </div>
+                </div>`}
+                `;
+            },
+
+            _toggle(field) {
+                const hole = State.currentHole();
+                const shot = hole && hole.shots[this._idx];
+                if (!shot) return;
+                shot[field] = !shot[field];
+                State.save();
+                this._render();
+            },
+
+            _move(dir) {
+                const hole = State.currentHole();
+                if (!hole) return;
+                const idx = this._idx;
+                const newIdx = idx + dir;
+                if (newIdx < 0 || newIdx >= hole.shots.length) return;
+
+                // Swap shots
+                const tmp = hole.shots[idx];
+                hole.shots[idx] = hole.shots[newIdx];
+                hole.shots[newIdx] = tmp;
+
+                this._idx = newIdx;
+                State.save();
+                UI.render();
+                this._render();
+            }
+        };
+
+        // ============================================
+        // QUICK CLUB PICKER UI
+        // ============================================
+
+        const QuickPickerUI = {
+            _selectedClub: null,
+            _selectedType: null,
+            _updateIdx: null,  // null = new shot, number = update existing
+
+            open(updateIdx = null) {
+                this._updateIdx = updateIdx;
+                this._selectedClub = null;
+                this._selectedType = 'full';
+
+                // Pre-select current club if updating
+                if (updateIdx !== null) {
+                    const hole = State.currentHole();
+                    const shot = hole && hole.shots[updateIdx];
+                    if (shot) {
+                        this._selectedClub = shot.club !== 'Club?' ? shot.club : null;
+                        this._selectedType = shot.shotType !== 'Type?' ? shot.shotType : 'full';
+                    }
+                }
+
+                this._buildClubGrid();
+                this._buildTypeRow();
+                this._updateConfirm();
+
+                if (UI.els.qpBackdrop) UI.els.qpBackdrop.classList.add('active');
+                if (UI.els.qpSheet)    UI.els.qpSheet.classList.add('active');
+            },
+
+            close() {
+                if (UI.els.qpBackdrop) UI.els.qpBackdrop.classList.remove('active');
+                if (UI.els.qpSheet)    UI.els.qpSheet.classList.remove('active');
+            },
+
+            _buildClubGrid() {
+                const grid = UI.els.qpClubGrid;
+                if (!grid) return;
+                grid.innerHTML = '';
+
+                const clubs = (State.bag.clubs || []).filter(c => c !== 'Club?');
+                clubs.forEach(club => {
+                    const data = State.bag.data && State.bag.data[club];
+                    const fullDist = data && data['full'] ? data['full'].carry + 'y' : '';
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'qp-club-btn' + (club === this._selectedClub ? ' selected' : '');
+
+                    const name = document.createElement('div');
+                    name.className = 'qp-club-name';
+                    name.textContent = club;
+
+                    btn.appendChild(name);
+
+                    if (fullDist) {
+                        const dist = document.createElement('div');
+                        dist.className = 'qp-club-dist';
+                        dist.textContent = fullDist;
+                        btn.appendChild(dist);
+                    }
+
+                    btn.addEventListener('click', () => {
+                        this._selectedClub = club;
+                        // Default shot type to full if available, else first available
+                        const types = this._getTypesForClub(club);
+                        if (types.includes('full')) {
+                            this._selectedType = 'full';
+                        } else if (types.length > 0) {
+                            this._selectedType = types[0];
+                        }
+                        this._buildClubGrid();
+                        this._buildTypeRow();
+                        this._updateConfirm();
+                    });
+
+                    grid.appendChild(btn);
+                });
+            },
+
+            _getTypesForClub(club) {
+                const data = State.bag.data && State.bag.data[club];
+                if (!data) return ['full'];
+                const types = Object.keys(data).filter(t => t !== 'Type?');
+                return types.length ? types : ['full'];
+            },
+
+            _buildTypeRow() {
+                const row = UI.els.qpTypeRow;
+                if (!row) return;
+                row.innerHTML = '';
+
+                if (!this._selectedClub) return;
+
+                const types = this._getTypesForClub(this._selectedClub);
+                // Ensure selected type is valid for this club
+                if (!types.includes(this._selectedType)) {
+                    this._selectedType = types.includes('full') ? 'full' : types[0];
+                }
+
+                types.forEach(type => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'qp-type-btn' +
+                        (type === 'full' ? ' full-type' : '') +
+                        (type === this._selectedType ? ' selected' : '');
+                    btn.textContent = type;
+                    btn.addEventListener('click', () => {
+                        this._selectedType = type;
+                        this._buildTypeRow();
+                        this._updateConfirm();
+                    });
+                    row.appendChild(btn);
+                });
+            },
+
+            _updateConfirm() {
+                const btn = UI.els.btnQPConfirm;
+                if (!btn) return;
+                const ready = !!this._selectedClub && !!this._selectedType;
+                btn.disabled = !ready;
+                if (ready) {
+                    btn.textContent = this._updateIdx !== null
+                        ? `Update · ${this._selectedClub} ${this._selectedType !== 'full' ? '· ' + this._selectedType : ''}`
+                        : `Add · ${this._selectedClub} ${this._selectedType !== 'full' ? '· ' + this._selectedType : ''}`;
+                } else {
+                    btn.textContent = 'Select a club';
+                }
+            },
+
+            confirm() {
+                if (!this._selectedClub || !this._selectedType) return;
+
+                if (this._updateIdx !== null) {
+                    // Update existing shot
+                    const hole = State.currentHole();
+                    if (hole && hole.shots[this._updateIdx]) {
+                        hole.shots[this._updateIdx].club     = this._selectedClub;
+                        hole.shots[this._updateIdx].shotType = this._selectedType;
+                        State.save();
+                        UI.render();
+                    }
+                } else {
+                    // Add new shot
+                    Actions.addShot({
+                        club:     this._selectedClub,
+                        shotType: this._selectedType
+                    });
+                }
+
+                this.close();
+            }
+        };
+
         const HolePickerUI = {
             init() {
                 // Grid built on open() so data is fresh; update button state now
@@ -9092,6 +9713,7 @@
                 UI.render();
                 this.close();
                 LibraryUI.close();
+                WakeLock.acquire();
                 Utils.toast('Round started: ' + course.name);
             }
         };
@@ -9589,6 +10211,13 @@
                 this.on('btnNewRound', 'click', () => RoundSetupUI.open());
                 this.on('btnCancelRound', 'click', () => RoundSetupUI.close());
                 this.on('btnStartRound', 'click', () => RoundSetupUI.startRound());
+                this.on('btnWakeLock',   'click', () => WakeLock.toggle());
+                this.on('btnCloseSD',    'click', () => ShotDetailUI.close());
+                this.on('sdBackdrop',    'click', () => ShotDetailUI.close());
+                this.on('btnAddShot',    'click', () => QuickPickerUI.open());
+                this.on('btnCloseQP',    'click', () => QuickPickerUI.close());
+                this.on('btnQPConfirm',  'click', () => QuickPickerUI.confirm());
+                this.on('qpBackdrop',    'click', () => QuickPickerUI.close());
                 this.on('btnLibrary', 'click', () => LibraryUI.open());
                 this.on('btnCloseLibrary', 'click', () => LibraryUI.close());
                 this.on('btnAddBag',    'click', () => LibraryActions.newBag());
