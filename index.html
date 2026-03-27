@@ -9289,14 +9289,13 @@
                     <button type="button" class="sd-toggle ${shot.fwy ? 'on' : ''}" id="sdFwyToggle" onclick="ShotDetailUI._toggle('fwy')"></button>
                 </div>` : ''}
 
-                ${isPenalty ? '' : `
                 <div class="sd-row">
                     <span class="sd-label">Move in list</span>
                     <div style="display:flex;gap:8px;">
                         <button type="button" class="sd-move-btn" ${this._idx === 0 ? 'disabled' : ''} onclick="ShotDetailUI._move(-1)">▲</button>
                         <button type="button" class="sd-move-btn" ${this._idx >= totalShots - 1 ? 'disabled' : ''} onclick="ShotDetailUI._move(1)">▼</button>
                     </div>
-                </div>`}
+                </div>
                 `;
             },
 
