@@ -2406,6 +2406,27 @@
         // Re-acquire wake lock when app comes back to foreground
         document.addEventListener('visibilitychange', () => WakeLock.reacquire());
 
+        // ── Keyboard-aware sheet positioning ──────────────────
+        // When iOS keyboard appears, shift open sheets up so content stays visible
+        (function() {
+            if (!window.visualViewport) return;
+            function onViewportChange() {
+                const vv = window.visualViewport;
+                const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+                const offset = keyboardHeight > 50 ? keyboardHeight : 0;
+                document.querySelectorAll('.sheet.active').forEach(function(sheet) {
+                    sheet.style.transform = offset > 0
+                        ? 'translateY(-' + offset + 'px)'
+                        : 'translateY(0)';
+                    sheet.style.transition = offset > 0
+                        ? 'transform 0.15s ease'
+                        : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                });
+            }
+            window.visualViewport.addEventListener('resize', onViewportChange);
+            window.visualViewport.addEventListener('scroll', onViewportChange);
+        })();
+
         // GPS MANAGER
         // ============================================
         
@@ -9220,7 +9241,10 @@
 
             close() {
                 if (UI.els.sdBackdrop) UI.els.sdBackdrop.classList.remove('active');
-                if (UI.els.sdSheet)    UI.els.sdSheet.classList.remove('active');
+                if (UI.els.sdSheet) {
+                    UI.els.sdSheet.classList.remove('active');
+                    UI.els.sdSheet.style.transform = '';
+                }
             },
 
             _render() {
