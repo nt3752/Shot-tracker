@@ -9262,10 +9262,12 @@
                 const totalShots = hole.shots.length;
 
                 // Distance display — putts get editable input, others static
-                const distVal = shot.actualDistance > 0 && !isPutt
-                    ? Math.round(shot.actualDistance) + 'y <span style="font-size:0.65rem;color:var(--text-muted);">GPS</span>'
-                    : isPutt
-                        ? `<input type="text" inputmode="numeric" pattern="[0-9]*"
+                const _distOninput = "oninput=\"(function(){var v=parseInt(this.value);var s=State.currentHole().shots[ShotDetailUI._idx];if(s&&!isNaN(v)){s.distance=v;State.save();UI.renderShots();}}).call(this)\"";
+                const _distFocus = "onfocus=\"this.select();setTimeout(function(){this.scrollIntoView({behavior:'smooth',block:'center'});}.bind(this),300)\"";
+                const _distStyle = "style=\"width:80px;height:44px;font-size:1rem;font-weight:700;font-family:var(--font-mono);text-align:center;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:#ffffff;color:var(--text-primary);padding:0 8px;\"";
+
+                const distVal = isPutt
+                    ? `<input type="text" inputmode="numeric" pattern="[0-9]*"
                             id="sdPuttDist"
                             value="${shot.distance > 0 ? shot.distance : ''}"
                             placeholder="ft"
@@ -9273,7 +9275,11 @@
                             onfocus="this.select();setTimeout(function(){this.scrollIntoView({behavior:'smooth',block:'center'});}.bind(this),300)"
                             oninput="(function(){var v=parseInt(this.value);var s=State.currentHole().shots[ShotDetailUI._idx];if(s&&!isNaN(v)){s.distance=v;State.save();UI.renderShots();}}).call(this)"
                           > <span style="font-size:0.8rem;color:var(--text-muted);">ft</span>`
-                        : '— <span style="font-size:0.65rem;color:var(--text-muted);">no GPS</span>';
+                    : shot.actualDistance > 0
+                        ? Math.round(shot.actualDistance) + 'y <span style="font-size:0.65rem;color:var(--text-muted);">GPS</span>'
+                        : isPenalty
+                            ? '—'
+                            : '<span style="font-size:0.8rem;color:var(--text-muted);">— no GPS</span>';
 
                 // GPS status
                 const gpsStatus = shot.positionPending
