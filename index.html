@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v43.0</title>
+    <title>Shot Tracker v44.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -25,39 +25,39 @@
             --green-400: #51b385;
             --green-300: #7bc69b;
             --green-200: #a5d9b1;
-            --green-100: #cfecc7;
+            --green-100: #e8f5ec;
             
-            /* Neutrals */
-            --gray-950: #0a0f14;
-            --gray-900: #141a21;
-            --gray-800: #1e262f;
-            --gray-700: #28333d;
-            --gray-600: #4a5763;
-            --gray-500: #6c7a89;
-            --gray-400: #8e9daf;
-            --gray-300: #b0c0d5;
-            --gray-200: #d2e3fb;
-            --gray-100: #e8f1ff;
+            /* Neutrals — light mode */
+            --gray-950: #1a1f24;
+            --gray-900: #2c3338;
+            --gray-800: #3d464f;
+            --gray-700: #5a6470;
+            --gray-600: #7a8795;
+            --gray-500: #9aaab8;
+            --gray-400: #5a6470;
+            --gray-300: #3d464f;
+            --gray-200: #c8d4de;
+            --gray-100: #1a1f24;
             
             /* Accents */
-            --gold: #f4a61b;
-            --red: #e64545;
-            --blue: #4a9eff;
+            --gold: #b8720a;
+            --red: #c0392b;
+            --blue: #1a6db5;
             
-            /* Functional colors */
-            --bg-app: var(--gray-950);
-            --bg-card: var(--gray-900);
-            --bg-card-light: var(--gray-800);
-            --text-primary: var(--gray-100);
-            --text-secondary: var(--gray-400);
-            --text-muted: var(--gray-500);
-            --border: rgba(255, 255, 255, 0.08);
-            --border-strong: rgba(255, 255, 255, 0.12);
+            /* Functional colors — light mode */
+            --bg-app: #f2f4f6;
+            --bg-card: #ffffff;
+            --bg-card-light: #e8ecf0;
+            --text-primary: #1a1f24;
+            --text-secondary: #4a5568;
+            --text-muted: #7a8795;
+            --border: rgba(0, 0, 0, 0.10);
+            --border-strong: rgba(0, 0, 0, 0.16);
             
             /* Shadows */
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
-            --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
-            --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.16);
             
             /* Spacing scale */
             --space-1: 4px;
@@ -140,14 +140,10 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background: linear-gradient(to bottom, 
-                rgba(10, 15, 20, 0.98) 0%,
-                rgba(10, 15, 20, 0.95) 70%,
-                rgba(10, 15, 20, 0.85) 100%
-            );
+            background: #1a2a1a;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 2px solid #27a06f;
             padding: var(--space-3) var(--space-4);
         }
         
@@ -308,7 +304,7 @@
         }
 
         .vf-token.unmatched {
-            background: rgba(255,255,255,0.05);
+            background: rgba(0,0,0,0.05);
             border-color: var(--border);
             color: var(--text-muted);
         }
@@ -354,6 +350,7 @@
             font-family: var(--font-mono);
             line-height: 1;
             letter-spacing: -0.5px;
+            color: #ffffff;
         }
         
         .pill-label {
@@ -415,6 +412,10 @@
         
         .distance-main {
             flex: 1;
+            background: #ffffff;
+            border: 1.5px solid var(--border-strong);
+            border-radius: var(--radius-md);
+            padding: var(--space-2) var(--space-3);
         }
         
         .distance-label {
@@ -585,7 +586,8 @@
         
         .btn-secondary {
             background: var(--bg-card-light);
-            border-color: var(--border);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
         }
         
         .btn-danger {
@@ -641,6 +643,8 @@
         
         .btn-toggle {
             background: var(--bg-card-light);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
         }
         
         .btn-toggle.active {
@@ -651,8 +655,8 @@
         /* GIR missed — hole played, no GIR, shown as dim to distinguish from unknown */
         .btn-toggle.gir-missed {
             background: var(--bg-card-light);
-            border-color: rgba(255,255,255,0.12);
-            color: rgba(255,255,255,0.3);
+            border-color: rgba(0,0,0,0.08);
+            color: rgba(0,0,0,0.25);
         }
         
         /* ===============================================
@@ -677,11 +681,12 @@
             align-items: center;
             justify-content: space-between;
             gap: var(--space-3);
-            padding: var(--space-3) 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding: var(--space-3) var(--space-2);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+            min-height: 64px;
         }
         .shot-item.planned {
-            border-left: 2px solid rgba(6,182,212,0.5);
+            border-left: 3px solid rgba(6,182,212,0.7);
             padding-left: 6px;
             opacity: 0.75;
         }
@@ -699,14 +704,16 @@
         }
         
         .shot-number {
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 900;
             color: var(--text-muted);
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
+            background: var(--bg-card-light);
+            border: 1px solid var(--border-strong);
             border-radius: var(--radius-sm);
             padding: var(--space-1) var(--space-2);
             flex-shrink: 0;
+            min-width: 28px;
+            text-align: center;
         }
         
         .shot-select {
@@ -725,7 +732,7 @@
         }
         
         .shot-distance {
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 900;
             font-family: var(--font-mono);
             color: var(--text-primary);
@@ -733,16 +740,17 @@
         }
         
         .shot-input {
-            width: 80px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
+            width: 72px;
+            background: #ffffff;
+            border: 1.5px solid var(--border-strong);
             border-radius: var(--radius-sm);
-            padding: var(--space-2);
+            padding: var(--space-2) var(--space-2);
             color: var(--text-primary);
-            font-size: 0.875rem;
+            font-size: 1rem;
             font-weight: 700;
             font-family: var(--font-mono);
             text-align: center;
+            min-height: 44px;
         }
         
         .shot-input:disabled {
@@ -872,7 +880,7 @@
         .suggestion-btn {
             padding: var(--space-2) var(--space-4);
             min-height: 44px;
-            background: var(--green-700);
+            background: var(--green-600);
             border: 1px solid var(--green-500);
             border-radius: var(--radius-md);
             color: white;
@@ -896,8 +904,8 @@
         
         .hole-picker-btn {
             min-height: 100px;
-            background: var(--bg-card-light);
-            border: 1px solid var(--border);
+            background: #ffffff;
+            border: 1.5px solid var(--border-strong);
             border-radius: var(--radius-lg);
             display: flex;
             flex-direction: column;
@@ -919,6 +927,7 @@
             font-weight: 900;
             font-family: var(--font-mono);
             line-height: 1;
+            color: var(--text-primary);
         }
         
         .hole-picker-par {
@@ -1003,7 +1012,7 @@
             padding: 6px 2px;
             font-size: 0.85rem;
             font-weight: 900;
-            background: rgba(255,255,255,0.04);
+            background: rgba(0,0,0,0.04);
             color: var(--text-primary);
             border-top: 1px solid var(--border-strong);
             border-bottom: 1px solid var(--border-strong);
@@ -1159,7 +1168,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v43.0</span>
+                    <span class="brand-version">v44.0</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard"><img src="data:image/png;base64,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" style="width:28px;height:28px;display:block;" alt="Scorecard"></button>
@@ -1683,7 +1692,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v43.0';
+        const VERSION = 'v44.0';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -2722,7 +2731,7 @@
                 var clubLabel = (shot.club && shot.club !== 'Club?')
                     ? (shot.club + (shot.shotType && shot.shotType !== 'full' ? ' · ' + shot.shotType : ''))
                     : 'Club?';
-                clubBtn.style.cssText = 'font-size:0.78rem;font-weight:700;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card-light);color:' + (shot.club && shot.club !== 'Club?' ? 'var(--text-primary)' : 'var(--text-muted)') + ';cursor:pointer;white-space:nowrap;min-width:52px;text-align:center;';
+                clubBtn.style.cssText = 'font-size:0.9rem;font-weight:700;padding:8px 12px;min-height:44px;border-radius:var(--radius-sm);border:1.5px solid var(--border-strong);background:var(--bg-card-light);color:' + (shot.club && shot.club !== 'Club?' ? 'var(--text-primary)' : 'var(--text-muted)') + ';cursor:pointer;white-space:nowrap;min-width:64px;text-align:center;';
                 clubBtn.textContent = clubLabel;
                 clubBtn.disabled = !!shot.penalty;
                 clubBtn.addEventListener('click', (function(capturedIdx) {
@@ -2739,7 +2748,7 @@
                 var hasTarget = !!(shot.targetGPS && shot.targetGPS.lat);
                 const tgtBtn = document.createElement('button');
                 tgtBtn.type = 'button';
-                tgtBtn.style.cssText = 'font-size:0.9rem;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card-light);cursor:pointer;line-height:1;' + (hasTarget ? '' : 'filter:grayscale(1) opacity(0.45);') + (isPuttRow ? 'display:none;' : '');
+                tgtBtn.style.cssText = 'font-size:1.1rem;width:44px;height:44px;border-radius:var(--radius-sm);border:1.5px solid var(--border-strong);background:var(--bg-card-light);cursor:pointer;display:' + (isPuttRow ? 'none' : 'flex') + ';align-items:center;justify-content:center;flex-shrink:0;' + (hasTarget ? '' : 'filter:grayscale(1) opacity(0.5);');
                 tgtBtn.title = hasTarget ? ('Target: ' + (shot.targetAbbrev || '') + ' ' + (shot.targetYards || '') + 'y') : 'Set target';
                 tgtBtn.textContent = '🎯';
                 tgtBtn.disabled = !!shot.penalty || isPuttRow;
@@ -2815,7 +2824,7 @@
                 
                 // Position indicator
                 const posIndicator = document.createElement('span');
-                posIndicator.style.fontSize = '0.875rem';
+                posIndicator.style.fontSize = '1.2rem';
                 posIndicator.title = shot.positionPending ? 'Awaiting Mark Landing' : (shot.position ? 'GPS recorded' : 'No GPS');
                 posIndicator.textContent = shot.positionPending ? '⏳' : (shot.position ? '📍' : '');
                 
@@ -2839,9 +2848,9 @@
                     delBtn.type = 'button';
                     delBtn.textContent = '×';
                     delBtn.title = 'Delete shot';
-                    delBtn.style.cssText = 'font-size:1.1rem;font-weight:700;padding:2px 7px;border-radius:4px;border:none;background:transparent;color:var(--red-400,#f87171);cursor:pointer;line-height:1;flex-shrink:0;opacity:0.6;';
-                    delBtn.addEventListener('mouseenter', function() { delBtn.style.opacity = '1'; });
-                    delBtn.addEventListener('mouseleave', function() { delBtn.style.opacity = '0.6'; });
+                    delBtn.style.cssText = 'font-size:1.3rem;font-weight:900;width:44px;height:44px;border-radius:var(--radius-sm);border:1.5px solid rgba(192,57,43,0.3);background:rgba(192,57,43,0.08);color:var(--red);cursor:pointer;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center;';
+                    delBtn.addEventListener('mouseenter', function() { delBtn.style.background = 'rgba(192,57,43,0.18)'; });
+                    delBtn.addEventListener('mouseleave', function() { delBtn.style.background = 'rgba(192,57,43,0.08)'; });
                     delBtn.addEventListener('click', (function(capturedIdx) {
                         return function(e) {
                             e.stopPropagation();
@@ -3941,7 +3950,7 @@
                 
                 State.holes.forEach((hole, idx) => {
                     const card = document.createElement('div');
-                    card.style.cssText = 'background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3);';
+                    card.style.cssText = 'background: rgba(0,0,0,0.03); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3);';
                     
                     // ── Hole header with GPS status indicators ──
                     const header = document.createElement('div');
@@ -4339,7 +4348,7 @@
                 input.inputMode = 'numeric';
                 input.pattern = '[0-9]*';
                 input.value = value;
-                input.style.cssText = 'width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); color: var(--text-primary); font-size: 1rem; font-weight: 700; font-family: var(--font-mono);';
+                input.style.cssText = 'width: 100%; background: rgba(0,0,0,0.05); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); color: var(--text-primary); font-size: 1rem; font-weight: 700; font-family: var(--font-mono);';
                 
                 wrapper.appendChild(labelEl);
                 wrapper.appendChild(input);
