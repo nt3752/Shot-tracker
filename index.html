@@ -1502,7 +1502,7 @@
         <div class="sheet-body">
             <div class="input-row" style="margin-bottom: var(--space-3);">
                 <span class="input-label">Target</span>
-                <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" enterkeyhint="done" maxlength="3" pattern="[0-9]*">
+                <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" enterkeyhint="done" maxlength="3" pattern="[0-9]*" onfocus="this.select()">
             </div>
             <div class="suggestion-list" id="suggestionList"></div>
         </div>
@@ -1589,9 +1589,9 @@
         
         <div class="input-row">
             <span class="input-label">Carry</span>
-            <input type="text" class="input-field compact" id="bagCarry" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="140">
+            <input type="text" class="input-field compact" id="bagCarry" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="140" onfocus="this.select()">
             <span class="input-label">Total</span>
-            <input type="text" class="input-field compact" id="bagTotal" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="150">
+            <input type="text" class="input-field compact" id="bagTotal" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="150" onfocus="this.select()">
         </div>
         
         <div class="btn-row">
@@ -1895,9 +1895,9 @@
             
             <div class="input-row">
                 <span class="input-label">Carry</span>
-                <input type="text" class="input-field compact" id="editBagCarry" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="140">
+                <input type="text" class="input-field compact" id="editBagCarry" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="140" onfocus="this.select()">
                 <span class="input-label">Total</span>
-                <input type="text" class="input-field compact" id="editBagTotal" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="150">
+                <input type="text" class="input-field compact" id="editBagTotal" inputmode="numeric" enterkeyhint="done" pattern="[0-9]*" placeholder="150" onfocus="this.select()">
             </div>
             
             <div class="btn-row">
@@ -3160,6 +3160,7 @@
                 distInput.addEventListener('focus', () => {
                     distInput.dataset.editing = 'true';
                     UI.editingLock = true;
+                    distInput.select();
                 });
 
                 distInput.addEventListener('blur', () => {
