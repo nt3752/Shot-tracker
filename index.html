@@ -9310,11 +9310,10 @@
 
             _move(dir) {
                 const hole = State.currentHole();
-                if (!hole) { console.log('_move: no hole'); return; }
+                if (!hole) return;
                 const idx = this._idx;
                 const newIdx = idx + dir;
-                console.log('_move called: idx=' + idx + ' dir=' + dir + ' newIdx=' + newIdx + ' total=' + hole.shots.length);
-                if (newIdx < 0 || newIdx >= hole.shots.length) { console.log('_move: out of bounds'); return; }
+                if (newIdx < 0 || newIdx >= hole.shots.length) return;
 
                 // Swap shots
                 const tmp = hole.shots[idx];
@@ -9325,7 +9324,6 @@
                 State.save();
                 UI.renderShots();
                 this._render();
-                console.log('_move: done, new idx=' + this._idx);
             }
         };
 
