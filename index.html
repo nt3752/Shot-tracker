@@ -9320,8 +9320,12 @@
 
                 ${!isPutt && !isPenalty ? `
                 <div class="sd-row">
-                    <span class="sd-label">🏖️ Bunker</span>
+                    <span class="sd-label">🏖️ Greenside Bunker</span>
                     <button type="button" class="sd-toggle ${shot.bunker ? 'on' : ''}" id="sdBunkerToggle" onclick="ShotDetailUI._toggle('bunker')"></button>
+                </div>
+                <div class="sd-row">
+                    <span class="sd-label">⛱️ Fairway Bunker</span>
+                    <button type="button" class="sd-toggle ${shot.fwBunker ? 'on' : ''}" id="sdFwBunkerToggle" onclick="ShotDetailUI._toggle('fwBunker')"></button>
                 </div>` : ''}
 
                 ${isDriver && !isPenalty ? `
