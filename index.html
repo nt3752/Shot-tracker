@@ -9410,15 +9410,10 @@
             },
 
             _getTypesForClub(club) {
-                // Show all bag shot types — not just those with distance data
-                // Partial/clock shots may have no carry data but are still valid selections
-                const bagTypes = (State.bag.shotTypes || []).filter(t => t !== 'Type?');
-                if (bagTypes.length) return bagTypes;
-                // Fallback: derive from data keys if shotTypes is empty
                 const data = State.bag.data && State.bag.data[club];
                 if (!data) return ['full'];
-                const dataTypes = Object.keys(data).filter(t => t !== 'Type?');
-                return dataTypes.length ? dataTypes : ['full'];
+                const types = Object.keys(data).filter(t => t !== 'Type?');
+                return types.length ? types : ['full'];
             },
 
             _buildTypeRow() {
