@@ -2539,9 +2539,9 @@
                 
                 // v40.1: Load from library
                 this.loadFromLibrary();
-                
-                // Load bag override if exists (backward compat)
-                this.loadBag();
+                // Note: loadBag() (legacy LS_BAG_KEY) intentionally not called here —
+                // loadFromLibrary() correctly loads the bag from LS_BAG_LIBRARY_KEY.
+                // Calling loadBag() would overwrite CSV imports on every refresh.
                 
                 // Ensure state integrity
                 this.validate();
@@ -9216,11 +9216,6 @@
                 this._render();
                 if (UI.els.sdBackdrop) UI.els.sdBackdrop.classList.add('active');
                 if (UI.els.sdSheet)    UI.els.sdSheet.classList.add('active');
-                // Auto-select putt distance input so user can type directly
-                setTimeout(() => {
-                    const inp = document.getElementById('sdPuttDist');
-                    if (inp) { inp.focus(); inp.select(); }
-                }, 150);
             },
 
             close() {
@@ -9250,6 +9245,7 @@
                             value="${shot.distance > 0 ? shot.distance : ''}"
                             placeholder="ft"
                             style="width:80px;height:44px;font-size:1rem;font-weight:700;font-family:var(--font-mono);text-align:center;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:#ffffff;color:var(--text-primary);padding:0 8px;"
+                            onfocus="this.select()"
                             oninput="(function(){var v=parseInt(this.value);var s=State.currentHole().shots[ShotDetailUI._idx];if(s&&!isNaN(v)){s.distance=v;State.save();UI.renderShots();}}).call(this)"
                           > <span style="font-size:0.8rem;color:var(--text-muted);">ft</span>`
                         : '— <span style="font-size:0.65rem;color:var(--text-muted);">no GPS</span>';
