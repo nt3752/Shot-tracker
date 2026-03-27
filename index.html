@@ -2762,41 +2762,56 @@
                 right.style.alignItems = 'center';
                 right.style.gap = 'var(--space-1)';
                 
+                // Show actualDistance (GPS-calculated) when available — read-only label
+                // Fall back to editable distance input for putts and unmarked shots
+                const isPuttShot = (shot.shotType || '').toLowerCase() === 'putt';
+                const hasActual  = shot.actualDistance != null && shot.actualDistance > 0;
+
                 const distInput = document.createElement('input');
                 distInput.className = 'shot-input';
                 distInput.type = 'text';
                 distInput.pattern = '[0-9]*';
                 distInput.inputMode = 'numeric';
                 distInput.disabled = !!shot.penalty;
-                distInput.value = shot.penalty ? '' : String(shot.distance || 0);
-                distInput.placeholder = shot.shotType === 'putt' ? 'ft' : 'y';
-                
+
+                if (hasActual && !isPuttShot) {
+                    // GPS distance available — show it read-only
+                    distInput.value = String(Math.round(shot.actualDistance));
+                    distInput.readOnly = true;
+                    distInput.style.opacity = '0.85';
+                    distInput.title = 'GPS-calculated distance';
+                } else {
+                    // No GPS distance — show manual distance (putts always manual)
+                    distInput.value = shot.penalty ? '' : String(shot.distance || 0);
+                    distInput.placeholder = isPuttShot ? 'ft' : 'y';
+                }
+
                 // Track focus to keep input open
                 distInput.addEventListener('focus', () => {
                     distInput.dataset.editing = 'true';
-                    UI.editingLock = true; // Lock UI renders
+                    UI.editingLock = true;
                 });
-                
+
                 distInput.addEventListener('blur', () => {
                     setTimeout(() => {
                         delete distInput.dataset.editing;
-                        UI.editingLock = false; // Unlock UI renders
+                        UI.editingLock = false;
                     }, 300);
                 });
-                
+
                 distInput.addEventListener('change', () => {
+                    if (distInput.readOnly) return;
                     const val = Utils.saneYards(distInput.value);
                     shot.distance = val !== null ? val : (shot.distance || 0);
                     State.save();
-                    // Don't call UI.render() here - it rebuilds the dropdowns
                 });
-                
+
                 // Add unit label
                 const unitLabel = document.createElement('span');
                 unitLabel.style.fontSize = '0.75rem';
                 unitLabel.style.fontWeight = '600';
                 unitLabel.style.color = 'var(--text-muted)';
-                unitLabel.textContent = shot.shotType === 'putt' ? 'ft' : 'y';
+                unitLabel.textContent = isPuttShot ? 'ft' : 'y';
                 
                 // Position indicator
                 const posIndicator = document.createElement('span');
