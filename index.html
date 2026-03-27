@@ -9215,6 +9215,11 @@
                 this._render();
                 if (UI.els.sdBackdrop) UI.els.sdBackdrop.classList.add('active');
                 if (UI.els.sdSheet)    UI.els.sdSheet.classList.add('active');
+                // Auto-select putt distance input so user can type directly
+                setTimeout(() => {
+                    const inp = document.getElementById('sdPuttDist');
+                    if (inp) { inp.focus(); inp.select(); }
+                }, 150);
             },
 
             close() {
