@@ -2528,16 +2528,18 @@
             init() {
                 // Try to load from storage
                 const saved = Storage.load(LS_STATE_KEY);
-                if (saved && saved.version === VERSION) {
+                // Accept any prior version — version check guards schema breaks only,
+                // not minor version bumps. Holes/shots are always preserved if present.
+                if (saved && saved.holes) {
                     Object.assign(this, saved);
-                } else {
-                    // Version mismatch — initialize fresh holes but preserve IDs
+                } else if (saved) {
+                    // Saved state exists but no holes — preserve IDs
                     this.initHoles();
-                    if (saved) {
-                        if (saved.currentCourseId) this.currentCourseId = saved.currentCourseId;
-                        if (saved.currentBagId)    this.currentBagId    = saved.currentBagId;
-                        if (saved.holeIndex)       this.holeIndex       = saved.holeIndex;
-                    }
+                    if (saved.currentCourseId) this.currentCourseId = saved.currentCourseId;
+                    if (saved.currentBagId)    this.currentBagId    = saved.currentBagId;
+                    if (saved.holeIndex)       this.holeIndex       = saved.holeIndex;
+                } else {
+                    this.initHoles();
                 }
                 
                 // v40.1: Load from library
