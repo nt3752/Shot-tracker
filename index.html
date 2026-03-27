@@ -2490,6 +2490,13 @@
                 if (window.App && window.App.render) {
                     window.App.render();
                 }
+                // If targets sheet is open, re-render distances live
+                try {
+                    const targetsSheet = document.getElementById('targetsSheet');
+                    if (targetsSheet && targetsSheet.classList.contains('active') && window.TargetsUI) {
+                        window.TargetsUI.renderList();
+                    }
+                } catch(e) {}
             },
             
             onError(error) {
@@ -11131,6 +11138,7 @@
                     window.WakeLock = WakeLock;
                     window.State = State;
                     window.UI = UI;
+                    window.TargetsUI = TargetsUI;
                     
     
                 } catch (e) {
