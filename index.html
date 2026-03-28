@@ -2407,24 +2407,61 @@
         document.addEventListener('visibilitychange', () => WakeLock.reacquire());
 
         // ── Keyboard-aware sheet positioning ──────────────────
-        // When iOS keyboard appears, shift open sheets up so content stays visible
+        // Only shift a sheet when an input inside it is focused — avoids
+        // false triggers from Safari URL bar hide/show on scroll.
         (function() {
             if (!window.visualViewport) return;
-            function onViewportChange() {
-                const vv = window.visualViewport;
-                const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
-                const offset = keyboardHeight > 50 ? keyboardHeight : 0;
-                document.querySelectorAll('.sheet.active').forEach(function(sheet) {
-                    sheet.style.transform = offset > 0
-                        ? 'translateY(-' + offset + 'px)'
-                        : 'translateY(0)';
-                    sheet.style.transition = offset > 0
-                        ? 'transform 0.15s ease'
-                        : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+
+            function shiftSheet(sheet, offset) {
+                sheet.style.transition = offset > 0
+                    ? 'transform 0.15s ease'
+                    : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                sheet.style.transform = offset > 0
+                    ? 'translateY(-' + offset + 'px)'
+                    : 'translateY(0)';
+            }
+
+            function resetAllSheets() {
+                document.querySelectorAll('.sheet').forEach(function(s) {
+                    s.style.transform = '';
+                    s.style.transition = '';
                 });
             }
-            window.visualViewport.addEventListener('resize', onViewportChange);
-            window.visualViewport.addEventListener('scroll', onViewportChange);
+
+            function onViewportResize() {
+                const focused = document.activeElement;
+                // Only act if a text/numeric input inside a sheet is focused
+                if (!focused) { resetAllSheets(); return; }
+                const tag = focused.tagName;
+                const type = (focused.type || '').toLowerCase();
+                const isInput = (tag === 'INPUT' && (type === 'text' || type === 'number' || type === '' || type === 'tel')) || tag === 'TEXTAREA';
+                if (!isInput) { resetAllSheets(); return; }
+
+                // Find which sheet this input belongs to
+                const sheet = focused.closest('.sheet.active');
+                if (!sheet) { resetAllSheets(); return; }
+
+                const vv = window.visualViewport;
+                const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+                if (keyboardHeight > 80) {
+                    shiftSheet(sheet, keyboardHeight);
+                } else {
+                    shiftSheet(sheet, 0);
+                }
+            }
+
+            // Reset all sheets when keyboard fully dismisses
+            function onFocusOut() {
+                // Small delay so the viewport has time to resize before we check
+                setTimeout(function() {
+                    if (!document.activeElement || document.activeElement === document.body) {
+                        resetAllSheets();
+                    }
+                }, 100);
+            }
+
+            window.visualViewport.addEventListener('resize', onViewportResize);
+            document.addEventListener('focusout', onFocusOut);
         })();
 
         // GPS MANAGER
