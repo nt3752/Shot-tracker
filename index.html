@@ -2683,9 +2683,11 @@
                         }
                     });
                     // Pre-populate planned shots for holes with no shots yet
+                    // Skip if user manually cleared the hole — don't restore on refresh
                     this.holes.forEach(function(hole) {
                         var plan = hole.plan || [];
                         if (!plan.length) return;
+                        if (hole.manuallyCleared) return;
                         if (hole.shots && hole.shots.length > 0) return;
                         hole.shots = plan.map(function(p) {
                             return {
@@ -3457,6 +3459,8 @@
                     targetAbbrev:   null,
                 };
                 hole.shots.push(shot);
+                // Clear manuallyCleared — user is adding a real shot
+                hole.manuallyCleared = false;
                 State.save();
                 UI.render();
                 Utils.toast('Penalty recorded');
@@ -3635,6 +3639,8 @@
                     return;
                 }
                 hole.shots.splice(idx, 1);
+                // Mark hole as manually cleared so preload doesn't re-add plan shots on refresh
+                if (hole.shots.length === 0) hole.manuallyCleared = true;
                 State.save();
                 UI.render();
                 Utils.toast('Shot deleted');
@@ -3648,6 +3654,8 @@
                 }
                 
                 hole.shots.pop();
+                // Mark hole as manually cleared so preload doesn't re-add plan shots on refresh
+                if (hole.shots.length === 0) hole.manuallyCleared = true;
                 State.save();
                 UI.render();
                 Utils.toast('Shot deleted');
