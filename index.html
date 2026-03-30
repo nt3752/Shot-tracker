@@ -1051,126 +1051,107 @@
            QUICK CLUB PICKER
            =============================================== */
 
-        .qp-club-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: var(--space-2);
-            margin-bottom: var(--space-4);
-        }
+        /* ── Rapid Shot Picker v45 ─────────────────────── */
+        #qpSheet.active { transform: translateY(0) !important; }
 
-        .qp-club-btn {
-            min-height: 72px;
-            background: #ffffff;
+        .rsp-full-btn {
+            padding: 7px 11px;
+            border-radius: var(--radius-sm);
             border: 1.5px solid var(--border-strong);
-            border-radius: var(--radius-md);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            padding: var(--space-2) var(--space-1);
-            transition: all 0.12s ease;
-            cursor: pointer;
-        }
-
-        .qp-club-btn:active {
-            transform: scale(0.95);
-        }
-
-        .qp-club-btn.selected {
-            background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
-            border-color: var(--green-500);
-            box-shadow: 0 0 0 2px rgba(39,160,111,0.25);
-        }
-
-        .qp-club-name {
-            font-size: 1.1rem;
+            background: var(--bg-card-light);
+            color: var(--text-primary);
+            font-size: 0.78rem;
             font-weight: 900;
             font-family: var(--font-mono);
-            line-height: 1;
-            color: var(--text-primary);
-        }
-
-        .qp-club-btn.selected .qp-club-name {
-            color: #ffffff;
-        }
-
-        .qp-club-dist {
-            font-size: 0.65rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            font-family: var(--font-mono);
-        }
-
-        .qp-club-btn.selected .qp-club-dist {
-            color: rgba(255,255,255,0.7);
-        }
-
-        .qp-type-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--space-2);
-            margin-bottom: var(--space-4);
-        }
-
-        .qp-type-btn {
-            padding: 10px 16px;
-            border-radius: var(--radius-full);
-            border: 1.5px solid var(--border-strong);
-            background: #ffffff;
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--text-primary);
             cursor: pointer;
-            transition: all 0.12s ease;
+            transition: all 0.1s;
+            min-height: 38px;
             white-space: nowrap;
-            min-height: 44px;
-            display: flex;
-            align-items: center;
         }
-
-        .qp-type-btn.selected {
-            background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
-            border-color: var(--green-500);
-            color: #ffffff;
+        .rsp-full-btn:active { transform: scale(0.93); }
+        .rsp-full-btn.putt-btn {
+            border-color: #60a5fa;
+            color: #60a5fa;
+            background: rgba(96,165,250,0.08);
         }
+        .rsp-full-btn.putt-btn:active { background: rgba(96,165,250,0.2); }
+        .rsp-full-btn.club-full-btn:active { background: rgba(39,160,111,0.2); }
 
-        .qp-type-btn.full-type {
-            font-size: 0.9rem;
-            padding: 10px 20px;
+        /* Partial table */
+        .rsp-table { border-collapse: collapse; width: 100%; }
+        .rsp-th {
+            font-size: 0.6rem; font-weight: 900; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-muted);
+            padding: 4px 8px; text-align: center;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
         }
-
-        .qp-confirm-btn {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, var(--green-700) 0%, var(--green-600) 100%);
-            border: none;
-            border-radius: var(--radius-md);
-            color: #ffffff;
-            font-size: 1rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.15s ease;
+        .rsp-th-club {
+            text-align: left; min-width: 52px;
+            font-size: 0.6rem; font-weight: 900; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-muted);
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--border);
         }
-
-        .qp-confirm-btn:active {
-            transform: scale(0.98);
-        }
-
-        .qp-confirm-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .qp-section-label {
-            font-size: 0.65rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
+        .rsp-td { padding: 4px 4px; text-align: center; }
+        .rsp-td-club {
+            padding: 4px 8px;
+            font-size: 0.72rem; font-weight: 900;
+            font-family: var(--font-mono);
             color: var(--text-muted);
-            margin-bottom: var(--space-2);
+            white-space: nowrap;
+            border-right: 1px solid var(--border);
+        }
+        .rsp-cell-btn {
+            padding: 7px 10px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-strong);
+            background: var(--bg-card-light);
+            color: var(--text-primary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.1s;
+            min-height: 36px;
+            width: 100%;
+            white-space: nowrap;
+        }
+        .rsp-cell-btn:active {
+            background: rgba(39,160,111,0.25);
+            border-color: var(--green-500);
+            transform: scale(0.93);
+        }
+
+        /* Pill strip */
+        .rsp-pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 5px 9px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border-strong);
+            background: var(--bg-card-light);
+            font-size: 0.7rem; font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.12s;
+        }
+        .rsp-pill:active { transform: scale(0.93); }
+        .rsp-pill.insert-pt {
+            border-color: var(--green-500);
+            background: rgba(39,160,111,0.15);
+            color: var(--green-500);
+            box-shadow: 0 0 0 2px rgba(39,160,111,0.2);
+        }
+        .rsp-pill.putt-pill { border-color: #60a5fa; color: #60a5fa; }
+        .rsp-pill-num {
+            font-size: 0.6rem; color: var(--text-muted); font-weight: 400;
+        }
+        .rsp-pill-del {
+            font-size: 0.7rem; color: var(--text-muted); margin-left: 2px;
+            line-height: 1;
         }
 
         /* ===============================================
@@ -1531,20 +1512,56 @@
     </div>
 
     <!-- QUICK CLUB PICKER SHEET -->
+    <!-- RAPID SHOT PICKER — v45 -->
     <div class="backdrop" id="qpBackdrop"></div>
-    <div class="sheet" id="qpSheet" role="dialog" aria-modal="true" aria-labelledby="qpTitle">
-        <div class="sheet-header">
-            <h3 class="sheet-title" id="qpTitle">Pick Club</h3>
-            <div class="sheet-actions">
-                <button class="btn btn-sm btn-secondary" id="btnCloseQP" type="button">Cancel</button>
+    <div id="qpSheet" role="dialog" aria-modal="true" style="
+        position:fixed;inset:0;z-index:300;
+        background:var(--bg-app);
+        display:flex;flex-direction:column;
+        transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);
+        overflow:hidden;
+    ">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:12px 16px 10px;border-bottom:1px solid var(--border);
+                    flex-shrink:0;background:var(--bg-card);">
+            <div style="font-size:0.7rem;font-weight:900;text-transform:uppercase;
+                        letter-spacing:1.5px;color:var(--text-muted);">Add Shots</div>
+            <button id="btnCloseQP" type="button"
+                style="background:var(--bg-card-light);border:1.5px solid var(--border-strong);
+                       color:var(--text-primary);border-radius:var(--radius-sm);
+                       padding:6px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+                Done
+            </button>
+        </div>
+
+        <!-- Full shots row (Putt first, then clubs) -->
+        <div style="padding:10px 12px 8px;border-bottom:1px solid var(--border);flex-shrink:0;">
+            <div style="font-size:0.6rem;font-weight:900;text-transform:uppercase;
+                        letter-spacing:1.5px;color:var(--text-muted);margin-bottom:7px;">Full Shots</div>
+            <div id="qpFullRow" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
+
+        <!-- Partial shots table -->
+        <div style="flex:1;overflow-y:auto;padding:10px 12px 6px;">
+            <div style="font-size:0.6rem;font-weight:900;text-transform:uppercase;
+                        letter-spacing:1.5px;color:var(--text-muted);margin-bottom:7px;">Partial Shots</div>
+            <div id="qpPartialTable" style="overflow-x:auto;">
+                <!-- built by JS -->
             </div>
         </div>
-        <div class="sheet-body" id="qpBody">
-            <div class="qp-section-label">Club</div>
-            <div class="qp-club-grid" id="qpClubGrid"></div>
-            <div class="qp-section-label">Shot Type</div>
-            <div class="qp-type-row" id="qpTypeRow"></div>
-            <button class="qp-confirm-btn" id="btnQPConfirm" disabled>Add Shot</button>
+
+        <!-- Pill strip -->
+        <div style="border-top:1px solid var(--border);flex-shrink:0;background:var(--bg-card);padding:8px 12px;">
+            <div style="font-size:0.6rem;font-weight:900;text-transform:uppercase;
+                        letter-spacing:1.5px;color:var(--text-muted);margin-bottom:6px;">
+                Shot sequence <span id="qpShotCount" style="color:var(--green-500);"></span>
+                <span id="qpInsertHint" style="color:var(--text-muted);font-weight:400;margin-left:6px;"></span>
+            </div>
+            <div id="qpPillStrip" style="
+                display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;
+                scrollbar-width:none;min-height:38px;align-items:center;
+            "></div>
         </div>
     </div>
 
@@ -2930,7 +2947,7 @@
                     'btnPrevHole', 'btnHolePick', 'btnNextHole',
                     'btnPen', 'btnTapIn', 'btnFwy', 'btnGir',
                     'sdBackdrop', 'sdSheet', 'sdBody', 'btnCloseSD',
-                    'qpBackdrop', 'qpSheet', 'qpClubGrid', 'qpTypeRow', 'btnQPConfirm', 'btnCloseQP', 'btnAddShot',
+                    'qpBackdrop', 'qpSheet', 'btnCloseQP', 'btnAddShot',
                     'btnCaddy', 'btnSettings', 'btnExport', 'btnLibrary', 'btnBagHeader', 'btnNewRoundHeader',
                     'btnScorecard', 'scorecardBackdrop', 'scorecardSheet', 'btnCloseScorecard', 'scorecardContent',
                     'targetsBackdrop', 'targetsSheet', 'targetsSheetBody', 'targetsHoleLabel', 'targetsList', 'btnTargets', 'btnCloseTargets', 'btnTargetConfig',
@@ -9428,156 +9445,233 @@
         // QUICK CLUB PICKER UI
         // ============================================
 
+        // ── Rapid Shot Picker v45 ──────────────────────────────
         const QuickPickerUI = {
-            _selectedClub: null,
-            _selectedType: null,
-            _updateIdx: null,  // null = new shot, number = update existing
+            _insertAfterIdx: null,  // null = append to end; number = insert after that shot index
 
             open(updateIdx = null) {
-                this._updateIdx = updateIdx;
-                this._selectedClub = null;
-                this._selectedType = 'full';
-
-                // Pre-select current club if updating
-                if (updateIdx !== null) {
-                    const hole = State.currentHole();
-                    const shot = hole && hole.shots[updateIdx];
-                    if (shot) {
-                        this._selectedClub = shot.club !== 'Club?' ? shot.club : null;
-                        this._selectedType = shot.shotType !== 'Type?' ? shot.shotType : 'full';
-                    }
-                }
-
-                this._buildClubGrid();
-                this._buildTypeRow();
-                this._updateConfirm();
-
+                // updateIdx kept for backward compat (edit flow from shot detail)
+                // In new flow updateIdx is always null — edit goes through shot detail directly
+                this._insertAfterIdx = null;
+                this._build();
+                this._renderPills();
+                const sheet = document.getElementById('qpSheet');
+                if (sheet) sheet.classList.add('active');
                 if (UI.els.qpBackdrop) UI.els.qpBackdrop.classList.add('active');
-                if (UI.els.qpSheet)    UI.els.qpSheet.classList.add('active');
             },
 
             close() {
+                const sheet = document.getElementById('qpSheet');
+                if (sheet) sheet.classList.remove('active');
                 if (UI.els.qpBackdrop) UI.els.qpBackdrop.classList.remove('active');
-                if (UI.els.qpSheet)    UI.els.qpSheet.classList.remove('active');
+                this._insertAfterIdx = null;
+                // Full re-render so main screen reflects any adds
+                UI.render();
             },
 
-            _buildClubGrid() {
-                const grid = UI.els.qpClubGrid;
-                if (!grid) return;
-                grid.innerHTML = '';
-
-                const clubs = (State.bag.clubs || []).filter(c => c !== 'Club?');
+            // ── Build top row + partial table ──────────────────
+            _build() {
+                const clubs = (State.bag.clubs || []).filter(c => c !== 'Club?' && c !== 'Penalty');
+                const bagData = State.bag.data || {};
+                // Collect all partial types across bag (exclude 'full')
+                const allPartialTypes = new Set();
                 clubs.forEach(club => {
-                    const data = State.bag.data && State.bag.data[club];
-                    const fullDist = data && data['full'] ? data['full'].carry + 'y' : '';
-
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'qp-club-btn' + (club === this._selectedClub ? ' selected' : '');
-
-                    const name = document.createElement('div');
-                    name.className = 'qp-club-name';
-                    name.textContent = club;
-
-                    btn.appendChild(name);
-
-                    if (fullDist) {
-                        const dist = document.createElement('div');
-                        dist.className = 'qp-club-dist';
-                        dist.textContent = fullDist;
-                        btn.appendChild(dist);
-                    }
-
-                    btn.addEventListener('click', () => {
-                        this._selectedClub = club;
-                        // Default shot type to full if available, else first available
-                        const types = this._getTypesForClub(club);
-                        if (types.includes('full')) {
-                            this._selectedType = 'full';
-                        } else if (types.length > 0) {
-                            this._selectedType = types[0];
-                        }
-                        this._buildClubGrid();
-                        this._buildTypeRow();
-                        this._updateConfirm();
-                    });
-
-                    grid.appendChild(btn);
+                    const types = Object.keys(bagData[club] || {}).filter(t => t !== 'full' && t !== 'Type?');
+                    types.forEach(t => allPartialTypes.add(t));
                 });
+                const partialTypes = [...allPartialTypes];
+
+                this._buildFullRow(clubs, bagData);
+                this._buildPartialTable(clubs, bagData, partialTypes);
             },
 
-            _getTypesForClub(club) {
-                const data = State.bag.data && State.bag.data[club];
-                if (!data) return ['full'];
-                const types = Object.keys(data).filter(t => t !== 'Type?');
-                return types.length ? types : ['full'];
-            },
-
-            _buildTypeRow() {
-                const row = UI.els.qpTypeRow;
+            _buildFullRow(clubs, bagData) {
+                const row = document.getElementById('qpFullRow');
                 if (!row) return;
                 row.innerHTML = '';
 
-                if (!this._selectedClub) return;
+                // Putt first
+                const puttBtn = document.createElement('button');
+                puttBtn.type = 'button';
+                puttBtn.className = 'rsp-full-btn putt-btn';
+                puttBtn.textContent = 'Putt';
+                puttBtn.addEventListener('click', () => this._addShot('pt', 'putt'));
+                row.appendChild(puttBtn);
 
-                const types = this._getTypesForClub(this._selectedClub);
-                // Ensure selected type is valid for this club
-                if (!types.includes(this._selectedType)) {
-                    this._selectedType = types.includes('full') ? 'full' : types[0];
-                }
-
-                types.forEach(type => {
+                // One button per club (full shot)
+                clubs.forEach(club => {
+                    const data = bagData[club] || {};
+                    if (!data['full'] && !Object.keys(data).length) return;
+                    const carry = data['full'] ? data['full'].carry : null;
                     const btn = document.createElement('button');
                     btn.type = 'button';
-                    btn.className = 'qp-type-btn' +
-                        (type === 'full' ? ' full-type' : '') +
-                        (type === this._selectedType ? ' selected' : '');
-                    btn.textContent = type;
-                    btn.addEventListener('click', () => {
-                        this._selectedType = type;
-                        this._buildTypeRow();
-                        this._updateConfirm();
-                    });
+                    btn.className = 'rsp-full-btn club-full-btn';
+                    btn.innerHTML = carry
+                        ? `<span style="font-size:0.78rem;font-weight:900;">${club}</span><span style="font-size:0.6rem;color:var(--text-muted);display:block;">${carry}y</span>`
+                        : club;
+                    btn.addEventListener('click', () => this._addShot(club, 'full'));
                     row.appendChild(btn);
                 });
             },
 
-            _updateConfirm() {
-                const btn = UI.els.btnQPConfirm;
-                if (!btn) return;
-                const ready = !!this._selectedClub && !!this._selectedType;
-                btn.disabled = !ready;
-                if (ready) {
-                    btn.textContent = this._updateIdx !== null
-                        ? `Update · ${this._selectedClub} ${this._selectedType !== 'full' ? '· ' + this._selectedType : ''}`
-                        : `Add · ${this._selectedClub} ${this._selectedType !== 'full' ? '· ' + this._selectedType : ''}`;
+            _buildPartialTable(clubs, bagData, partialTypes) {
+                const wrap = document.getElementById('qpPartialTable');
+                if (!wrap) return;
+                if (!partialTypes.length) { wrap.innerHTML = ''; return; }
+
+                const table = document.createElement('table');
+                table.className = 'rsp-table';
+
+                // Header row
+                const thead = document.createElement('thead');
+                const hrow = document.createElement('tr');
+                const cornerTh = document.createElement('th');
+                cornerTh.className = 'rsp-th-club';
+                cornerTh.textContent = 'Club';
+                hrow.appendChild(cornerTh);
+                partialTypes.forEach(type => {
+                    const th = document.createElement('th');
+                    th.className = 'rsp-th';
+                    th.textContent = type;
+                    hrow.appendChild(th);
+                });
+                thead.appendChild(hrow);
+                table.appendChild(thead);
+
+                // One row per club
+                const tbody = document.createElement('tbody');
+                clubs.forEach(club => {
+                    const data = bagData[club] || {};
+                    const clubPartials = partialTypes.filter(t => data[t]);
+                    if (!clubPartials.length) return; // skip clubs with no partials
+
+                    const tr = document.createElement('tr');
+                    const clubTd = document.createElement('td');
+                    clubTd.className = 'rsp-td-club';
+                    clubTd.textContent = club;
+                    tr.appendChild(clubTd);
+
+                    partialTypes.forEach(type => {
+                        const td = document.createElement('td');
+                        td.className = 'rsp-td';
+                        if (data[type]) {
+                            const carry = data[type].carry;
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'rsp-cell-btn';
+                            btn.innerHTML = carry ? `${type}<span style="display:block;font-size:0.58rem;color:var(--text-muted);font-weight:400;">${carry}y</span>` : type;
+                            btn.addEventListener('click', () => this._addShot(club, type));
+                            td.appendChild(btn);
+                        }
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                wrap.innerHTML = '';
+                wrap.appendChild(table);
+            },
+
+            // ── Add shot at correct position ───────────────────
+            _addShot(club, shotType) {
+                const hole = State.currentHole();
+                if (!hole) return;
+                const isPutt = shotType === 'putt';
+                const shot = {
+                    club: club,
+                    shotType: shotType,
+                    distance: 0, targetDistance: 0, actualDistance: null,
+                    penalty: false, position: null,
+                    positionPending: !isPutt,
+                    timestamp: Utils.nowISO(),
+                    targetId: null, targetPoint: null, targetGPS: null,
+                    targetYards: null, targetCategory: null, targetAbbrev: null,
+                };
+
+                if (this._insertAfterIdx !== null && this._insertAfterIdx < hole.shots.length) {
+                    // Insert after selected pill
+                    hole.shots.splice(this._insertAfterIdx + 1, 0, shot);
+                    this._insertAfterIdx = this._insertAfterIdx + 1; // advance insert point
                 } else {
-                    btn.textContent = 'Select a club';
+                    // Append to end
+                    hole.shots.push(shot);
+                    this._insertAfterIdx = hole.shots.length - 1;
+                }
+
+                State.save();
+                this._renderPills();
+
+                // Haptic if available
+                if (navigator.vibrate) navigator.vibrate(30);
+            },
+
+            // ── Pill strip ─────────────────────────────────────
+            _renderPills() {
+                const strip = document.getElementById('qpPillStrip');
+                const countEl = document.getElementById('qpShotCount');
+                const hintEl = document.getElementById('qpInsertHint');
+                if (!strip) return;
+
+                const hole = State.currentHole();
+                const shots = (hole && hole.shots) || [];
+                strip.innerHTML = '';
+
+                if (countEl) countEl.textContent = shots.length ? '(' + shots.length + ')' : '';
+                if (hintEl) hintEl.textContent = this._insertAfterIdx !== null
+                    ? '↑ inserting after S' + (this._insertAfterIdx + 1)
+                    : 'tap pill to set insert point';
+
+                shots.forEach((s, i) => {
+                    const pill = document.createElement('div');
+                    const isInsert = i === this._insertAfterIdx;
+                    const isPutt = (s.shotType || '').toLowerCase() === 'putt';
+                    pill.className = 'rsp-pill' +
+                        (isInsert ? ' insert-pt' : '') +
+                        (isPutt ? ' putt-pill' : '');
+
+                    const label = isPutt ? 'Putt' :
+                        (s.club !== 'Club?' ? s.club : '?') +
+                        (s.shotType && s.shotType !== 'full' ? '/' + s.shotType : '');
+
+                    pill.innerHTML =
+                        `<span class="rsp-pill-num">S${i+1}</span>` +
+                        `<span>${label}</span>` +
+                        `<span class="rsp-pill-del">✕</span>`;
+
+                    // Tap pill body = set insert point
+                    pill.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('rsp-pill-del')) {
+                            // Delete this shot
+                            if (hole) {
+                                hole.shots.splice(i, 1);
+                                State.save();
+                                // Adjust insert idx
+                                if (this._insertAfterIdx !== null) {
+                                    if (this._insertAfterIdx >= i) {
+                                        this._insertAfterIdx = Math.max(null, this._insertAfterIdx - 1);
+                                        if (this._insertAfterIdx < 0) this._insertAfterIdx = null;
+                                    }
+                                }
+                                this._renderPills();
+                            }
+                        } else {
+                            // Toggle insert point
+                            this._insertAfterIdx = (this._insertAfterIdx === i) ? null : i;
+                            this._renderPills();
+                        }
+                    });
+
+                    strip.appendChild(pill);
+                });
+
+                // Auto-scroll to end if appending
+                if (this._insertAfterIdx === null || this._insertAfterIdx === shots.length - 1) {
+                    strip.scrollLeft = strip.scrollWidth;
                 }
             },
 
-            confirm() {
-                if (!this._selectedClub || !this._selectedType) return;
-
-                if (this._updateIdx !== null) {
-                    // Update existing shot
-                    const hole = State.currentHole();
-                    if (hole && hole.shots[this._updateIdx]) {
-                        hole.shots[this._updateIdx].club     = this._selectedClub;
-                        hole.shots[this._updateIdx].shotType = this._selectedType;
-                        State.save();
-                        UI.render();
-                    }
-                } else {
-                    // Add new shot
-                    Actions.addShot({
-                        club:     this._selectedClub,
-                        shotType: this._selectedType
-                    });
-                }
-
-                this.close();
-            }
+            // Kept for backward compat (edit from shot detail uses this)
+            confirm() { this.close(); }
         };
 
         const HolePickerUI = {
@@ -10312,7 +10406,6 @@
                 this.on('sdBackdrop',    'click', () => ShotDetailUI.close());
                 this.on('btnAddShot',    'click', () => QuickPickerUI.open());
                 this.on('btnCloseQP',    'click', () => QuickPickerUI.close());
-                this.on('btnQPConfirm',  'click', () => QuickPickerUI.confirm());
                 this.on('qpBackdrop',    'click', () => QuickPickerUI.close());
                 this.on('btnLibrary', 'click', () => LibraryUI.open());
                 this.on('btnCloseLibrary', 'click', () => LibraryUI.close());
