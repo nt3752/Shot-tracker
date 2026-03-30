@@ -3234,26 +3234,27 @@
                     distInput.placeholder = isPuttShot ? 'ft' : 'y';
                 }
 
-                // Track focus to keep input open
-                distInput.addEventListener('focus', () => {
-                    distInput.dataset.editing = 'true';
-                    UI.editingLock = true;
-                    distInput.select();
-                });
-
-                distInput.addEventListener('blur', () => {
-                    setTimeout(() => {
-                        delete distInput.dataset.editing;
-                        UI.editingLock = false;
-                    }, 300);
-                });
-
-                distInput.addEventListener('change', () => {
-                    if (distInput.readOnly) return;
-                    const val = Utils.saneYards(distInput.value);
-                    shot.distance = val !== null ? val : (shot.distance || 0);
-                    State.save();
-                });
+                // For putts: tapping the inline distance field opens Shot Detail
+                // and immediately focuses sdPuttDist above the keyboard
+                if (isPuttShot) {
+                    distInput.addEventListener('focus', (function(capturedIdx) {
+                        return function() {
+                            this.blur(); // prevent inline keyboard
+                            ShotDetailUI.openAndFocusPuttDist(capturedIdx);
+                        };
+                    })(idx));
+                } else {
+                    // Non-putt: tapping distance field opens shot detail without keyboard
+                    distInput.readOnly = true;
+                    distInput.style.cursor = 'pointer';
+                    distInput.addEventListener('click', (function(capturedIdx) {
+                        return function(e) {
+                            e.stopPropagation();
+                            document.activeElement && document.activeElement.blur();
+                            ShotDetailUI.open(capturedIdx);
+                        };
+                    })(idx));
+                }
 
                 // Add unit label
                 const unitLabel = document.createElement('span');
@@ -9324,6 +9325,25 @@
                 if (UI.els.sdSheet)    UI.els.sdSheet.classList.add('active');
             },
 
+            // Open sheet for a putt and immediately focus the distance input
+            // so keyboard appears with the input visible above it
+            openAndFocusPuttDist(idx) {
+                this._idx = idx;
+                this._render();
+                if (UI.els.sdBackdrop) UI.els.sdBackdrop.classList.add('active');
+                if (UI.els.sdSheet)    UI.els.sdSheet.classList.add('active');
+                // Delay focus until sheet animation completes and DOM is ready
+                setTimeout(() => {
+                    const input = document.getElementById('sdPuttDist');
+                    if (!input) return;
+                    // Scroll sheet body so input is near top, above keyboard
+                    const body = input.closest('.sheet-body');
+                    if (body) body.scrollTop = 0;
+                    input.focus();
+                    input.select();
+                }, 120);
+            },
+
             close() {
                 if (UI.els.sdBackdrop) UI.els.sdBackdrop.classList.remove('active');
                 if (UI.els.sdSheet) {
@@ -9356,7 +9376,7 @@
                             value="${shot.distance > 0 ? shot.distance : ''}"
                             placeholder="ft"
                             style="width:80px;height:44px;font-size:1rem;font-weight:700;font-family:var(--font-mono);text-align:center;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:#ffffff;color:var(--text-primary);padding:0 8px;"
-                            onfocus="this.select();setTimeout(function(){var el=this;el.scrollIntoView({behavior:'smooth',block:'center'});var sb=el.closest('.sheet-body');if(sb)sb.scrollTop=sb.scrollHeight;}.bind(this),400)"
+                            onfocus="this.select();"
                             oninput="(function(){var v=parseInt(this.value);var s=State.currentHole().shots[ShotDetailUI._idx];if(s&&!isNaN(v)){s.distance=v;State.save();UI.renderShots();}}).call(this)"
                           > <span style="font-size:0.8rem;color:var(--text-muted);">ft</span>`
                     : shot.actualDistance > 0
