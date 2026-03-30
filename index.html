@@ -1526,7 +1526,7 @@
                     padding:12px 16px 10px;border-bottom:1px solid var(--border);
                     flex-shrink:0;background:var(--bg-card);">
             <div style="font-size:0.7rem;font-weight:900;text-transform:uppercase;
-                        letter-spacing:1.5px;color:var(--text-muted);">Add Shots</div>
+                        letter-spacing:1.5px;color:var(--text-muted);" id="qpSheetTitle">Add Shots</div>
             <button id="btnCloseQP" type="button"
                 style="background:var(--bg-card-light);border:1.5px solid var(--border-strong);
                        color:var(--text-primary);border-radius:var(--radius-sm);
@@ -9483,13 +9483,29 @@
         // ── Rapid Shot Picker v45 ──────────────────────────────
         const QuickPickerUI = {
             _insertAfterIdx: null,  // null = append to end; number = insert after that shot index
+            _updateIdx: null,       // non-null = update existing shot at this index
 
             open(updateIdx = null) {
-                // updateIdx kept for backward compat (edit flow from shot detail)
-                // In new flow updateIdx is always null — edit goes through shot detail directly
+                if (updateIdx !== null) {
+                    // UPDATE MODE — just update club/type on existing shot, no new shot added
+                    this._updateIdx = updateIdx;
+                    this._insertAfterIdx = null;
+                    this._build();
+                    this._renderPillsOrUpdateHint();
+                    const title = document.getElementById('qpSheetTitle');
+                    if (title) title.textContent = 'Change Shot #' + (updateIdx + 1);
+                    const sheet = document.getElementById('qpSheet');
+                    if (sheet) sheet.classList.add('active');
+                    if (UI.els.qpBackdrop) UI.els.qpBackdrop.classList.add('active');
+                    return;
+                }
+                // ADD MODE — normal rapid-fire screen
+                this._updateIdx = null;
                 this._insertAfterIdx = null;
                 this._build();
                 this._renderPills();
+                const title = document.getElementById('qpSheetTitle');
+                if (title) title.textContent = 'Add Shots';
                 const sheet = document.getElementById('qpSheet');
                 if (sheet) sheet.classList.add('active');
                 if (UI.els.qpBackdrop) UI.els.qpBackdrop.classList.add('active');
@@ -9500,8 +9516,31 @@
                 if (sheet) sheet.classList.remove('active');
                 if (UI.els.qpBackdrop) UI.els.qpBackdrop.classList.remove('active');
                 this._insertAfterIdx = null;
-                // Full re-render so main screen reflects any adds
+                this._updateIdx = null;
+                // Full re-render so main screen reflects any changes
                 UI.render();
+            },
+
+            // In update mode show a hint instead of the pill strip
+            _renderPillsOrUpdateHint() {
+                if (this._updateIdx !== null) {
+                    const hole = State.currentHole();
+                    const shot = hole && hole.shots[this._updateIdx];
+                    const strip = document.getElementById('qpPillStrip');
+                    const countEl = document.getElementById('qpShotCount');
+                    const hintEl = document.getElementById('qpInsertHint');
+                    if (countEl) countEl.textContent = '';
+                    if (hintEl) hintEl.textContent = 'Tap a button to update Shot #' + (this._updateIdx + 1);
+                    if (strip) {
+                        strip.innerHTML = shot
+                            ? `<div style="padding:4px 10px;border-radius:20px;border:1.5px solid var(--green-500);background:rgba(39,160,111,0.12);font-size:0.75rem;font-weight:700;font-family:var(--font-mono);color:var(--green-500);">
+                                Currently: ${shot.club !== 'Club?' ? shot.club : '?'}${shot.shotType && shot.shotType !== 'full' ? '/' + shot.shotType : ''}
+                               </div>`
+                            : '';
+                    }
+                } else {
+                    this._renderPills();
+                }
             },
 
             // ── Build top row + partial table ──────────────────
@@ -9602,6 +9641,22 @@
             _addShot(club, shotType) {
                 const hole = State.currentHole();
                 if (!hole) return;
+
+                // UPDATE MODE — just change club/type on existing shot and close
+                if (this._updateIdx !== null) {
+                    const shot = hole.shots[this._updateIdx];
+                    if (shot) {
+                        shot.club = club;
+                        shot.shotType = shotType;
+                        shot.positionPending = shotType.toLowerCase() !== 'putt';
+                        State.save();
+                    }
+                    this.close();
+                    if (navigator.vibrate) navigator.vibrate(30);
+                    return;
+                }
+
+                // ADD MODE — create new shot
                 const isPutt = shotType === 'putt';
                 const shot = {
                     club: club,
@@ -9615,11 +9670,9 @@
                 };
 
                 if (this._insertAfterIdx !== null && this._insertAfterIdx < hole.shots.length) {
-                    // Insert after selected pill
                     hole.shots.splice(this._insertAfterIdx + 1, 0, shot);
-                    this._insertAfterIdx = this._insertAfterIdx + 1; // advance insert point
+                    this._insertAfterIdx = this._insertAfterIdx + 1;
                 } else {
-                    // Append to end
                     hole.shots.push(shot);
                     this._insertAfterIdx = hole.shots.length - 1;
                 }
@@ -9627,7 +9680,6 @@
                 State.save();
                 this._renderPills();
 
-                // Haptic if available
                 if (navigator.vibrate) navigator.vibrate(30);
             },
 
