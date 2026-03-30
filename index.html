@@ -9489,14 +9489,6 @@
                 if (!row) return;
                 row.innerHTML = '';
 
-                // Putt first
-                const puttBtn = document.createElement('button');
-                puttBtn.type = 'button';
-                puttBtn.className = 'rsp-full-btn putt-btn';
-                puttBtn.textContent = 'Putt';
-                puttBtn.addEventListener('click', () => this._addShot('pt', 'putt'));
-                row.appendChild(puttBtn);
-
                 // One button per club (full shot)
                 clubs.forEach(club => {
                     const data = bagData[club] || {};
