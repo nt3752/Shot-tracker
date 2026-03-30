@@ -9597,6 +9597,8 @@
 
             // ── Add shot at correct position ───────────────────
             _addShot(club, shotType) {
+                // Putter always records as shotType 'putt' regardless of which type button was tapped
+                if ((club || '').toLowerCase() === 'putter') shotType = 'putt';
                 const hole = State.currentHole();
                 if (!hole) return;
 
