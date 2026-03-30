@@ -1966,7 +1966,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = 'v44.0';
+        const VERSION = '46.0';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -2753,7 +2753,8 @@
                     targets: [],
                     elevationProfile: [],
                     plan: [],
-                    shots: []
+                    shots: [],
+                    marks: []   // [{lat, lon, timestamp}] — independent GPS captures
                 }));
             },
             
@@ -3101,10 +3102,11 @@
                     this.els.btnFlag.classList.remove('btn-pending');
                 }
                 
-                // v40.2: Mark button - AMBER when there are pending shots waiting to be marked
+                // Mark button — show count of marks captured this hole
                 if (this.els.btnMark) {
-                    const hasPendingShots = hole.shots.some(s => s.positionPending);
-                    this.els.btnMark.classList.toggle('btn-pending', hasPendingShots);
+                    const markCount = (hole.marks || []).length;
+                    this.els.btnMark.textContent = markCount > 0 ? `📍 Mark (${markCount})` : '📍 Mark';
+                    this.els.btnMark.classList.remove('btn-pending');
                 }
                 
                 // Fairway toggle — disabled on par 3 (no fairway)
@@ -3263,11 +3265,11 @@
                 unitLabel.style.color = 'var(--text-muted)';
                 unitLabel.textContent = isPuttShot ? 'ft' : 'y';
                 
-                // Position indicator
+                // Position indicator — 📍 if GPS assigned, blank otherwise
                 const posIndicator = document.createElement('span');
                 posIndicator.style.fontSize = '1.2rem';
-                posIndicator.title = shot.positionPending ? 'Awaiting Mark Landing' : (shot.position ? 'GPS recorded' : 'No GPS');
-                posIndicator.textContent = shot.positionPending ? '⏳' : (shot.position ? '📍' : '');
+                posIndicator.title = shot.position ? 'GPS assigned' : 'No GPS';
+                posIndicator.textContent = shot.position ? '📍' : '';
                 
                 if (shot.penalty) {
                     const penaltyLabel = document.createElement('span');
@@ -3442,10 +3444,10 @@
                     shotType: options.shotType || 'full',
                     distance: distance || 0,
                     targetDistance: distance || 0,  // What they aimed for
-                    actualDistance: null,  // Calculated after marking landing
+                    actualDistance: null,
                     penalty: !!options.penalty,
                     position: null,
-                    positionPending: !isPutt,  // putts never need Mark Landing
+                    positionPending: false,  // GPS assigned post-round in Mapper
                     timestamp: Utils.nowISO(),
                     // Target reference (v41.15) — null if manual yardage entered
                     targetId:       (pendingMeta && pendingMeta.targetId)       || options.targetId       || null,
@@ -3467,7 +3469,7 @@
                 
                 State.save();
                 UI.render();
-                Utils.toast(isPutt ? 'Putt recorded' : 'Shot added - Mark landing when you reach the ball');
+                Utils.toast(isPutt ? 'Putt recorded' : 'Shot added');
             },
             
             addPenalty() {
@@ -3536,98 +3538,25 @@
             markLanding() {
                 const hole = State.currentHole();
                 const currentPos = GPS.getCurrentPosition();
-                
+
                 if (!currentPos) {
                     Utils.toast('No GPS signal');
                     return;
                 }
-                
-                const gps = { lat: currentPos.lat, lon: currentPos.lon };
-                
-                // --- Check for pending shots (FIFO - mark FIRST pending) ---
-                const pendingShots = hole.shots.filter(s => s.positionPending);
-                const firstPending = hole.shots.find(s => s.positionPending);
-                
-                if (firstPending) {
-                    // Find index of this shot to calculate distance from previous
-                    const shotIndex = hole.shots.indexOf(firstPending);
-                    
-                    // Update with GPS position
-                    firstPending.position = gps;
-                    firstPending.positionPending = false;
-                    
-                    // Calculate actual distance from previous shot or tee
-                    const prevShot = shotIndex > 0 ? hole.shots[shotIndex - 1] : null;
-                    const prevPos = prevShot ? prevShot.position : hole.tee;
-                    
-                    if (prevPos) {
-                        const dist = Utils.distanceYards(prevPos, currentPos);
-                        if (dist !== null) firstPending.actualDistance = dist;
-                    }
-                    
-                    State.save();
-                    UI.render();
-                    
-                    // Toast with count of remaining pending shots
-                    const remainingCount = pendingShots.length - 1;
-                    const msg = remainingCount > 0 
-                        ? `Shot #${shotIndex + 1} marked ✅ (${remainingCount} more pending)`
-                        : `Shot #${shotIndex + 1} marked ✅`;
-                    Utils.toast(msg);
-                    return;
-                }
-                
-                // --- No pending shot: check if tee is set ---
-                if (!hole.tee) {
-                    // Option B: treat this as setting tee + recording shot #1
-                    hole.tee = gps;
-                    State.saveTeeToLibrary(State.holeIndex, gps);
-                    
-                    const shot = {
-                        club: 'Club?',
-                        shotType: 'Type?',
-                        distance: 0,
-                        targetDistance: 0,
-                        actualDistance: 0,
-                        penalty: false,
-                        position: gps,
-                        positionPending: false,
-                        timestamp: Utils.nowISO()
-                    };
-                    hole.shots.push(shot);
-                    
-                    State.save();
-                    UI.render();
-                    Utils.toast('Tee set → Shot #1 recorded. Enter distance manually.');
-                    return;
-                }
-                
-                // --- Normal case: create new shot at landing position ---
-                // Get previous position (last shot or tee)
-                const shots = hole.shots;
-                const prevPos = shots.length > 0 
-                    ? shots[shots.length - 1].position 
-                    : hole.tee;
-                
-                const dist = prevPos ? Utils.distanceYards(prevPos, currentPos) : 0;
-                
-                const shot = {
-                    club: 'Club?',
-                    shotType: 'Type?',
-                    distance: dist || 0,
-                    targetDistance: null,
-                    actualDistance: dist || 0,
-                    penalty: false,
-                    position: gps,
-                    positionPending: false,
+
+                // Silent capture — store mark independently, no shot assignment
+                if (!hole.marks) hole.marks = [];
+                hole.marks.push({
+                    lat: currentPos.lat,
+                    lon: currentPos.lon,
                     timestamp: Utils.nowISO()
-                };
-                
-                hole.shots.push(shot);
-                
+                });
+
                 State.save();
-                UI.render();
-                Utils.toast('Shot recorded 📍' + (dist ? ' · ' + dist + 'y' : ''));
+
+                // Minimal silent feedback — just a count
+                const count = hole.marks.length;
+                Utils.toast('📍 Mark ' + count + ' saved');
             },
             
             // Pre-populate planned shots from course plan data
@@ -9386,11 +9315,9 @@
                             : '<span style="font-size:0.8rem;color:var(--text-muted);">— no GPS</span>';
 
                 // GPS status
-                const gpsStatus = shot.positionPending
-                    ? '⏳ Pending'
-                    : shot.position
-                        ? '📍 Marked'
-                        : '— Not marked';
+                const gpsStatus = shot.position
+                    ? '📍 Assigned'
+                    : '— Not assigned';
 
                 body.innerHTML = `
                 <div style="background:var(--bg-card-light);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-3);display:flex;align-items:center;justify-content:space-between;">
