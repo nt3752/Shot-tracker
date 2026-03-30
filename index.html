@@ -2995,7 +2995,8 @@
                     'btnStartRound', 'roundBagSelect', 'roundCourseSelect',
                     'btnVoice', 'voiceFeedback', 'vfStatus', 'vfTranscript', 'vfResult',
                     'voiceLogBackdrop', 'voiceLogSheet', 'voiceLogBody', 'voiceVocabBody',
-                    'btnCloseVoiceLog', 'btnClearVoiceLog', 'btnVoiceTabLog', 'btnVoiceTabVocab'
+                    'btnCloseVoiceLog', 'btnClearVoiceLog', 'btnVoiceTabLog', 'btnVoiceTabVocab',
+                    'markListBackdrop', 'markListSheet', 'markListBody', 'btnCloseMarkList'
                 ];
                 
                 ids.forEach(id => {
@@ -3553,6 +3554,7 @@
                 });
 
                 State.save();
+                UI.renderButtons();
 
                 // Minimal silent feedback — just a count
                 const count = hole.marks.length;
@@ -9679,6 +9681,90 @@
             confirm() { this.close(); }
         };
 
+        // ── Mark List UI ────────────────────────────────────
+        const MarkListUI = {
+            open() {
+                this._render();
+                if (UI.els.markListBackdrop) UI.els.markListBackdrop.classList.add('active');
+                if (UI.els.markListSheet)    UI.els.markListSheet.classList.add('active');
+            },
+
+            close() {
+                if (UI.els.markListBackdrop) UI.els.markListBackdrop.classList.remove('active');
+                if (UI.els.markListSheet)    UI.els.markListSheet.classList.remove('active');
+            },
+
+            deleteMark(idx) {
+                const hole = State.currentHole();
+                if (!hole || !hole.marks) return;
+                hole.marks.splice(idx, 1);
+                State.save();
+                UI.renderButtons();
+                this._render();
+                if (!hole.marks.length) this.close();
+            },
+
+            clearAll() {
+                const hole = State.currentHole();
+                if (!hole) return;
+                if (!confirm('Delete all ' + (hole.marks || []).length + ' marks for this hole?')) return;
+                hole.marks = [];
+                State.save();
+                UI.renderButtons();
+                this.close();
+            },
+
+            _render() {
+                const body = UI.els.markListBody;
+                if (!body) return;
+                const hole = State.currentHole();
+                const marks = (hole && hole.marks) || [];
+
+                if (!marks.length) {
+                    body.innerHTML = '<div style="padding:var(--space-4);text-align:center;color:var(--text-muted);font-size:0.85rem;">No marks for this hole</div>';
+                    return;
+                }
+
+                const rows = marks.map((m, i) => {
+                    const t = new Date(m.timestamp);
+                    const timeStr = t.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+                    const latStr = m.lat.toFixed(5);
+                    const lonStr = m.lon.toFixed(5);
+                    return `<div style="display:flex;align-items:center;gap:var(--space-2);
+                                        padding:var(--space-3) var(--space-4);
+                                        border-bottom:1px solid var(--border);">
+                        <div style="font-size:0.8rem;font-weight:700;font-family:var(--font-mono);
+                                    color:var(--text-muted);min-width:28px;">M${i+1}</div>
+                        <div style="flex:1;">
+                            <div style="font-size:0.85rem;font-weight:700;color:var(--text-primary);
+                                        font-family:var(--font-mono);">${timeStr}</div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);
+                                        font-family:var(--font-mono);margin-top:1px;">
+                                ${latStr}, ${lonStr}
+                            </div>
+                        </div>
+                        <button type="button" onclick="MarkListUI.deleteMark(${i})"
+                            style="font-size:0.85rem;padding:6px 10px;border-radius:var(--radius-sm);
+                                   border:1px solid var(--border-strong);background:var(--bg-card-light);
+                                   color:var(--red);cursor:pointer;flex-shrink:0;">✕</button>
+                    </div>`;
+                }).join('');
+
+                const clearBtn = marks.length > 1
+                    ? `<div style="padding:var(--space-3) var(--space-4);">
+                        <button type="button" onclick="MarkListUI.clearAll()"
+                            style="width:100%;padding:12px;border-radius:var(--radius-md);
+                                   border:1.5px solid var(--red);background:rgba(230,69,69,0.08);
+                                   color:var(--red);font-size:0.85rem;font-weight:700;cursor:pointer;">
+                            🗑 Clear All ${marks.length} Marks
+                        </button>
+                       </div>`
+                    : '';
+
+                body.innerHTML = rows + clearBtn;
+            }
+        };
+
         const HolePickerUI = {
             init() {
                 // Grid built on open() so data is fresh; update button state now
@@ -10177,7 +10263,38 @@
                 // Tee / Flag / Shot / Mark
                 this.on('btnTee', 'click', () => Actions.toggleTee());
                 this.on('btnFlag', 'click', () => Actions.toggleFlag());
-                this.on('btnMark', 'click', () => Actions.markLanding());
+
+                // Mark button: short tap = capture, long press = show list
+                (function() {
+                    const btn = document.getElementById('btnMark');
+                    if (!btn) return;
+                    let pressTimer = null;
+                    let longPressed = false;
+
+                    const startPress = () => {
+                        longPressed = false;
+                        pressTimer = setTimeout(() => {
+                            longPressed = true;
+                            MarkListUI.open();
+                            if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+                        }, 500);
+                    };
+
+                    const endPress = () => {
+                        clearTimeout(pressTimer);
+                    };
+
+                    btn.addEventListener('touchstart', startPress, {passive: true});
+                    btn.addEventListener('touchend', endPress);
+                    btn.addEventListener('touchcancel', endPress);
+                    btn.addEventListener('mousedown', startPress);
+                    btn.addEventListener('mouseup', endPress);
+                    btn.addEventListener('mouseleave', endPress);
+
+                    btn.addEventListener('click', () => {
+                        if (!longPressed) Actions.markLanding();
+                    });
+                })();
                 
                 // Navigation
                 this.on('btnPrevHole', 'click', () => Actions.prevHole());
@@ -10404,7 +10521,9 @@
                 this.on('btnCloseScorecard', 'click', () => ScorecardUI.close());
                 this.on('scorecardBackdrop', 'click', () => ScorecardUI.close());
                 this.on('btnNewRound', 'click', () => RoundSetupUI.open());
-                this.on('btnCancelRound', 'click', () => RoundSetupUI.close());
+                this.on('btnCancelRound',   'click', () => RoundSetupUI.close());
+                this.on('btnCloseMarkList', 'click', () => MarkListUI.close());
+                this.on('markListBackdrop', 'click', () => MarkListUI.close());
                 this.on('btnStartRound', 'click', () => RoundSetupUI.startRound());
                 this.on('btnWakeLock',   'click', () => WakeLock.toggle());
                 this.on('btnCloseSD',    'click', () => ShotDetailUI.close());
@@ -11338,6 +11457,18 @@
         <div class="sheet-body" id="voiceVocabBody" style="padding:var(--space-4);display:none;">
             <p style="font-size:0.8rem;color:var(--text-muted);">Open to refresh vocab.</p>
         </div>
+    </div>
+
+    <!-- MARK LIST SHEET -->
+    <div class="backdrop" id="markListBackdrop"></div>
+    <div class="sheet" id="markListSheet" role="dialog" aria-modal="true">
+        <div class="sheet-header">
+            <h3 class="sheet-title">GPS Marks</h3>
+            <div class="sheet-actions">
+                <button class="btn btn-sm btn-secondary" id="btnCloseMarkList" type="button">Done</button>
+            </div>
+        </div>
+        <div class="sheet-body" id="markListBody"></div>
     </div>
 
 </body>
