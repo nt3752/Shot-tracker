@@ -2479,6 +2479,21 @@
 
             window.visualViewport.addEventListener('resize', onViewportResize);
             document.addEventListener('focusout', onFocusOut);
+
+            // Belt-and-suspenders: when sdPuttDist is focused (dynamically rendered),
+            // explicitly shift sdSheet up once keyboard height is known
+            document.addEventListener('focusin', function(e) {
+                if (!e.target || e.target.id !== 'sdPuttDist') return;
+                setTimeout(function() {
+                    var vv = window.visualViewport;
+                    if (!vv) return;
+                    var keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+                    if (keyboardHeight > 80) {
+                        var sheet = document.querySelector('#sdSheet.active');
+                        if (sheet) shiftSheet(sheet, keyboardHeight);
+                    }
+                }, 350);
+            });
         })();
 
         // GPS MANAGER
@@ -9341,7 +9356,7 @@
                             value="${shot.distance > 0 ? shot.distance : ''}"
                             placeholder="ft"
                             style="width:80px;height:44px;font-size:1rem;font-weight:700;font-family:var(--font-mono);text-align:center;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:#ffffff;color:var(--text-primary);padding:0 8px;"
-                            onfocus="this.select();setTimeout(function(){this.scrollIntoView({behavior:'smooth',block:'center'});}.bind(this),300)"
+                            onfocus="this.select();setTimeout(function(){var el=this;el.scrollIntoView({behavior:'smooth',block:'center'});var sb=el.closest('.sheet-body');if(sb)sb.scrollTop=sb.scrollHeight;}.bind(this),400)"
                             oninput="(function(){var v=parseInt(this.value);var s=State.currentHole().shots[ShotDetailUI._idx];if(s&&!isNaN(v)){s.distance=v;State.save();UI.renderShots();}}).call(this)"
                           > <span style="font-size:0.8rem;color:var(--text-muted);">ft</span>`
                     : shot.actualDistance > 0
