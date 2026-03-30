@@ -2494,6 +2494,14 @@
                     }
                 }, 350);
             });
+
+            // Scroll inline putt distance input into view when focused
+            document.addEventListener('focusin', function(e) {
+                if (!e.target || !e.target.classList.contains('shot-input')) return;
+                setTimeout(function() {
+                    e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 350);
+            });
         })();
 
         // GPS MANAGER
@@ -3237,17 +3245,29 @@
                     distInput.placeholder = isPuttShot ? 'ft' : 'y';
                 }
 
-                // For putts: tapping the inline distance field opens Shot Detail
-                // and immediately focuses sdPuttDist above the keyboard
                 if (isPuttShot) {
-                    distInput.addEventListener('focus', (function(capturedIdx) {
-                        return function() {
-                            this.blur(); // prevent inline keyboard
-                            ShotDetailUI.openAndFocusPuttDist(capturedIdx);
-                        };
-                    })(idx));
+                    // Putt: editable inline — keyboard opens naturally from tap gesture
+                    distInput.addEventListener('focus', () => {
+                        distInput.dataset.editing = 'true';
+                        UI.editingLock = true;
+                        distInput.select();
+                    });
+                    distInput.addEventListener('blur', () => {
+                        setTimeout(() => {
+                            delete distInput.dataset.editing;
+                            UI.editingLock = false;
+                        }, 300);
+                    });
+                    distInput.addEventListener('change', () => {
+                        const val = parseInt(distInput.value);
+                        if (!isNaN(val)) {
+                            shot.distance = val;
+                            State.save();
+                        }
+                    });
+                    distInput.addEventListener('click', e => e.stopPropagation());
                 } else {
-                    // Non-putt: tapping distance field opens shot detail without keyboard
+                    // Non-putt: read-only, tap opens shot detail without keyboard
                     distInput.readOnly = true;
                     distInput.style.cursor = 'pointer';
                     distInput.addEventListener('click', (function(capturedIdx) {
