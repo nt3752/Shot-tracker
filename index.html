@@ -1160,7 +1160,19 @@
             line-height: 1; padding: 2px 4px;
             border-radius: 4px;
             display: inline-flex; align-items: center; justify-content: center;
-            min-width: 24px; min-height: 24px;
+            min-width: 28px; min-height: 28px;
+            opacity: 0.8;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .rsp-pill-del:active { opacity: 1; background: rgba(230,69,69,0.2); }
+        /* Always visible regardless of pill color variant */
+        .rsp-pill.putt-pill .rsp-pill-del,
+        .rsp-pill.insert-pt .rsp-pill-del {
+            color: var(--text-muted) !important;
+            opacity: 0.8;
         }
 
         /* ===============================================
@@ -2748,7 +2760,7 @@
                             return {
                                 club: p.club || 'Club?', shotType: p.shotType || 'full',
                                 distance: 0, targetDistance: 0, actualDistance: null,
-                                penalty: false, position: null, positionPending: (p.shotType || '').toLowerCase() !== 'putt',
+                                penalty: false, position: null, positionPending: false,
                                 timestamp: new Date().toISOString(),
                                 targetId: p.targetId || null, targetPoint: null,
                                 targetGPS: p.targetGPS || null, targetYards: null,
@@ -3179,7 +3191,7 @@
             
             createShotItem(shot, idx) {
                 const item = document.createElement('div');
-                item.className = 'shot-item' + (shot.planned && shot.positionPending ? ' planned' : '');
+                item.className = 'shot-item' + (shot.planned ? ' planned' : '');
                 item.style.cursor = 'pointer';
                 item.addEventListener('click', (function(capturedIdx) {
                     return function() { ShotDetailUI.open(capturedIdx); };
@@ -3319,10 +3331,9 @@
                     right.appendChild(posIndicator);
                 }
                 
-                // Delete button — shown for positionPending shots and always for last shot
+                // Delete button — shown on all shots
                 const _hole = State.currentHole();
-                const _isLast = idx === _hole.shots.length - 1;
-                if (shot.positionPending || _isLast) {
+                if (true) {
                     const delBtn = document.createElement('button');
                     delBtn.type = 'button';
                     delBtn.textContent = '×';
@@ -3401,7 +3412,7 @@
 
                 // Block only if at least one shot has a marked GPS position
                 // Pre-loaded shots with no position yet are safe to coexist with a tee update
-                const hasMarkedShots = hole.shots.some(s => s.position && s.position.lat && !s.positionPending);
+                const hasMarkedShots = hole.shots.some(s => s.position && s.position.lat);
                 if (hasMarkedShots) {
                     Utils.toast('Cannot change tee - shot positions already marked');
                     return;
@@ -3612,7 +3623,7 @@
                             actualDistance: null,
                             penalty:        false,
                             position:       null,
-                            positionPending: (p.shotType || '').toLowerCase() !== 'putt',
+                            positionPending: false,
                             timestamp:      Utils.nowISO(),
                             targetId:       p.targetId   || null,
                             targetPoint:    null,
@@ -3626,17 +3637,10 @@
                 });
             },
 
-            // Delete a specific shot by index — only allowed if positionPending: true
-            // Last shot is always deletable (existing behavior preserved)
+            // Delete a specific shot by index
             deleteShotByIndex(idx) {
                 const hole = State.currentHole();
                 if (!hole.shots || !hole.shots.length) return;
-                const isLast = idx === hole.shots.length - 1;
-                const shot = hole.shots[idx];
-                if (!isLast && !shot.positionPending) {
-                    Utils.toast('Cannot delete a shot with GPS already marked');
-                    return;
-                }
                 hole.shots.splice(idx, 1);
                 // Mark hole as manually cleared so preload doesn't re-add plan shots on refresh
                 if (hole.shots.length === 0) hole.manuallyCleared = true;
@@ -7100,7 +7104,6 @@
                         hole.shots.forEach(function(s, idx) {
                             if (!s.targetGPS || !s.targetGPS.lat) return;
                             if (!s.position  || !s.position.lat)  return;  // landing not yet marked
-                            if (s.positionPending) return;                  // safety: landing not resolved
                             if (s.penalty) return;
                             if ((s.shotType || '').toLowerCase() === 'putt') return;
                             if (!filterFn(s)) return;
@@ -8635,7 +8638,7 @@
                                             club: p.club || 'Club?', shotType: p.shotType || 'full',
                                             distance: 0, targetDistance: 0, actualDistance: null,
                                             penalty: false, position: null,
-                                            positionPending: (p.shotType || '').toLowerCase() !== 'putt',
+                                            positionPending: false,
                                             timestamp: new Date().toISOString(),
                                             targetId: p.targetId || null, targetPoint: null,
                                             targetGPS: p.targetGPS || null, targetYards: null,
@@ -9614,7 +9617,6 @@
                     if (shot) {
                         shot.club = club;
                         shot.shotType = shotType;
-                        shot.positionPending = shotType.toLowerCase() !== 'putt';
                         State.save();
                     }
                     this.close();
@@ -9629,7 +9631,7 @@
                     shotType: shotType,
                     distance: 0, targetDistance: 0, actualDistance: null,
                     penalty: false, position: null,
-                    positionPending: !isPutt,
+                    positionPending: false,
                     timestamp: Utils.nowISO(),
                     targetId: null, targetPoint: null, targetGPS: null,
                     targetYards: null, targetCategory: null, targetAbbrev: null,
@@ -9677,32 +9679,41 @@
                         (s.club !== 'Club?' ? s.club : '?') +
                         (s.shotType && s.shotType !== 'full' ? '/' + s.shotType : '');
 
-                    pill.innerHTML =
-                        `<span class="rsp-pill-num">S${i+1}</span>` +
-                        `<span>${label}</span>` +
-                        `<span class="rsp-pill-del">✕</span>`;
+                    // Build pill parts as DOM nodes — avoids innerHTML span detection issues
+                    const numSpan = document.createElement('span');
+                    numSpan.className = 'rsp-pill-num';
+                    numSpan.textContent = 'S' + (i + 1);
 
-                    // Tap pill body = set insert point
-                    pill.addEventListener('click', (e) => {
-                        if (e.target.classList.contains('rsp-pill-del')) {
-                            // Delete this shot
-                            if (hole) {
-                                hole.shots.splice(i, 1);
-                                State.save();
-                                // Adjust insert idx
-                                if (this._insertAfterIdx !== null) {
-                                    if (this._insertAfterIdx >= i) {
-                                        this._insertAfterIdx = Math.max(null, this._insertAfterIdx - 1);
-                                        if (this._insertAfterIdx < 0) this._insertAfterIdx = null;
-                                    }
-                                }
-                                this._renderPills();
+                    const labelSpan = document.createElement('span');
+                    labelSpan.textContent = label;
+
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'rsp-pill-del';
+                    delBtn.textContent = '✕';
+                    delBtn.setAttribute('aria-label', 'Delete shot ' + (i + 1));
+                    delBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (!hole) return;
+                        hole.shots.splice(i, 1);
+                        State.save();
+                        if (this._insertAfterIdx !== null) {
+                            if (this._insertAfterIdx >= i) {
+                                this._insertAfterIdx = this._insertAfterIdx - 1;
+                                if (this._insertAfterIdx < 0) this._insertAfterIdx = null;
                             }
-                        } else {
-                            // Toggle insert point
-                            this._insertAfterIdx = (this._insertAfterIdx === i) ? null : i;
-                            this._renderPills();
                         }
+                        this._renderPills();
+                    });
+
+                    pill.appendChild(numSpan);
+                    pill.appendChild(labelSpan);
+                    pill.appendChild(delBtn);
+
+                    // Tap pill body = toggle insert point
+                    pill.addEventListener('click', () => {
+                        this._insertAfterIdx = (this._insertAfterIdx === i) ? null : i;
+                        this._renderPills();
                     });
 
                     strip.appendChild(pill);
