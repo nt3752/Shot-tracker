@@ -2152,19 +2152,25 @@
             },
             
             // Toast notification
-            toast(message, duration = 1000) {
+            toast(message, type = '', duration = 2000) {
+                // Support old 2-arg call: toast(msg, duration) where duration is a number
+                if (typeof type === 'number') { duration = type; type = ''; }
                 try {
                     const toast = document.createElement('div');
                     toast.className = 'toast';
                     toast.textContent = message;
+                    if (type === 'err' || type === 'warn') {
+                        toast.style.background = 'rgba(220,38,38,0.95)';
+                        toast.style.borderColor = '#ef4444';
+                        toast.style.color = '#fff';
+                    } else if (type === 'ok') {
+                        toast.style.background = 'rgba(22,101,52,0.95)';
+                        toast.style.borderColor = '#22c55e';
+                        toast.style.color = '#fff';
+                    }
                     document.body.appendChild(toast);
-                    
                     setTimeout(() => {
-                        try {
-                            toast.remove();
-                        } catch (e) {
-                            // Ignore removal errors
-                        }
+                        try { toast.remove(); } catch (e) {}
                     }, duration);
                 } catch (e) {
                     console.error('Toast error:', e);
@@ -9967,6 +9973,7 @@
                         btn.style.background = 'rgba(230,69,69,0.2)';
                         btn.style.borderColor = 'rgba(230,69,69,0.6)';
                     }
+                    Utils.toast('⚠ Tap again to clear ' + totalShots + ' shots and start new round', 'warn', 3500);
                     this.confirmed = true;
                     const self = this;
                     setTimeout(function() {
