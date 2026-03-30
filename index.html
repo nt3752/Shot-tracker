@@ -9473,13 +9473,12 @@
             _build() {
                 const clubs = (State.bag.clubs || []).filter(c => c !== 'Club?' && c !== 'Penalty');
                 const bagData = State.bag.data || {};
-                // Collect all partial types across bag (exclude 'full')
-                const allPartialTypes = new Set();
-                clubs.forEach(club => {
-                    const types = Object.keys(bagData[club] || {}).filter(t => t !== 'full' && t !== 'Type?');
-                    types.forEach(t => allPartialTypes.add(t));
-                });
-                const partialTypes = [...allPartialTypes];
+                // Columns: use bag shotTypes order, exclude non-partial types,
+                // and only include types that exist in at least one club
+                const excludedTypes = new Set(['full', 'putt', 'penalty', 'Type?']);
+                const partialTypes = (State.bag.shotTypes || [])
+                    .filter(t => !excludedTypes.has(t))
+                    .filter(t => clubs.some(c => bagData[c] && bagData[c][t]));
 
                 this._buildFullRow(clubs, bagData);
                 this._buildPartialTable(clubs, bagData, partialTypes);
