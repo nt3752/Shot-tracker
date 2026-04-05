@@ -1415,13 +1415,13 @@
 
         /* Club + shot type combined line */
         .gp-club-combo {
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: #27a06f;
-            letter-spacing: 0.2px;
+            font-size: 1.45rem;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: -0.5px;
             line-height: 1;
         }
-        .gp-club-btn.putt-btn .gp-club-combo { color: #3b82f6; }
+        .gp-club-btn.putt-btn .gp-club-combo { color: #1d4ed8; }
 
         /* Carry distance */
         .gp-club-sub {
@@ -10041,7 +10041,7 @@
                             if (!isPutt && cellData.shotType && cellData.shotType !== 'full') {
                                 var comboEl = document.createElement('div');
                                 comboEl.className = 'gp-club-combo';
-                                if (colorId !== 'white') comboEl.style.color = palette.text === '#ffffff' ? 'rgba(255,255,255,0.8)' : '#1a6d4f';
+                                if (colorId !== 'white') comboEl.style.color = palette.text;
                                 comboEl.textContent = cellData.shotType;
                                 el.appendChild(comboEl);
                             }
