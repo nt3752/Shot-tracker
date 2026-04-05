@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v44.0</title>
+    <title>Shot Tracker v47.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -1176,6 +1176,387 @@
         }
 
         /* ===============================================
+           GRID PICKER v47
+           Light mode, high contrast, stacked layout
+           Full shots top (fixed), partial shots bottom (scroll)
+           3 buttons = full width (each 1/3 screen)
+           =============================================== */
+
+        #gpSheet {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: #f2f4f6;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+            overflow: hidden;
+        }
+        #gpSheet.active { transform: translateY(0); }
+
+        /* Header */
+        .gp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: calc(10px + env(safe-area-inset-top)) 12px 8px;
+            border-bottom: 2px solid #1a6d4f;
+            flex-shrink: 0;
+            background: #ffffff;
+            gap: 8px;
+        }
+        .gp-title {
+            font-size: 0.72rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #1a2a1a;
+        }
+        .gp-header-btns {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .gp-done-btn {
+            background: linear-gradient(135deg, #1a6d4f, #21875f);
+            border: 2px solid #1a6d4f;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 7px 18px;
+            font-size: 0.82rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .gp-done-btn:active { opacity: 0.8; transform: scale(0.97); }
+
+        .gp-edit-btn {
+            background: #ffffff;
+            border: 2px solid #c8d4de;
+            color: #4a5568;
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .gp-edit-btn.active {
+            border-color: #b8720a;
+            color: #b8720a;
+            background: rgba(184,114,10,0.08);
+        }
+        .gp-edit-btn:active { opacity: 0.8; }
+
+        /* Pill strip */
+        .gp-pill-section {
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+            background: #ffffff;
+            padding: 5px 10px 6px;
+            min-height: 48px;
+        }
+        .gp-pill-label {
+            font-size: 0.55rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #9aaab8;
+            margin-bottom: 3px;
+        }
+        .gp-pill-label span { color: #27a06f; }
+        #gpInsertHint {
+            color: #9aaab8;
+            font-weight: 400;
+            margin-left: 6px;
+            font-size: 0.52rem;
+        }
+        #gpPillStrip {
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+            min-height: 32px;
+            align-items: center;
+        }
+        #gpPillStrip::-webkit-scrollbar { display: none; }
+
+        .gp-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 9px;
+            border-radius: 16px;
+            border: 2px solid #c8d4de;
+            background: #f2f4f6;
+            font-size: 0.76rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: #1a1f24;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-height: 30px;
+        }
+        .gp-pill.insert-pt {
+            border-color: #27a06f;
+            background: rgba(39,160,111,0.1);
+            color: #1a6d4f;
+        }
+        .gp-pill.putt-pill {
+            border-color: #3b82f6;
+            color: #1d4ed8;
+            background: rgba(59,130,246,0.08);
+        }
+        .gp-pill-num { font-size: 0.58rem; color: #9aaab8; font-weight: 400; }
+        .gp-pill-del {
+            font-size: 0.85rem;
+            color: #9aaab8;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 1px 3px;
+            border-radius: 3px;
+            min-width: 20px;
+            min-height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .gp-pill-del:active { background: rgba(220,38,38,0.15); color: #dc2626; }
+
+        /* Scrollable body */
+        .gp-body {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Section labels */
+        .gp-section-label {
+            font-size: 0.6rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #9aaab8;
+            padding: 6px 10px 3px;
+            flex-shrink: 0;
+        }
+
+        /* Grid — 3 columns always, full width */
+        .gp-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            padding: 0 8px 6px;
+            width: 100%;
+        }
+
+        /* Full shots: fixed height rows so all 5 rows fill screen space */
+        .gp-full-grid {
+            /* Each row ~equal height; grid-auto-rows set by JS based on available height */
+            grid-template-rows: repeat(5, 1fr);
+            flex-shrink: 0;
+        }
+
+        /* Partial shots: auto height rows, grid grows naturally */
+        .gp-partial-grid {
+            grid-auto-rows: auto;
+            flex-shrink: 0;
+        }
+
+        /* Club button — light mode, high contrast */
+        .gp-club-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 2px solid #c8d4de;
+            background: #ffffff;
+            color: #1a1f24;
+            cursor: pointer;
+            padding: 8px 4px;
+            transition: background 0.08s, transform 0.08s;
+            position: relative;
+            overflow: hidden;
+            min-height: 64px;
+        }
+        .gp-club-btn:active {
+            transform: scale(0.94);
+            background: #d4eddc;
+            border-color: #27a06f;
+        }
+        .gp-club-btn.putt-btn {
+            border-color: #93c5fd;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        .gp-club-btn.putt-btn:active {
+            background: #bfdbfe;
+            border-color: #3b82f6;
+        }
+
+        .gp-club-name {
+            font-size: 1.1rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            line-height: 1;
+            letter-spacing: -0.5px;
+            color: #1a1f24;
+        }
+        .gp-club-btn.putt-btn .gp-club-name { color: #1d4ed8; }
+
+        .gp-club-sub {
+            font-size: 0.58rem;
+            font-weight: 700;
+            color: #7a8795;
+            margin-top: 3px;
+        }
+        .gp-club-type {
+            font-size: 0.58rem;
+            font-weight: 700;
+            color: #27a06f;
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        /* Edit mode */
+        .gp-club-btn.edit-mode {
+            border-color: #b8720a;
+            background: rgba(184,114,10,0.06);
+        }
+        .gp-club-btn.edit-mode .gp-club-name { color: #b8720a; }
+        .gp-club-btn.edit-mode:active { background: rgba(184,114,10,0.18); }
+        .gp-edit-badge {
+            position: absolute;
+            top: 3px;
+            right: 5px;
+            font-size: 0.6rem;
+            color: #b8720a;
+            font-weight: 900;
+        }
+
+        /* Empty cell */
+        .gp-empty-cell {
+            border-radius: 10px;
+            border: 2px dashed #e2e8f0;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #c8d4de;
+            font-size: 1.3rem;
+            min-height: 64px;
+        }
+        .gp-empty-cell:active { border-color: #b8720a; color: #b8720a; }
+
+        /* Club assignment picker */
+        #gpAssignSheet {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 350;
+            background: #ffffff;
+            border-top: 2px solid #1a6d4f;
+            border-radius: 16px 16px 0 0;
+            display: none;
+            flex-direction: column;
+            max-height: 72dvh;
+            transform: translateY(100%);
+            transition: transform 0.25s ease;
+        }
+        #gpAssignSheet.active {
+            display: flex;
+            transform: translateY(0);
+        }
+        .gp-assign-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+        .gp-assign-title {
+            font-size: 0.78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #1a2a1a;
+        }
+        .gp-assign-cancel {
+            background: #f2f4f6;
+            border: 1.5px solid #c8d4de;
+            color: #4a5568;
+            border-radius: 6px;
+            padding: 5px 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .gp-assign-body {
+            overflow-y: auto;
+            flex: 1;
+            padding: 10px 14px 24px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .gp-assign-section-title {
+            font-size: 0.6rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #9aaab8;
+            margin: 10px 0 5px;
+        }
+        .gp-assign-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 4px;
+        }
+        .gp-assign-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 2px solid #c8d4de;
+            background: #f2f4f6;
+            color: #1a1f24;
+            font-size: 0.84rem;
+            font-weight: 900;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            min-height: 42px;
+        }
+        .gp-assign-btn:active { background: #d4eddc; border-color: #27a06f; }
+        .gp-assign-btn.putt {
+            border-color: #93c5fd;
+            color: #1d4ed8;
+            background: #eff6ff;
+        }
+        .gp-assign-unset {
+            display: block;
+            width: 100%;
+            padding: 9px 14px;
+            border-radius: 8px;
+            border: 2px solid rgba(220,38,38,0.3);
+            background: rgba(220,38,38,0.05);
+            color: #dc2626;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            min-height: 40px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        .gp-assign-unset:active { background: rgba(220,38,38,0.15); }
+
+        /* ===============================================
            SCORECARD
            =============================================== */
         
@@ -1987,12 +2368,18 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = '46.0';
+        const VERSION = '47.0';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
         const LS_BAG_LIBRARY_KEY = 'shotTracker.v40.bagLibrary';
         const LS_COURSE_LIBRARY_KEY = 'shotTracker.v40.courseLibrary';
+        const LS_GRID_FULL_KEY = 'shotTracker.v47.gridFull';
+        const LS_GRID_PARTIAL_KEY = 'shotTracker.v47.gridPartial';
+        // Grid dimensions: 3 columns × 5 rows = 15 cells per tab
+        const GRID_COLS = 3;
+        const GRID_ROWS = 5;
+        const GRID_CELLS = GRID_COLS * GRID_ROWS; // 15
         
         // Default bag configuration
         const DEFAULT_CLUBS = ['Club?', 'D', '3W', '5W', '7W', '3H', '5H', '4I', '5I', '6I', '7I', '8I', '9I', 'PW', '46', '52', '56', '60', 'PT'];
@@ -9444,6 +9831,430 @@
         };
 
         // ============================================
+        // GRID PICKER UI v47
+        // Full-screen 3x5 fixed-position grid picker
+        // Tap = add shot, Edit mode = assign club to cell
+        // Layout persisted to localStorage
+        // ============================================
+
+        const GridPickerUI = {
+            _insertAfterIdx: null,
+            _updateIdx: null,
+            _editMode: false,
+            _activeTab: 'full',   // 'full' | 'partial'
+            _assigningCell: null, // { tab, idx } — cell being assigned in edit mode
+
+            // ── Load / save layout ────────────────────────────────────────────
+            // Layout is array of 15 items: null | { club, shotType }
+            _loadLayout(tab) {
+                var key = tab === 'full' ? LS_GRID_FULL_KEY : LS_GRID_PARTIAL_KEY;
+                try {
+                    var raw = localStorage.getItem(key);
+                    if (raw) {
+                        var arr = JSON.parse(raw);
+                        if (Array.isArray(arr) && arr.length === GRID_CELLS) return arr;
+                    }
+                } catch(e) {}
+                // Return blank 15-cell layout
+                var blank = [];
+                for (var i = 0; i < GRID_CELLS; i++) blank.push(null);
+                return blank;
+            },
+
+            _saveLayout(tab, layout) {
+                var key = tab === 'full' ? LS_GRID_FULL_KEY : LS_GRID_PARTIAL_KEY;
+                try { localStorage.setItem(key, JSON.stringify(layout)); } catch(e) {}
+            },
+
+            // ── Open / close ─────────────────────────────────────────────────
+            open(updateIdx) {
+                this._updateIdx = (updateIdx !== undefined && updateIdx !== null) ? updateIdx : null;
+                this._insertAfterIdx = null;
+                this._editMode = false;
+
+                // Wake lock on — keep screen alive during round
+                if (window.WakeLock && !WakeLock._active) WakeLock.toggle();
+
+                this._syncEditBtn();
+                this._renderGrid('full');
+                this._renderGrid('partial');
+                this._renderPills();
+                this._sizeFullGrid();
+
+                var sheet = document.getElementById('gpSheet');
+                if (sheet) sheet.classList.add('active');
+            },
+
+            close() {
+                var sheet = document.getElementById('gpSheet');
+                if (sheet) sheet.classList.remove('active');
+                this._closeAssignSheet();
+                this._editMode = false;
+                this._insertAfterIdx = null;
+                this._updateIdx = null;
+                UI.render();
+            },
+
+            // ── Size full grid to fill its fixed area ─────────────────────────
+            // Called after open so full shots grid rows fill available height
+            _sizeFullGrid() {
+                var self = this;
+                requestAnimationFrame(function() {
+                    var sheet   = document.getElementById('gpSheet');
+                    var header  = sheet ? sheet.querySelector('.gp-header') : null;
+                    var pills   = sheet ? sheet.querySelector('.gp-pill-section') : null;
+                    var label   = sheet ? sheet.querySelector('.gp-section-label') : null;
+                    var grid    = document.getElementById('gpFullGrid');
+                    if (!sheet || !grid) return;
+                    var sheetH  = sheet.offsetHeight;
+                    var usedH   = (header  ? header.offsetHeight  : 0) +
+                                  (pills   ? pills.offsetHeight   : 0) +
+                                  (label   ? label.offsetHeight   : 0) +
+                                  60; // rough allowance for partial label + padding
+                    var avail   = Math.max(sheetH - usedH, 300);
+                    // Distribute evenly across 5 rows
+                    var rowH    = Math.floor(avail / 5);
+                    grid.style.gridTemplateRows = 'repeat(5, ' + rowH + 'px)';
+                });
+            },
+
+            // ── Render a grid (full or partial) ──────────────────────────────
+            _renderGrid(tab) {
+                var gridId = tab === 'full' ? 'gpFullGrid' : 'gpPartialGrid';
+                var grid = document.getElementById(gridId);
+                if (!grid) return;
+                grid.innerHTML = '';
+
+                var layout = this._loadLayout(tab);
+                var self = this;
+                var hasAny = layout.some(function(c) { return c !== null; });
+
+                // Show/hide partial section label
+                if (tab === 'partial') {
+                    var partialLabel = document.getElementById('gpPartialLabel');
+                    if (partialLabel) partialLabel.style.display = hasAny ? '' : 'none';
+                    // If no partials assigned at all, hide grid too
+                    if (!hasAny && !this._editMode) { grid.style.display = 'none'; return; }
+                    grid.style.display = '';
+                }
+
+                var layout = this._loadLayout(tab);
+                var self = this;
+
+                for (var i = 0; i < GRID_CELLS; i++) {
+                    var cell = layout[i];
+                    (function(cellIdx, cellData) {
+                        var el;
+                        if (!cellData) {
+                            // Empty cell
+                            if (self._editMode) {
+                                // In edit mode: show dashed placeholder
+                                el = document.createElement('button');
+                                el.type = 'button';
+                                el.className = 'gp-empty-cell';
+                                el.textContent = '+';
+                                el.addEventListener('click', function() {
+                                    self._openAssignSheet(tab, cellIdx);
+                                });
+                            } else {
+                                // Normal mode: invisible spacer
+                                el = document.createElement('div');
+                                el.style.cssText = 'visibility:hidden;';
+                            }
+                        } else {
+                            // Assigned cell
+                            var isPutt = (cellData.shotType || '').toLowerCase() === 'putt';
+                            var carry = null;
+                            if (State.bag && State.bag.data && State.bag.data[cellData.club]) {
+                                var cd = State.bag.data[cellData.club][cellData.shotType];
+                                if (cd && cd.carry) carry = cd.carry;
+                            }
+
+                            el = document.createElement('button');
+                            el.type = 'button';
+                            el.className = 'gp-club-btn' +
+                                (isPutt ? ' putt-btn' : '') +
+                                (self._editMode ? ' edit-mode' : '');
+
+                            var nameEl = document.createElement('div');
+                            nameEl.className = 'gp-club-name';
+                            nameEl.textContent = isPutt ? 'Putt' : cellData.club;
+
+                            el.appendChild(nameEl);
+
+                            if (carry) {
+                                var subEl = document.createElement('div');
+                                subEl.className = 'gp-club-sub';
+                                subEl.textContent = carry + 'y';
+                                el.appendChild(subEl);
+                            }
+
+                            if (!isPutt && cellData.shotType && cellData.shotType !== 'full') {
+                                var typeEl = document.createElement('div');
+                                typeEl.className = 'gp-club-type';
+                                typeEl.textContent = cellData.shotType;
+                                el.appendChild(typeEl);
+                            }
+
+                            if (self._editMode) {
+                                var badge = document.createElement('span');
+                                badge.className = 'gp-edit-badge';
+                                badge.textContent = '✎';
+                                el.appendChild(badge);
+                                el.addEventListener('click', function() {
+                                    self._openAssignSheet(tab, cellIdx);
+                                });
+                            } else {
+                                el.addEventListener('click', function() {
+                                    self._addShot(cellData.club, cellData.shotType);
+                                });
+                            }
+                        }
+                        grid.appendChild(el);
+                    })(i, cell);
+                }
+            },
+
+            // ── Add shot (mirrors QuickPickerUI._addShot exactly) ────────────
+            _addShot(club, shotType) {
+                // Putter always records as putt — identical logic to Classic picker
+                if ((club || '').toLowerCase() === 'putter') shotType = 'putt';
+
+                var hole = State.currentHole();
+                if (!hole) { Utils.toast('No hole selected'); return; }
+
+                // UPDATE MODE
+                if (this._updateIdx !== null) {
+                    var s = hole.shots[this._updateIdx];
+                    if (s) {
+                        s.club = club;
+                        s.shotType = shotType;
+                        State.save();
+                    }
+                    this.close();
+                    if (navigator.vibrate) navigator.vibrate(30);
+                    return;
+                }
+
+                // ADD MODE
+                var shot = {
+                    club: club,
+                    shotType: shotType,
+                    distance: 0, targetDistance: 0, actualDistance: null,
+                    penalty: false, position: null,
+                    positionPending: false,
+                    timestamp: Utils.nowISO(),
+                    targetId: null, targetPoint: null, targetGPS: null,
+                    targetYards: null, targetCategory: null, targetAbbrev: null,
+                };
+
+                if (this._insertAfterIdx !== null && this._insertAfterIdx < hole.shots.length) {
+                    hole.shots.splice(this._insertAfterIdx + 1, 0, shot);
+                    this._insertAfterIdx = this._insertAfterIdx + 1;
+                } else {
+                    hole.shots.push(shot);
+                    this._insertAfterIdx = hole.shots.length - 1;
+                }
+
+                State.save();
+                this._renderPills();
+                if (navigator.vibrate) navigator.vibrate(30);
+            },
+
+            // ── Pill strip ────────────────────────────────────────────────────
+            _renderPills() {
+                var strip    = document.getElementById('gpPillStrip');
+                var countEl  = document.getElementById('gpShotCount');
+                var hintEl   = document.getElementById('gpInsertHint');
+                if (!strip) return;
+
+                var hole  = State.currentHole();
+                var shots = (hole && hole.shots) || [];
+                strip.innerHTML = '';
+
+                if (countEl) countEl.textContent = shots.length ? '(' + shots.length + ')' : '';
+                if (hintEl)  hintEl.textContent  = this._insertAfterIdx !== null
+                    ? '↑ inserting after S' + (this._insertAfterIdx + 1)
+                    : 'tap pill to set insert point';
+
+                var self = this;
+                shots.forEach(function(s, i) {
+                    var pill    = document.createElement('div');
+                    var isInsert = i === self._insertAfterIdx;
+                    var isPutt   = (s.shotType || '').toLowerCase() === 'putt';
+                    pill.className = 'gp-pill' +
+                        (isInsert ? ' insert-pt' : '') +
+                        (isPutt   ? ' putt-pill' : '');
+
+                    var label = isPutt ? 'Putt'
+                        : (s.club !== 'Club?' ? s.club : '?') +
+                          (s.shotType && s.shotType !== 'full' ? '/' + s.shotType : '');
+
+                    var numSpan = document.createElement('span');
+                    numSpan.className = 'gp-pill-num';
+                    numSpan.textContent = 'S' + (i + 1);
+
+                    var labelSpan = document.createElement('span');
+                    labelSpan.textContent = label;
+
+                    var delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'gp-pill-del';
+                    delBtn.textContent = '✕';
+                    delBtn.setAttribute('aria-label', 'Delete shot ' + (i + 1));
+                    delBtn.addEventListener('click', (function(idx) {
+                        return function(e) {
+                            e.stopPropagation();
+                            if (!hole) return;
+                            hole.shots.splice(idx, 1);
+                            State.save();
+                            if (self._insertAfterIdx !== null) {
+                                if (self._insertAfterIdx >= idx) {
+                                    self._insertAfterIdx = self._insertAfterIdx - 1;
+                                    if (self._insertAfterIdx < 0) self._insertAfterIdx = null;
+                                }
+                            }
+                            self._renderPills();
+                        };
+                    })(i));
+
+                    pill.appendChild(numSpan);
+                    pill.appendChild(labelSpan);
+                    pill.appendChild(delBtn);
+
+                    pill.addEventListener('click', function() {
+                        self._insertAfterIdx = (self._insertAfterIdx === i) ? null : i;
+                        self._renderPills();
+                    });
+
+                    strip.appendChild(pill);
+                });
+
+                // Auto-scroll to end
+                if (this._insertAfterIdx === null || this._insertAfterIdx === shots.length - 1) {
+                    strip.scrollLeft = strip.scrollWidth;
+                }
+            },
+
+            // ── Edit mode ─────────────────────────────────────────────────────
+            _toggleEditMode() {
+                this._editMode = !this._editMode;
+                this._syncEditBtn();
+                this._renderGrid('full');
+                this._renderGrid('partial');
+                this._sizeFullGrid();
+            },
+
+            _syncEditBtn() {
+                var btn = document.getElementById('gpEditBtn');
+                if (!btn) return;
+                btn.classList.toggle('active', this._editMode);
+                btn.textContent = this._editMode ? '✓ Done Editing' : '✏️ Edit Layout';
+            },
+
+            // ── Assign sheet ──────────────────────────────────────────────────
+            _openAssignSheet(tab, cellIdx) {
+                this._assigningCell = { tab: tab, idx: cellIdx };
+                var titleEl = document.getElementById('gpAssignTitle');
+                if (titleEl) titleEl.textContent = 'Cell ' + (cellIdx + 1) + ' — Assign Club';
+
+                this._renderAssignBody(tab, cellIdx);
+
+                var sheet = document.getElementById('gpAssignSheet');
+                if (sheet) sheet.classList.add('active');
+            },
+
+            _closeAssignSheet() {
+                var sheet = document.getElementById('gpAssignSheet');
+                if (sheet) sheet.classList.remove('active');
+                this._assigningCell = null;
+            },
+
+            _renderAssignBody(tab, cellIdx) {
+                var body = document.getElementById('gpAssignBody');
+                if (!body) return;
+                body.innerHTML = '';
+
+                var self = this;
+                var clubs = (State.bag.clubs || []).filter(function(c) {
+                    return c !== 'Club?' && c !== 'Penalty';
+                });
+                var bagData = State.bag.data || {};
+                var excludedTypes = new Set(['penalty', 'Type?']);
+
+                // Unassign option at top
+                var unsetBtn = document.createElement('button');
+                unsetBtn.className = 'gp-assign-unset';
+                unsetBtn.textContent = '✕ Clear this cell';
+                unsetBtn.addEventListener('click', function() {
+                    self._assignCell(tab, cellIdx, null);
+                });
+                body.appendChild(unsetBtn);
+
+                // One section per club
+                clubs.forEach(function(club) {
+                    var data = bagData[club] || {};
+                    var types = Object.keys(data).filter(function(t) {
+                        return !excludedTypes.has(t);
+                    });
+                    if (!types.length) return;
+
+                    var sectionTitle = document.createElement('div');
+                    sectionTitle.className = 'gp-assign-section-title';
+                    sectionTitle.textContent = club;
+                    body.appendChild(sectionTitle);
+
+                    var row = document.createElement('div');
+                    row.className = 'gp-assign-row';
+
+                    types.forEach(function(shotType) {
+                        var isPutt = shotType === 'putt';
+                        var carry = data[shotType] && data[shotType].carry ? data[shotType].carry : null;
+                        var btn = document.createElement('button');
+                        btn.className = 'gp-assign-btn' + (isPutt ? ' putt' : '');
+                        btn.innerHTML = isPutt
+                            ? 'Putt'
+                            : (shotType === 'full' ? club : shotType) +
+                              (carry ? '<span style="display:block;font-size:0.58rem;color:#5a8a6a;font-weight:400;">' + carry + 'y</span>' : '');
+                        btn.addEventListener('click', function() {
+                            self._assignCell(tab, cellIdx, { club: club, shotType: shotType });
+                        });
+                        row.appendChild(btn);
+                    });
+
+                    body.appendChild(row);
+                });
+            },
+
+            _assignCell(tab, cellIdx, value) {
+                var layout = this._loadLayout(tab);
+                layout[cellIdx] = value;
+                this._saveLayout(tab, layout);
+                this._closeAssignSheet();
+                this._renderGrid(tab);
+                if (tab === 'full') this._sizeFullGrid();
+                if (navigator.vibrate) navigator.vibrate(20);
+                Utils.toast(value ? (value.club + ' assigned') : 'Cell cleared', 'ok', 1200);
+            },
+
+            // ── Wire up internal events (called once at init) ─────────────────
+            init() {
+                var self = this;
+
+                var doneBtn = document.getElementById('gpDoneBtn');
+                if (doneBtn) doneBtn.addEventListener('click', function() { self.close(); });
+
+                var editBtn = document.getElementById('gpEditBtn');
+                if (editBtn) editBtn.addEventListener('click', function() { self._toggleEditMode(); });
+
+                var assignCancel = document.getElementById('gpAssignCancel');
+                if (assignCancel) assignCancel.addEventListener('click', function() {
+                    self._closeAssignSheet();
+                });
+            }
+        };
+
+        // ============================================
         // QUICK CLUB PICKER UI
         // ============================================
 
@@ -10577,7 +11388,28 @@
                 this.on('btnWakeLock',   'click', () => WakeLock.toggle());
                 this.on('btnCloseSD',    'click', () => ShotDetailUI.close());
                 this.on('sdBackdrop',    'click', () => ShotDetailUI.close());
-                this.on('btnAddShot',    'click', () => QuickPickerUI.open());
+                // btnAddShot: tap = Grid picker, long-press (500ms) = Classic picker
+                (function() {
+                    var btn = document.getElementById('btnAddShot');
+                    if (!btn) return;
+                    var pressTimer = null;
+                    var longFired = false;
+                    btn.addEventListener('pointerdown', function() {
+                        longFired = false;
+                        pressTimer = setTimeout(function() {
+                            longFired = true;
+                            if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+                            Utils.toast('Classic mode', 'ok', 1200);
+                            QuickPickerUI.open();
+                        }, 500);
+                    });
+                    btn.addEventListener('pointerup', function() { clearTimeout(pressTimer); });
+                    btn.addEventListener('pointerleave', function() { clearTimeout(pressTimer); });
+                    btn.addEventListener('click', function() {
+                        if (longFired) return;
+                        GridPickerUI.open();
+                    });
+                })();
                 this.on('btnCloseQP',    'click', () => QuickPickerUI.close());
                 this.on('qpBackdrop',    'click', () => QuickPickerUI.close());
                 this.on('btnLibrary', 'click', () => LibraryUI.open());
@@ -11434,6 +12266,9 @@
                     // Initialize voice
                     Voice.init();
                     
+                    // Initialize Grid Picker
+                    GridPickerUI.init();
+                    
                     // Start GPS
                     GPS.start();
                     
@@ -11446,6 +12281,7 @@
                     window.LibraryUI = LibraryUI;
                     window.ShotDetailUI = ShotDetailUI;
                     window.QuickPickerUI = QuickPickerUI;
+                    window.GridPickerUI = GridPickerUI;
                     window.MarkListUI = MarkListUI;
                     window.WakeLock = WakeLock;
                     window.State = State;
@@ -11507,6 +12343,51 @@
         <div class="sheet-body" id="voiceVocabBody" style="padding:var(--space-4);display:none;">
             <p style="font-size:0.8rem;color:var(--text-muted);">Open to refresh vocab.</p>
         </div>
+    </div>
+
+    <!-- GRID PICKER SHEET v47 -->
+    <div id="gpSheet" role="dialog" aria-modal="true" aria-label="Grid Shot Picker">
+
+        <!-- Header -->
+        <div class="gp-header">
+            <div class="gp-title">Add Shots · Grid</div>
+            <div class="gp-header-btns">
+                <button id="gpEditBtn" class="gp-edit-btn" type="button">✏️ Edit</button>
+                <button id="gpDoneBtn" class="gp-done-btn" type="button">Done</button>
+            </div>
+        </div>
+
+        <!-- Pill strip (shot sequence — top) -->
+        <div class="gp-pill-section">
+            <div class="gp-pill-label">
+                Shot sequence <span id="gpShotCount"></span>
+                <span id="gpInsertHint"></span>
+            </div>
+            <div id="gpPillStrip"></div>
+        </div>
+
+        <!-- Scrollable body: full shots fixed on top, partial shots scroll below -->
+        <div class="gp-body">
+
+            <!-- Full shots — fixed height, no scroll, 3x5 grid -->
+            <div class="gp-section-label">Full Shots</div>
+            <div class="gp-grid gp-full-grid" id="gpFullGrid"></div>
+
+            <!-- Partial shots — natural height, body scrolls -->
+            <div class="gp-section-label gp-partial-label" id="gpPartialLabel" style="display:none;">Partial Shots</div>
+            <div class="gp-grid gp-partial-grid" id="gpPartialGrid"></div>
+
+        </div>
+
+    </div>
+
+    <!-- Club assignment picker (slides up over grid sheet) -->
+    <div id="gpAssignSheet" role="dialog" aria-modal="true">
+        <div class="gp-assign-header">
+            <div class="gp-assign-title" id="gpAssignTitle">Assign Club</div>
+            <button id="gpAssignCancel" class="gp-assign-cancel" type="button">Cancel</button>
+        </div>
+        <div class="gp-assign-body" id="gpAssignBody"></div>
     </div>
 
     <!-- MARK LIST SHEET -->
