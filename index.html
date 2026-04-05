@@ -9913,7 +9913,7 @@
                 this._editMode = false;
 
                 // Wake lock on — keep screen alive during round
-                if (window.WakeLock && !WakeLock._active) WakeLock.toggle();
+                if (window.WakeLock && !WakeLock.enabled) WakeLock.toggle();
 
                 this._syncEditBtn();
                 this._renderGrid('full');
