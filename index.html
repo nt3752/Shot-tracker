@@ -1300,9 +1300,9 @@
             min-height: 60px;
         }
         .gp-pill.insert-pt {
-            border-color: #27a06f;
-            background: rgba(39,160,111,0.1);
-            color: #1a6d4f;
+            border: 4px solid #0f172a;
+            box-shadow: 0 0 0 2px #0f172a;
+            outline: none;
         }
         .gp-pill.putt-pill {
             border-color: #3b82f6;
@@ -2381,6 +2381,19 @@
         const LS_COURSE_LIBRARY_KEY = 'shotTracker.v40.courseLibrary';
         const LS_GRID_FULL_KEY = 'shotTracker.v47.gridFull';
         const LS_GRID_PARTIAL_KEY = 'shotTracker.v47.gridPartial';
+        const LS_GRID_COLORS_FULL_KEY = 'shotTracker.v47.gridColorsFull';
+        const LS_GRID_COLORS_PARTIAL_KEY = 'shotTracker.v47.gridColorsPartial';
+        // Color palette: [background, text color]
+        const GP_PALETTE = [
+            { id: 'white',  bg: '#ffffff',  text: '#0f172a', label: 'White'  },
+            { id: 'gray',   bg: '#9ca3af',  text: '#0f172a', label: 'Gray'   },
+            { id: 'blue',   bg: '#3b82f6',  text: '#ffffff', label: 'Blue'   },
+            { id: 'green',  bg: '#22c55e',  text: '#0f172a', label: 'Green'  },
+            { id: 'yellow', bg: '#facc15',  text: '#0f172a', label: 'Yellow' },
+            { id: 'orange', bg: '#f97316',  text: '#ffffff', label: 'Orange' },
+            { id: 'red',    bg: '#ef4444',  text: '#ffffff', label: 'Red'    },
+            { id: 'purple', bg: '#a855f7',  text: '#ffffff', label: 'Purple' },
+        ];
         // Grid dimensions: 3 columns × 5 rows = 15 cells per tab
         const GRID_COLS = 3;
         const GRID_ROWS = 5;
@@ -9871,6 +9884,25 @@
                 try { localStorage.setItem(key, JSON.stringify(layout)); } catch(e) {}
             },
 
+            _loadColors(tab) {
+                var key = tab === 'full' ? LS_GRID_COLORS_FULL_KEY : LS_GRID_COLORS_PARTIAL_KEY;
+                try {
+                    var raw = localStorage.getItem(key);
+                    if (raw) {
+                        var arr = JSON.parse(raw);
+                        if (Array.isArray(arr) && arr.length === GRID_CELLS) return arr;
+                    }
+                } catch(e) {}
+                var blank = [];
+                for (var i = 0; i < GRID_CELLS; i++) blank.push('white');
+                return blank;
+            },
+
+            _saveColors(tab, colors) {
+                var key = tab === 'full' ? LS_GRID_COLORS_FULL_KEY : LS_GRID_COLORS_PARTIAL_KEY;
+                try { localStorage.setItem(key, JSON.stringify(colors)); } catch(e) {}
+            },
+
             // ── Open / close ─────────────────────────────────────────────────
             open(updateIdx) {
                 this._updateIdx = (updateIdx !== undefined && updateIdx !== null) ? updateIdx : null;
@@ -9933,6 +9965,7 @@
                 grid.innerHTML = '';
 
                 var layout = this._loadLayout(tab);
+                var colors = this._loadColors(tab);
                 var self = this;
                 var hasAny = layout.some(function(c) { return c !== null; });
 
@@ -9977,30 +10010,44 @@
                                 if (cd && cd.carry) carry = cd.carry;
                             }
 
+                            // Resolve color for this cell
+                            var colorId = colors[cellIdx] || 'white';
+                            var palette = GP_PALETTE.find(function(p) { return p.id === colorId; }) || GP_PALETTE[0];
+
                             el = document.createElement('button');
                             el.type = 'button';
                             el.className = 'gp-club-btn' +
                                 (isPutt ? ' putt-btn' : '') +
                                 (self._editMode ? ' edit-mode' : '');
 
+                            // Apply color unless it's the default white (let CSS handle white)
+                            if (colorId !== 'white') {
+                                el.style.background = palette.bg;
+                                el.style.borderColor = palette.bg;
+                                el.style.color = palette.text;
+                            }
+
                             // Club name (large)
                             var nameEl = document.createElement('div');
                             nameEl.className = 'gp-club-name';
+                            if (colorId !== 'white') nameEl.style.color = palette.text;
                             nameEl.textContent = isPutt ? 'Putt' : cellData.club;
                             el.appendChild(nameEl);
 
-                            // Club + shot type combined (e.g. "7I / 3/4") — shown for non-full, non-putt
+                            // Shot type (non-full, non-putt)
                             if (!isPutt && cellData.shotType && cellData.shotType !== 'full') {
                                 var comboEl = document.createElement('div');
                                 comboEl.className = 'gp-club-combo';
+                                if (colorId !== 'white') comboEl.style.color = palette.text === '#ffffff' ? 'rgba(255,255,255,0.8)' : '#1a6d4f';
                                 comboEl.textContent = cellData.shotType;
                                 el.appendChild(comboEl);
                             }
 
-                            // Carry distance — larger, bolder
+                            // Carry distance
                             if (carry) {
                                 var subEl = document.createElement('div');
                                 subEl.className = 'gp-club-sub';
+                                if (colorId !== 'white') subEl.style.color = palette.text === '#ffffff' ? 'rgba(255,255,255,0.85)' : '#374151';
                                 subEl.textContent = carry + 'y';
                                 el.appendChild(subEl);
                             }
@@ -10008,7 +10055,6 @@
                             if (self._editMode) {
                                 var badge = document.createElement('span');
                                 badge.className = 'gp-edit-badge';
-                                badge.textContent = '✎';
                                 el.appendChild(badge);
                                 el.addEventListener('click', function() {
                                     self._openAssignSheet(tab, cellIdx);
@@ -10071,6 +10117,24 @@
             },
 
             // ── Pill strip ────────────────────────────────────────────────────
+            // ── Look up palette color for a shot based on grid assignment ────
+            _colorForShot(club, shotType) {
+                var tabs = ['full', 'partial'];
+                for (var t = 0; t < tabs.length; t++) {
+                    var tab = tabs[t];
+                    var layout = this._loadLayout(tab);
+                    var colors = this._loadColors(tab);
+                    for (var i = 0; i < layout.length; i++) {
+                        var cell = layout[i];
+                        if (cell && cell.club === club && cell.shotType === shotType) {
+                            var colorId = colors[i] || 'white';
+                            return GP_PALETTE.find(function(p) { return p.id === colorId; }) || GP_PALETTE[0];
+                        }
+                    }
+                }
+                return GP_PALETTE[0]; // white default
+            },
+
             _renderPills() {
                 var strip    = document.getElementById('gpPillStrip');
                 var countEl  = document.getElementById('gpShotCount');
@@ -10088,12 +10152,22 @@
 
                 var self = this;
                 shots.forEach(function(s, i) {
-                    var pill    = document.createElement('div');
+                    var pill     = document.createElement('div');
                     var isInsert = i === self._insertAfterIdx;
                     var isPutt   = (s.shotType || '').toLowerCase() === 'putt';
-                    pill.className = 'gp-pill' +
-                        (isInsert ? ' insert-pt' : '') +
-                        (isPutt   ? ' putt-pill' : '');
+
+                    // Look up button color for this shot
+                    var palette  = self._colorForShot(s.club, s.shotType);
+                    var hasColor = palette.id !== 'white';
+
+                    pill.className = 'gp-pill' + (isInsert ? ' insert-pt' : '');
+
+                    // Apply button color to pill regardless of insert state
+                    if (hasColor) {
+                        pill.style.background   = palette.bg;
+                        pill.style.borderColor  = palette.bg;
+                        pill.style.color        = palette.text;
+                    }
 
                     var label = isPutt ? 'Putt'
                         : (s.club !== 'Club?' ? s.club : '?') +
@@ -10101,6 +10175,7 @@
 
                     var numSpan = document.createElement('span');
                     numSpan.className = 'gp-pill-num';
+                    if (hasColor) numSpan.style.color = palette.text === '#ffffff' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.45)';
                     numSpan.textContent = 'S' + (i + 1);
 
                     var labelSpan = document.createElement('span');
@@ -10110,6 +10185,7 @@
                     delBtn.type = 'button';
                     delBtn.className = 'gp-pill-del';
                     delBtn.textContent = '✕';
+                    if (hasColor) delBtn.style.color = palette.text === '#ffffff' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.4)';
                     delBtn.setAttribute('aria-label', 'Delete shot ' + (i + 1));
                     delBtn.addEventListener('click', (function(idx) {
                         return function(e) {
@@ -10185,13 +10261,51 @@
                 body.innerHTML = '';
 
                 var self = this;
-                var clubs = (State.bag.clubs || []).filter(function(c) {
-                    return c !== 'Club?' && c !== 'Penalty';
-                });
-                var bagData = State.bag.data || {};
-                var excludedTypes = new Set(['penalty', 'Type?']);
+                var colors = this._loadColors(tab);
+                var currentColorId = colors[cellIdx] || 'white';
 
-                // Unassign option at top
+                // ── Color picker ─────────────────────────────────────────────
+                var colorTitle = document.createElement('div');
+                colorTitle.className = 'gp-assign-section-title';
+                colorTitle.textContent = 'Button Color';
+                body.appendChild(colorTitle);
+
+                var swatchRow = document.createElement('div');
+                swatchRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;';
+
+                GP_PALETTE.forEach(function(p) {
+                    var swatch = document.createElement('button');
+                    swatch.type = 'button';
+                    var isSelected = p.id === currentColorId;
+                    swatch.style.cssText = [
+                        'width:44px;height:44px;border-radius:8px;cursor:pointer;',
+                        'background:' + p.bg + ';',
+                        'border:' + (isSelected ? '3px solid #0f172a' : '2px solid #c8d4de') + ';',
+                        'box-shadow:' + (isSelected ? 'inset 0 0 0 2px ' + p.bg + ', 0 0 0 3px #0f172a' : 'none') + ';',
+                        'flex-shrink:0;',
+                        'position:relative;'
+                    ].join('');
+                    if (isSelected) {
+                        swatch.innerHTML = '<span style="font-size:1.2rem;color:' + p.text + ';line-height:1;">✓</span>';
+                    }
+                    swatch.setAttribute('aria-label', p.label);
+                    swatch.addEventListener('click', function() {
+                        // Save color immediately, re-render swatches and grid
+                        var cols = self._loadColors(tab);
+                        cols[cellIdx] = p.id;
+                        self._saveColors(tab, cols);
+                        currentColorId = p.id;
+                        // Re-render swatches in place
+                        self._renderAssignBody(tab, cellIdx);
+                        // Re-render grid live so user sees color change
+                        self._renderGrid(tab);
+                        if (tab === 'full') self._sizeFullGrid();
+                    });
+                    swatchRow.appendChild(swatch);
+                });
+                body.appendChild(swatchRow);
+
+                // ── Unassign option ───────────────────────────────────────────
                 var unsetBtn = document.createElement('button');
                 unsetBtn.className = 'gp-assign-unset';
                 unsetBtn.textContent = '✕ Clear this cell';
@@ -10200,7 +10314,13 @@
                 });
                 body.appendChild(unsetBtn);
 
-                // One section per club
+                // ── Club picker ───────────────────────────────────────────────
+                var clubs = (State.bag.clubs || []).filter(function(c) {
+                    return c !== 'Club?' && c !== 'Penalty';
+                });
+                var bagData = State.bag.data || {};
+                var excludedTypes = new Set(['penalty', 'Type?']);
+
                 clubs.forEach(function(club) {
                     var data = bagData[club] || {};
                     var types = Object.keys(data).filter(function(t) {
@@ -10239,6 +10359,12 @@
                 var layout = this._loadLayout(tab);
                 layout[cellIdx] = value;
                 this._saveLayout(tab, layout);
+                // Reset color to white when clearing a cell
+                if (!value) {
+                    var cols = this._loadColors(tab);
+                    cols[cellIdx] = 'white';
+                    this._saveColors(tab, cols);
+                }
                 this._closeAssignSheet();
                 this._renderGrid(tab);
                 if (tab === 'full') this._sizeFullGrid();
