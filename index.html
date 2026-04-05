@@ -1253,31 +1253,31 @@
             border-bottom: 1px solid #e2e8f0;
             flex-shrink: 0;
             background: #ffffff;
-            padding: 5px 10px 6px;
-            min-height: 48px;
+            padding: 8px 10px 10px;
+            min-height: 96px;
         }
         .gp-pill-label {
-            font-size: 0.55rem;
+            font-size: 0.65rem;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1.2px;
             color: #9aaab8;
-            margin-bottom: 3px;
+            margin-bottom: 6px;
         }
         .gp-pill-label span { color: #27a06f; }
         #gpInsertHint {
             color: #9aaab8;
             font-weight: 400;
             margin-left: 6px;
-            font-size: 0.52rem;
+            font-size: 0.62rem;
         }
         #gpPillStrip {
             display: flex;
-            gap: 5px;
+            gap: 7px;
             overflow-x: auto;
             padding-bottom: 2px;
             scrollbar-width: none;
-            min-height: 32px;
+            min-height: 62px;
             align-items: center;
         }
         #gpPillStrip::-webkit-scrollbar { display: none; }
@@ -1285,19 +1285,19 @@
         .gp-pill {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-            padding: 4px 9px;
-            border-radius: 16px;
-            border: 2px solid #c8d4de;
+            gap: 6px;
+            padding: 10px 14px;
+            border-radius: 20px;
+            border: 2.5px solid #c8d4de;
             background: #f2f4f6;
-            font-size: 0.76rem;
-            font-weight: 700;
+            font-size: 1rem;
+            font-weight: 900;
             font-family: var(--font-mono);
             color: #1a1f24;
             cursor: pointer;
             white-space: nowrap;
             flex-shrink: 0;
-            min-height: 30px;
+            min-height: 60px;
         }
         .gp-pill.insert-pt {
             border-color: #27a06f;
@@ -1309,17 +1309,17 @@
             color: #1d4ed8;
             background: rgba(59,130,246,0.08);
         }
-        .gp-pill-num { font-size: 0.58rem; color: #9aaab8; font-weight: 400; }
+        .gp-pill-num { font-size: 0.72rem; color: #9aaab8; font-weight: 600; }
         .gp-pill-del {
-            font-size: 0.85rem;
+            font-size: 1.1rem;
             color: #9aaab8;
             background: none;
             border: none;
             cursor: pointer;
-            padding: 1px 3px;
-            border-radius: 3px;
-            min-width: 20px;
-            min-height: 20px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            min-width: 28px;
+            min-height: 28px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1339,7 +1339,7 @@
 
         /* Section labels */
         .gp-section-label {
-            font-size: 0.6rem;
+            font-size: 0.65rem;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1.5px;
@@ -1352,21 +1352,20 @@
         .gp-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-            padding: 0 8px 6px;
+            gap: 6px;
+            padding: 0 8px 8px;
             width: 100%;
         }
 
-        /* Full shots: fixed height rows so all 5 rows fill screen space */
+        /* Full shots: fixed height rows — set by JS */
         .gp-full-grid {
-            /* Each row ~equal height; grid-auto-rows set by JS based on available height */
             grid-template-rows: repeat(5, 1fr);
             flex-shrink: 0;
         }
 
-        /* Partial shots: auto height rows, grid grows naturally */
+        /* Partial shots: same fixed row height as full shots */
         .gp-partial-grid {
-            grid-auto-rows: auto;
+            grid-auto-rows: var(--gp-row-height, 80px);
             flex-shrink: 0;
         }
 
@@ -1377,15 +1376,16 @@
             align-items: center;
             justify-content: center;
             border-radius: 10px;
-            border: 2px solid #c8d4de;
+            border: 3px solid #b0bec5;
             background: #ffffff;
             color: #1a1f24;
             cursor: pointer;
-            padding: 8px 4px;
+            padding: 6px 4px;
             transition: background 0.08s, transform 0.08s;
             position: relative;
             overflow: hidden;
-            min-height: 64px;
+            min-height: 80px;
+            gap: 2px;
         }
         .gp-club-btn:active {
             transform: scale(0.94);
@@ -1393,7 +1393,7 @@
             border-color: #27a06f;
         }
         .gp-club-btn.putt-btn {
-            border-color: #93c5fd;
+            border-color: #7eb8f7;
             background: #eff6ff;
             color: #1d4ed8;
         }
@@ -1402,29 +1402,34 @@
             border-color: #3b82f6;
         }
 
+        /* Club name — large, heavy */
         .gp-club-name {
-            font-size: 1.1rem;
+            font-size: 1.45rem;
             font-weight: 900;
             font-family: var(--font-mono);
             line-height: 1;
             letter-spacing: -0.5px;
-            color: #1a1f24;
+            color: #0f172a;
         }
         .gp-club-btn.putt-btn .gp-club-name { color: #1d4ed8; }
 
-        .gp-club-sub {
-            font-size: 0.58rem;
-            font-weight: 700;
-            color: #7a8795;
-            margin-top: 3px;
-        }
-        .gp-club-type {
-            font-size: 0.58rem;
-            font-weight: 700;
+        /* Club + shot type combined line */
+        .gp-club-combo {
+            font-size: 0.75rem;
+            font-weight: 800;
             color: #27a06f;
-            margin-top: 2px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.2px;
+            line-height: 1;
+        }
+        .gp-club-btn.putt-btn .gp-club-combo { color: #3b82f6; }
+
+        /* Carry distance */
+        .gp-club-sub {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #4a5568;
+            margin-top: 1px;
+            font-family: var(--font-mono);
         }
 
         /* Edit mode */
@@ -1436,9 +1441,9 @@
         .gp-club-btn.edit-mode:active { background: rgba(184,114,10,0.18); }
         .gp-edit-badge {
             position: absolute;
-            top: 3px;
-            right: 5px;
-            font-size: 0.6rem;
+            top: 4px;
+            right: 6px;
+            font-size: 0.7rem;
             color: #b8720a;
             font-weight: 900;
         }
@@ -1453,8 +1458,8 @@
             align-items: center;
             justify-content: center;
             color: #c8d4de;
-            font-size: 1.3rem;
-            min-height: 64px;
+            font-size: 1.5rem;
+            min-height: 80px;
         }
         .gp-empty-cell:active { border-color: #b8720a; color: #b8720a; }
 
@@ -9915,6 +9920,8 @@
                     // Distribute evenly across 5 rows
                     var rowH    = Math.floor(avail / 5);
                     grid.style.gridTemplateRows = 'repeat(5, ' + rowH + 'px)';
+                    // Share same row height with partial grid via CSS var
+                    sheet.style.setProperty('--gp-row-height', rowH + 'px');
                 });
             },
 
@@ -9976,24 +9983,26 @@
                                 (isPutt ? ' putt-btn' : '') +
                                 (self._editMode ? ' edit-mode' : '');
 
+                            // Club name (large)
                             var nameEl = document.createElement('div');
                             nameEl.className = 'gp-club-name';
                             nameEl.textContent = isPutt ? 'Putt' : cellData.club;
-
                             el.appendChild(nameEl);
 
+                            // Club + shot type combined (e.g. "7I / 3/4") — shown for non-full, non-putt
+                            if (!isPutt && cellData.shotType && cellData.shotType !== 'full') {
+                                var comboEl = document.createElement('div');
+                                comboEl.className = 'gp-club-combo';
+                                comboEl.textContent = cellData.shotType;
+                                el.appendChild(comboEl);
+                            }
+
+                            // Carry distance — larger, bolder
                             if (carry) {
                                 var subEl = document.createElement('div');
                                 subEl.className = 'gp-club-sub';
                                 subEl.textContent = carry + 'y';
                                 el.appendChild(subEl);
-                            }
-
-                            if (!isPutt && cellData.shotType && cellData.shotType !== 'full') {
-                                var typeEl = document.createElement('div');
-                                typeEl.className = 'gp-club-type';
-                                typeEl.textContent = cellData.shotType;
-                                el.appendChild(typeEl);
                             }
 
                             if (self._editMode) {
