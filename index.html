@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v47.0</title>
+    <title>Shot Tracker v48.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -2257,6 +2257,15 @@
                 <button class="btn btn-secondary btn-sm" id="btnRestoreBackup" type="button">&#128194; Restore Backup</button>
             </div>
         </div>
+        <div style="padding-top: var(--space-4); border-top: 1px solid var(--border); margin-top: var(--space-4);">
+            <h4 style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: var(--space-2);">Round File</h4>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: var(--space-3);">Import a reconciled round file from Course Mapper, or export the current round for analysis.</p>
+            <div class="btn-row">
+                <button class="btn btn-primary btn-sm" id="btnImportRoundFile" type="button">&#128194; Load Round</button>
+                <button class="btn btn-secondary btn-sm" id="btnExportRoundFile" type="button">&#128190; Export Round</button>
+            </div>
+            <div id="roundFileStatus" style="font-size: 0.72rem; color: var(--text-muted); margin-top: var(--space-2); display: none;"></div>
+        </div>
         </div>
     </div>
 
@@ -2373,7 +2382,7 @@
         // CONSTANTS
         // ============================================
         
-        const VERSION = '47.0';
+        const VERSION = '48.0';
         const LS_STATE_KEY = 'shotTracker.v39.state';
         const LS_BAG_KEY = 'shotTracker.v39.bag';
         const LS_COURSE_KEY = 'shotTracker.v39.course';
@@ -3433,6 +3442,7 @@
                     'btnImportBag', 'btnImportCourse',
                     'btnExportAllBags', 'btnExportAllCourses',
                     'btnBackupAll', 'btnRestoreBackup',
+                    'btnImportRoundFile', 'btnExportRoundFile', 'roundFileStatus',
                     'roundSetupBackdrop', 'roundSetupSheet',
                     'btnNewRound', 'btnNewRoundHeader', 'btnCancelRound',
                     'btnStartRound', 'roundBagSelect', 'roundCourseSelect',
@@ -9200,6 +9210,357 @@
         };
 
         // ============================================
+        // ROUND FILE (v48.0)
+        // Import/export canonical golfRound JSON.
+        // Self-contained: sets course automatically
+        // from courseId or embedded spine data.
+        // Non-destructive: only loads round-specific
+        // data (shots, GPS, pin positions).
+        // ============================================
+
+        const RoundFile = {
+
+            // ── Import ───────────────────────────────────────
+            importRoundFile() {
+                var self = this;
+                var input    = document.createElement('input');
+                input.type   = 'file';
+                input.accept = '.json,application/json';
+                input.onchange = function() {
+                    var file = input.files && input.files[0];
+                    if (!file) return;
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        self._applyRoundFile(e.target.result, file.name);
+                    };
+                    reader.onerror = function() { Utils.toast('Could not read file'); };
+                    reader.readAsText(file);
+                };
+                input.click();
+            },
+
+            _applyRoundFile(json, filename) {
+                var data;
+                try { data = JSON.parse(json); } catch(e) {
+                    Utils.toast('Invalid JSON file'); return;
+                }
+
+                if (!data || data.type !== 'golfRound') {
+                    Utils.toast('Not a Round File (expected type: golfRound)'); return;
+                }
+                if (!data.holes || !data.holes.length) {
+                    Utils.toast('Round file has no hole data'); return;
+                }
+
+                // ── Step 1: resolve course ───────────────────
+                var courseId   = data.course && data.course.id;
+                var courseName = (data.course && data.course.name) || 'Unknown Course';
+                var courseFound = false;
+
+                if (courseId) {
+                    var libCourse = Library.getCourse(courseId);
+                    if (libCourse) {
+                        // Course is in library — activate it
+                        State.currentCourseId = courseId;
+                        Storage.save(LS_STATE_KEY, State);
+                        courseFound = true;
+                    }
+                }
+
+                // ── Step 2: load spine from round file ────────
+                // Whether or not course was found in library,
+                // use round file spine as the authoritative
+                // source (may include reconciled pin positions)
+                data.holes.forEach(function(rh) {
+                    var idx = (rh.hole || 1) - 1;
+                    if (idx < 0 || idx > 17) return;
+                    var sh = State.holes[idx];
+                    if (!sh) return;
+
+                    // Hole metadata
+                    if (rh.par)   sh.par   = rh.par;
+                    if (rh.yards) sh.yards = rh.yards;
+                    if (rh.hcp)   sh.hcp   = rh.hcp;
+
+                    // Spine — tee, flag, planPath (W1/W2)
+                    var spine = rh.spine || {};
+                    if (spine.tee  && spine.tee.lat  != null) sh.tee  = { lat: spine.tee.lat,  lon: spine.tee.lon  };
+                    if (spine.flag && spine.flag.lat != null)  sh.flag = { lat: spine.flag.lat, lon: spine.flag.lon };
+                    var planPath = [];
+                    if (spine.w1 && spine.w1.lat != null) planPath.push({ lat: spine.w1.lat, lon: spine.w1.lon });
+                    if (spine.w2 && spine.w2.lat != null) planPath.push({ lat: spine.w2.lat, lon: spine.w2.lon });
+                    if (planPath.length) sh.planPath = planPath;
+
+                    // Pin position — reconciled flag (more accurate than spine flag)
+                    if (rh.pinPosition && rh.pinPosition.lat != null) {
+                        sh.flag = { lat: rh.pinPosition.lat, lon: rh.pinPosition.lon };
+                    }
+                });
+
+                // ── Step 3: load shots ───────────────────────
+                // Non-destructive choice: if hole already has
+                // shots logged, ask before overwriting.
+                var holesWithExisting = State.holes.filter(function(h) {
+                    return h.shots && h.shots.length > 0 &&
+                           !h.shots.every(function(s) { return s.planned; });
+                }).length;
+
+                var proceed = true;
+                if (holesWithExisting > 0) {
+                    proceed = window.confirm(
+                        'Load round from file?\n\n' +
+                        holesWithExisting + ' hole' + (holesWithExisting !== 1 ? 's' : '') +
+                        ' already have shots logged.\n\n' +
+                        'Loading will replace shots on those holes with the round file data.\n\n' +
+                        'Continue?'
+                    );
+                }
+                if (!proceed) return;
+
+                var shotsLoaded = 0;
+                var holesLoaded = 0;
+                var reconciledCount = 0;
+
+                data.holes.forEach(function(rh) {
+                    var idx = (rh.hole || 1) - 1;
+                    if (idx < 0 || idx > 17) return;
+                    var sh = State.holes[idx];
+                    if (!sh) return;
+                    if (!rh.shots || !rh.shots.length) return;
+
+                    // Map round file shots → Shot Tracker shot format
+                    sh.shots = rh.shots.map(function(s) {
+                        var hasGPS = s.position && s.position.lat != null;
+                        if (hasGPS) reconciledCount++;
+                        return {
+                            club:           s.club           || 'Club?',
+                            shotType:       s.shotType       || 'full',
+                            distance:       s.distance       || 0,
+                            targetDistance: s.targetDistance || 0,
+                            actualDistance: s.actualDistance || null,
+                            penalty:        s.penalty        || false,
+                            position:       s.position       || null,
+                            positionPending:false,
+                            timestamp:      s.timestamp      || Utils.nowISO(),
+                            targetId:       s.targetId       || null,
+                            targetPoint:    null,
+                            targetGPS:      s.targetGPS      || null,
+                            targetYards:    null,
+                            targetCategory: null,
+                            targetAbbrev:   s.targetAbbrev   || null,
+                            bunker:         s.bunker         || false,
+                            fwBunker:       s.fwBunker       || false,
+                            fwy:            s.fwy            || false
+                        };
+                    });
+
+                    // Raw GPS marks
+                    if (rh.gpsMarks && rh.gpsMarks.length) {
+                        sh.marks = rh.gpsMarks.map(function(m) {
+                            return { lat: m.lat, lon: m.lon, timestamp: m.timestamp || null };
+                        });
+                    }
+
+                    // FWY / GIR if present
+                    if (rh.fwy != null) sh.fwy = rh.fwy;
+                    if (rh.gir != null) sh.gir = rh.gir;
+
+                    sh.manuallyCleared = false;
+                    shotsLoaded += sh.shots.length;
+                    holesLoaded++;
+                });
+
+                // ── Step 4: set round metadata ────────────────
+                if (data.round && data.round.startedAt) {
+                    State.round = State.round || {};
+                    State.round.startedAt = data.round.startedAt;
+                }
+                if (data.round && data.round.date) {
+                    State.round.date = data.round.date;
+                }
+
+                // Set bag if found in library
+                if (data.bag && data.bag.id) {
+                    var libBag = Library.getBag(data.bag.id);
+                    if (libBag) State.currentBagId = data.bag.id;
+                }
+
+                // Navigate to first hole with shots
+                var firstHoleWithShots = data.holes.findIndex(function(h) {
+                    return h.shots && h.shots.length > 0;
+                });
+                if (firstHoleWithShots >= 0) State.holeIndex = firstHoleWithShots;
+
+                // Save and re-render
+                State.save();
+                UI.render();
+                LibraryUI.render();
+
+                // ── Step 5: status message ────────────────────
+                var dateStr = data.round && data.round.date ? ' · ' + data.round.date : '';
+                var reconStr = reconciledCount > 0
+                    ? ' · ' + reconciledCount + ' GPS positions'
+                    : ' · no GPS positions';
+                var courseStr = courseFound
+                    ? courseName + ' (from library)'
+                    : courseName + ' (spine from file)';
+
+                // Show status in the settings panel
+                var statusEl = UI.els.roundFileStatus;
+                if (statusEl) {
+                    statusEl.style.display = '';
+                    statusEl.style.color = 'var(--green-500)';
+                    statusEl.textContent = '✓ ' + courseStr + dateStr +
+                        ' · ' + holesLoaded + ' holes · ' + shotsLoaded + ' shots' + reconStr;
+                }
+
+                Utils.toast(
+                    'Round loaded — ' + holesLoaded + ' holes' +
+                    (reconciledCount > 0 ? ', ' + reconciledCount + ' reconciled shots' : ''),
+                    'ok', 3500
+                );
+            },
+
+            // ── Export ───────────────────────────────────────
+            exportRoundFile() {
+                try {
+                    var bags    = Storage.load(LS_BAG_LIBRARY_KEY)    || [];
+                    var courses = Storage.load(LS_COURSE_LIBRARY_KEY) || [];
+                    var state   = Storage.load(LS_STATE_KEY)           || {};
+                    var activeBag = Storage.load(LS_BAG_KEY)           || {};
+
+                    // Find active course
+                    var activeCourse = courses.find(function(c) {
+                        return c.id === (state.currentCourseId || State.currentCourseId);
+                    }) || {};
+
+                    // Active bag
+                    var bagId  = state.currentBagId || State.currentBagId || 'default-bag';
+                    var bagObj = bags.find(function(b) { return b.id === bagId; }) ||
+                                 activeBag || State.bag || {};
+
+                    // Date from round startedAt
+                    var startedAt = (state.round && state.round.startedAt) ||
+                                    (State.round  && State.round.startedAt) ||
+                                    Utils.nowISO();
+                    var dateStr = startedAt.slice(0, 10);
+
+                    // Build holes
+                    var stateHoles = (state.holes || State.holes || []);
+                    var courseHoles = activeCourse.holes || [];
+
+                    var holes = stateHoles.map(function(sh, idx) {
+                        var ch = courseHoles[idx] || {};
+
+                        // Spine from course hole
+                        var spine = {
+                            tee:  ch.teeGPS  || sh.tee  || null,
+                            flag: ch.flagGPS || sh.flag || null,
+                            w1:   (ch.planPath && ch.planPath[0]) || null,
+                            w2:   (ch.planPath && ch.planPath[1]) || null
+                        };
+
+                        var shots = (sh.shots || []).map(function(s, si) {
+                            return {
+                                seq:            si + 1,
+                                club:           s.club           || 'Club?',
+                                shotType:       s.shotType       || 'full',
+                                distance:       s.distance       || 0,
+                                targetDistance: s.targetDistance || 0,
+                                actualDistance: s.actualDistance || null,
+                                penalty:        s.penalty        || false,
+                                position:       s.position       || null,
+                                timestamp:      s.timestamp      || null,
+                                targetId:       s.targetId       || null,
+                                targetGPS:      s.targetGPS      || null,
+                                targetAbbrev:   s.targetAbbrev   || null,
+                                bunker:         s.bunker         || false,
+                                fwBunker:       s.fwBunker       || false,
+                                fwy:            s.fwy            || false
+                            };
+                        });
+
+                        var gpsMarks = (sh.marks || []).map(function(m) {
+                            return { lat: m.lat, lon: m.lon, timestamp: m.timestamp || null };
+                        });
+
+                        return {
+                            hole:        sh.hole || (idx + 1),
+                            par:         sh.par  || ch.par  || 4,
+                            yards:       sh.yards|| ch.yards|| 0,
+                            hcp:         sh.hcp  || ch.hcp  || (idx + 1),
+                            spine:       spine,
+                            pinPosition: sh.flag || spine.flag || null,
+                            shots:       shots,
+                            gpsMarks:    gpsMarks,
+                            fwy:         sh.fwy  || null,
+                            gir:         sh.gir  || null,
+                            reconAccepted: false
+                        };
+                    });
+
+                    var reconCount = holes.reduce(function(sum, h) {
+                        return sum + h.shots.filter(function(s) {
+                            return s.position && s.position.lat != null;
+                        }).length;
+                    }, 0);
+
+                    var roundFile = {
+                        type:          'golfRound',
+                        schemaVersion: '1.0',
+                        roundId:       'round-' + Date.now().toString(36),
+                        exportedAt:    Utils.nowISO(),
+                        reconciledAt:  reconCount > 0 ? Utils.nowISO() : null,
+                        reconciled:    false,
+                        reconciledHoles: 0,
+
+                        round: {
+                            date:      dateStr,
+                            startedAt: startedAt,
+                            targeting: (state.round && state.round.targeting) || {}
+                        },
+
+                        course: {
+                            id:   activeCourse.id   || State.currentCourseId || '',
+                            name: activeCourse.name || State.courseName      || 'Unknown Course',
+                            tees: 'White'
+                        },
+
+                        bag: {
+                            id:        bagId,
+                            clubs:     bagObj.clubs     || [],
+                            shotTypes: bagObj.shotTypes || [],
+                            data:      bagObj.data      || {}
+                        },
+
+                        holes: holes
+                    };
+
+                    var json     = JSON.stringify(roundFile, null, 2);
+                    var blob     = new Blob([json], { type: 'application/json' });
+                    var url      = URL.createObjectURL(blob);
+                    var a        = document.createElement('a');
+                    var safeName = (roundFile.course.name + '-' + dateStr)
+                                    .replace(/[^a-z0-9]/gi, '-').toLowerCase();
+                    a.href       = url;
+                    a.download   = safeName + '-round.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    var shotCount = holes.reduce(function(s, h) { return s + h.shots.length; }, 0);
+                    Utils.toast('Round exported — ' + shotCount + ' shots' +
+                        (reconCount > 0 ? ', ' + reconCount + ' with GPS' : ''));
+
+                } catch(e) {
+                    console.error('Export round error:', e);
+                    Utils.toast('Export failed — ' + (e.message || 'unknown error'));
+                }
+            }
+        };
+
+        // ============================================
         // LIBRARY ACTIONS (v40.5)
         // ============================================
         
@@ -11563,6 +11924,8 @@
                 this.on('btnImportCourse',     'click', () => ImportExport.importCourses());
                 this.on('btnBackupAll',        'click', () => Backup.backup());
                 this.on('btnRestoreBackup',    'click', () => Backup.restore());
+                this.on('btnImportRoundFile',  'click', () => RoundFile.importRoundFile());
+                this.on('btnExportRoundFile',  'click', () => RoundFile.exportRoundFile());
             },
             
             on(elId, event, handler) {
