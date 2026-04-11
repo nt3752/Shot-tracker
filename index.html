@@ -9506,8 +9506,8 @@
                             pinPosition: sh.flag || spine.flag || null,
                             shots:       shots,
                             gpsMarks:    gpsMarks,
-                            fwy:         sh.fwy  || null,
-                            gir:         sh.gir  || null,
+                            fwy:         sh.fwy  != null ? sh.fwy  : null,
+                            gir:         sh.gir  != null ? sh.gir  : null,
                             reconAccepted: false
                         };
                     });
