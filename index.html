@@ -9112,16 +9112,24 @@
                     var state     = Storage.load(LS_STATE_KEY)           || {};
                     var activeBag = Storage.load(LS_BAG_KEY)             || {};
                     var activeCourse = Storage.load(LS_COURSE_KEY)       || {};
+                    var gridFull         = Storage.load(LS_GRID_FULL_KEY)          || [];
+                    var gridPartial      = Storage.load(LS_GRID_PARTIAL_KEY)       || [];
+                    var gridColorsFull   = Storage.load(LS_GRID_COLORS_FULL_KEY)   || [];
+                    var gridColorsPartial= Storage.load(LS_GRID_COLORS_PARTIAL_KEY)|| [];
 
                     var payload = {
-                        type:          'shotTrackerBackup',
-                        version:       VERSION,
-                        exportedAt:    Utils.nowISO(),
-                        bagLibrary:    bags,
-                        courseLibrary: courses,
-                        activeState:   state,
-                        activeBag:     activeBag,
-                        activeCourse:  activeCourse
+                        type:               'shotTrackerBackup',
+                        version:            VERSION,
+                        exportedAt:         Utils.nowISO(),
+                        bagLibrary:         bags,
+                        courseLibrary:      courses,
+                        activeState:        state,
+                        activeBag:          activeBag,
+                        activeCourse:       activeCourse,
+                        gridFull:           gridFull,
+                        gridPartial:        gridPartial,
+                        gridColorsFull:     gridColorsFull,
+                        gridColorsPartial:  gridColorsPartial
                     };
 
                     var json     = JSON.stringify(payload, null, 2);
@@ -9187,11 +9195,15 @@
                     }
 
                     // Restore each localStorage key
-                    if (data.bagLibrary)    Storage.save(LS_BAG_LIBRARY_KEY,    data.bagLibrary);
-                    if (data.courseLibrary) Storage.save(LS_COURSE_LIBRARY_KEY, data.courseLibrary);
-                    if (data.activeState)   Storage.save(LS_STATE_KEY,          data.activeState);
-                    if (data.activeBag)     Storage.save(LS_BAG_KEY,            data.activeBag);
-                    if (data.activeCourse)  Storage.save(LS_COURSE_KEY,         data.activeCourse);
+                    if (data.bagLibrary)        Storage.save(LS_BAG_LIBRARY_KEY,         data.bagLibrary);
+                    if (data.courseLibrary)     Storage.save(LS_COURSE_LIBRARY_KEY,      data.courseLibrary);
+                    if (data.activeState)       Storage.save(LS_STATE_KEY,               data.activeState);
+                    if (data.activeBag)         Storage.save(LS_BAG_KEY,                 data.activeBag);
+                    if (data.activeCourse)      Storage.save(LS_COURSE_KEY,              data.activeCourse);
+                    if (data.gridFull)          Storage.save(LS_GRID_FULL_KEY,           data.gridFull);
+                    if (data.gridPartial)       Storage.save(LS_GRID_PARTIAL_KEY,        data.gridPartial);
+                    if (data.gridColorsFull)    Storage.save(LS_GRID_COLORS_FULL_KEY,    data.gridColorsFull);
+                    if (data.gridColorsPartial) Storage.save(LS_GRID_COLORS_PARTIAL_KEY, data.gridColorsPartial);
 
                     // Re-initialize app from restored storage
                     State.init();
