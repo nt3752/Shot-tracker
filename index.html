@@ -6607,11 +6607,11 @@
             // Returns bands (made/attempted from distance ranges), up&downs, holedOut count
             puttAnalysis(playedHoles) {
                 var self = this;
-                // Distance bands: <=3ft, 4-6ft, >6ft
+                // Distance bands for putts — each putt is attempted; last putt on hole = made
                 var bands = [
-                    { label: '\u22643ft',  max: 3,    made: 0, att: 0 },
-                    { label: '4\u20136ft', min: 4, max: 6, made: 0, att: 0 },
-                    { label: '>6ft',  min: 7,        made: 0, att: 0 }
+                    { label: '\u22643ft',  made: 0, att: 0, test: function(d){ return d <= 3; } },
+                    { label: '4\u20136ft', made: 0, att: 0, test: function(d){ return d >= 4 && d <= 6; } },
+                    { label: '>6ft',       made: 0, att: 0, test: function(d){ return d >= 7; } }
                 ];
                 var upDownMade = 0, upDownOpp = 0;
                 var holedOutCount = 0;
@@ -6620,31 +6620,27 @@
                     var pc = self.puttCount(hole);
                     var gir = self.calcGIR(hole);
 
-                    // Holed out from off green
+                    // Holed out from off green (0 putts)
                     if (hole.shots.length > 0 && pc === 0) holedOutCount++;
 
-                    // Up & down: missed GIR, exactly 1 putt (= made it)
+                    // Up & down: missed GIR, exactly 1 putt
                     if (gir === false) {
                         upDownOpp++;
                         if (pc === 1) upDownMade++;
                     }
 
-                    // Collect putts with distances for band analysis
-                    // Last putt on hole = made; any earlier putt = missed
+                    // Band analysis: each putt with a logged distance is an attempt;
+                    // only the last putt on the hole is counted as made.
                     var puttShots = hole.shots.filter(function(s) {
                         return (s.shotType || '').toLowerCase() === 'putt';
                     });
 
                     puttShots.forEach(function(s, idx) {
-                        if (!s.distance || s.distance <= 0) return; // no distance — skip
-                        var dist = s.distance; // stored in feet
-                        var made = (idx === puttShots.length - 1); // last putt = made
-
+                        if (!s.distance || s.distance <= 0) return;
+                        var dist = s.distance;
+                        var made = (idx === puttShots.length - 1);
                         bands.forEach(function(band) {
-                            var inBand = (band.max !== undefined && dist <= band.max) ||
-                                         (band.min !== undefined && band.max !== undefined && dist >= band.min && dist <= band.max) ||
-                                         (band.min !== undefined && band.max === undefined && dist >= band.min);
-                            if (inBand) {
+                            if (band.test(dist)) {
                                 band.att++;
                                 if (made) band.made++;
                             }
