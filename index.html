@@ -7243,18 +7243,21 @@
                 var playedHoles = State.holes.filter(function(h) { return h.shots.length > 0; });
                 var date = new Date(State.round.startedAt);
 
-                // ── Shared styles ──────────────────────────────────────────────
-                var SEC  = 'margin-bottom:24px;';
-                var SECH = 'display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.12);';
-                var SECN = 'font-size:0.6rem;color:#6ee7b7;letter-spacing:1px;font-family:monospace;';
+                // ── Shared style strings ───────────────────────────────────────
+                var SEC  = 'margin-bottom:28px;';
+                var SECH = 'display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.12);';
+                var SECN = 'font-size:0.6rem;color:#6ee7b7;letter-spacing:1px;font-family:monospace;flex-shrink:0;';
                 var SECT = 'font-size:0.85rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:#fff;';
                 var CARD = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:14px;margin-bottom:10px;';
+                var CARDP0 = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;overflow:hidden;margin-bottom:10px;';
+                var INSIGHT = 'font-size:0.72rem;color:#93c5fd;background:rgba(59,130,246,0.08);border-left:3px solid #3b82f6;border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:10px;line-height:1.6;';
                 var STATROW  = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.82rem;';
                 var STATLAST = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:0.82rem;';
                 var TBL = 'width:100%;border-collapse:collapse;font-size:0.78rem;';
-                var TH  = 'padding:5px 6px;font-size:0.6rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(255,255,255,0.1);';
-                var TD  = 'padding:6px 6px;border-bottom:1px solid rgba(255,255,255,0.05);';
-                var TDL = 'padding:6px 6px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:left;';
+                var TH  = 'padding:5px 8px;font-size:0.6rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;';
+                var TD  = 'padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right;';
+                var TDL = 'padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:left;';
+                var TDC = 'padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;';
 
                 function secHead(num, title) {
                     return '<div style="'+SECH+'"><span style="'+SECN+'">'+num+'</span><span style="'+SECT+'">'+title+'</span></div>';
@@ -7262,17 +7265,28 @@
                 function statLine(label, val, last) {
                     return '<div style="'+(last?STATLAST:STATROW)+'"><span style="color:#aaa;">'+label+'</span><span style="font-weight:700;color:#fff;">'+val+'</span></div>';
                 }
-                function pct(n,d) { return d>0 ? Math.round(n/d*100)+'%' : 'N/A'; }
-                function avg(arr) { return arr.length ? Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length) : null; }
-                function avgF(arr,dec) { return arr.length ? (arr.reduce(function(a,b){return a+b;},0)/arr.length).toFixed(dec||1) : null; }
+                function pct(n, d) { return d > 0 ? Math.round(n/d*100)+'%' : 'N/A'; }
+                function avgArr(arr) { return arr.length ? Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length) : null; }
+                function avgArrF(arr, dec) { return arr.length ? (arr.reduce(function(a,b){return a+b;},0)/arr.length).toFixed(dec===undefined?1:dec) : null; }
+                function proxColor(ft) { return ft<=10?'#4ade80':ft<=20?'#60a5fa':ft<=30?'#f59e0b':'#f87171'; }
                 function deltaColor(d) { return d===null?'#888':Math.abs(d)<=5?'#4ade80':Math.abs(d)<=15?'#f59e0b':'#e64545'; }
+                function scoreLabel(vsp) {
+                    if (vsp === null) return '';
+                    if (vsp <= -2) return 'Eagle';
+                    if (vsp === -1) return 'Birdie';
+                    if (vsp === 0) return 'Par';
+                    if (vsp === 1) return 'Bogey';
+                    if (vsp === 2) return 'Double';
+                    return 'Triple+';
+                }
 
-                // ── Accumulate round stats ─────────────────────────────────────
-                var totalShots=0, totalPar=0;
-                var front9S=0, front9P=0, back9S=0, back9P=0;
+                // ── Accumulate round-level stats ───────────────────────────────
+                var totalShots=0, totalPar=0, front9S=0, front9P=0, back9S=0, back9P=0;
                 var fwyHit=0, fwyOpp=0, girHit=0, girOpp=0;
+                var totalPutts=0, penalties=0;
                 var puttCounts={0:0,1:0,2:0,3:0,more:0};
-                var totalPutts=0, puttDists=[], penalties=0;
+                var firstPuttDists=[], lastPuttDists=[];
+                var birdies=0, pars=0, bogeys=0, doubles=0, triples=0;
 
                 playedHoles.forEach(function(h) {
                     totalShots += h.shots.length;
@@ -7289,246 +7303,418 @@
                     else if (pc===3) puttCounts[3]++;
                     else             puttCounts.more++;
                     h.shots.forEach(function(s) { if(s.penalty) penalties++; });
-                    var fp=h.shots.find(function(s){return (s.shotType||'').toLowerCase()==='putt'&&s.distance>0;});
-                    if (fp) puttDists.push(fp.distance);
+                    var puttShots=h.shots.filter(function(s){return (s.shotType||'').toLowerCase()==='putt';});
+                    if (puttShots.length>0 && puttShots[0].distance>0) firstPuttDists.push(puttShots[0].distance);
+                    if (puttShots.length>0) {
+                        var lp=puttShots[puttShots.length-1];
+                        if (lp.distance>0) lastPuttDists.push({hole:h.hole, dist:lp.distance, putts:pc, firstPutt:puttShots[0].distance||0});
+                    }
+                    var vsp=self.vsParHole(h);
+                    if (vsp!==null) {
+                        if (vsp<=-1) birdies++;
+                        else if (vsp===0) pars++;
+                        else if (vsp===1) bogeys++;
+                        else if (vsp===2) doubles++;
+                        else triples++;
+                    }
                 });
 
                 var h = '';
 
                 // ── KPI Header ────────────────────────────────────────────────
                 h += '<div style="background:#111;border-radius:10px;padding:16px;margin-bottom:20px;">';
-                h += '<div style="font-size:0.65rem;color:#6ee7b7;letter-spacing:2px;text-transform:uppercase;font-family:monospace;margin-bottom:6px;">Round Report · Shot Tracker v51</div>';
-                h += '<div style="font-size:1.4rem;font-weight:900;color:#fff;margin-bottom:2px;">' + date.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + '</div>';
-                h += '<div style="font-size:0.72rem;color:#888;margin-bottom:14px;">'+(State.courseName||'Unknown Course')+' · '+((State.bag&&State.bag.name)||'Unknown Bag')+'</div>';
-                h += '<div style="display:flex;gap:12px;flex-wrap:wrap;">';
-                function kpi(val,lbl,col) {
-                    return '<div><div style="font-size:1.6rem;font-weight:900;color:'+(col||'#fff')+';">'+val+'</div><div style="font-size:0.58rem;color:#666;text-transform:uppercase;letter-spacing:1px;">'+lbl+'</div></div>';
-                }
-                function kpiDiv() { return '<div style="width:1px;background:rgba(255,255,255,0.1);"></div>'; }
+                h += '<div style="font-size:0.6rem;color:#6ee7b7;letter-spacing:2px;text-transform:uppercase;font-family:monospace;margin-bottom:4px;">Round Report · Shot Tracker v51</div>';
+                h += '<div style="font-size:1.4rem;font-weight:900;color:#fff;line-height:1.1;margin-bottom:2px;">'+date.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>';
+                h += '<div style="font-size:0.72rem;color:#666;margin-bottom:14px;">'+(State.courseName||'Unknown Course')+' · '+((State.bag&&State.bag.name)||'Unknown Bag')+'</div>';
+                h += '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">';
                 var relTotal=hasPar?totalShots-totalPar:null;
                 var relStr=relTotal===null?'—':relTotal===0?'E':(relTotal>0?'+'+relTotal:String(relTotal));
                 var relCol=relTotal===null?'#888':relTotal<0?'#4ade80':relTotal>0?'#f87171':'#fff';
-                h += kpi(totalShots,'Strokes',relTotal&&relTotal>0?'#f87171':'#fff');
-                h += kpiDiv()+kpi(relStr,'vs Par',relCol);
-                h += kpiDiv()+kpi(totalPutts,'Putts',totalPutts>36?'#f87171':'#fff');
-                h += kpiDiv()+kpi(girHit+'/'+girOpp,'GIR','#fff');
-                h += kpiDiv()+kpi(fwyHit+'/'+fwyOpp,'FWY','#fff');
-                h += kpiDiv()+kpi(penalties,'Penalties',penalties>0?'#f87171':'#4ade80');
+                function kpi(val,lbl,col) {
+                    return '<div><div style="font-size:1.6rem;font-weight:900;line-height:1;color:'+(col||'#fff')+';">'+val+'</div><div style="font-size:0.58rem;color:#555;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">'+lbl+'</div></div>';
+                }
+                function kd() { return '<div style="width:1px;background:rgba(255,255,255,0.08);align-self:stretch;"></div>'; }
+                h += kpi(totalShots,'Strokes',relTotal&&relTotal>10?'#f87171':'#fff');
+                h += kd()+kpi(relStr,'vs Par',relCol);
+                h += kd()+kpi(totalPutts,'Putts',totalPutts>36?'#f87171':'#fff');
+                h += kd()+kpi(birdies,'Birdies',birdies>0?'#4ade80':'#888');
+                h += kd()+kpi(girHit+'/'+girOpp,'GIR','#fff');
+                h += kd()+kpi(fwyHit+'/'+fwyOpp,'FWY','#fff');
+                h += kd()+kpi(penalties,'Penalties',penalties>0?'#f87171':'#4ade80');
                 h += '</div></div>';
 
-                // ═══════════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════════
                 // 01 PUTTING
-                // ═══════════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════════
                 h += '<div style="'+SEC+'">';
                 h += secHead('01','Putting');
 
-                // KPI pills
-                var onePuttHoles=puttCounts[1], threePuttHoles=puttCounts[3]+(puttCounts.more||0);
-                var avgFirstPutt = avgF(puttDists,1);
-                h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">';
-                function puttKpi(val,lbl,sub,col) {
-                    return '<div style="'+CARD+'padding:10px;text-align:center;"><div style="font-size:1.4rem;font-weight:900;color:'+(col||'#fff')+';">'+val+'</div><div style="font-size:0.6rem;color:#888;text-transform:uppercase;margin-top:2px;">'+lbl+'</div>'+(sub?'<div style="font-size:0.62rem;color:#666;margin-top:2px;">'+sub+'</div>':'')+'</div>';
+                // KPI pills row
+                var avgFP = avgArrF(firstPuttDists);
+                var threePuttHoles = puttCounts[3]+(puttCounts.more||0);
+                var threePuttList = playedHoles.filter(function(hole){ return self.puttCount(hole)>=3; }).map(function(hole){return 'H'+hole.hole;}).join(', ');
+                h += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;">';
+                function pKpi(val,lbl,sub,col) {
+                    return '<div style="'+CARD+'padding:10px;text-align:center;margin-bottom:0;">' +
+                           '<div style="font-size:1.4rem;font-weight:900;color:'+(col||'#fff')+';">'+val+'</div>' +
+                           '<div style="font-size:0.6rem;color:#888;text-transform:uppercase;margin-top:2px;">'+lbl+'</div>' +
+                           (sub?'<div style="font-size:0.6rem;color:#555;margin-top:2px;">'+sub+'</div>':'') +
+                           '</div>';
                 }
-                h += puttKpi(totalPutts,'Total Putts',playedHoles.length?(totalPutts/playedHoles.length).toFixed(1)+'/hole':null,totalPutts>36?'#f87171':'#fff');
-                h += puttKpi(onePuttHoles,'1-Putt',pct(onePuttHoles,playedHoles.length),'#4ade80');
-                h += puttKpi(puttCounts[2],'2-Putt',pct(puttCounts[2],playedHoles.length),'#fff');
-                h += puttKpi(threePuttHoles,'3-Putt+',pct(threePuttHoles,playedHoles.length),threePuttHoles>0?'#f87171':'#888');
+                h += pKpi(totalPutts,'Total Putts',playedHoles.length?(totalPutts/playedHoles.length).toFixed(1)+'/hole':null,totalPutts>36?'#f87171':'#fff');
+                h += pKpi(puttCounts[1],'1-Putt',pct(puttCounts[1],playedHoles.length),'#4ade80');
+                h += pKpi(puttCounts[2],'2-Putt',pct(puttCounts[2],playedHoles.length),'#fff');
+                h += pKpi(threePuttHoles,'3-Putt+',threePuttList||pct(threePuttHoles,playedHoles.length),threePuttHoles>0?'#f87171':'#888');
+                h += pKpi(avgFP?avgFP+'ft':'—','Avg 1st Putt','feet','#f59e0b');
                 h += '</div>';
 
-                // Putt conversion by distance
-                var pa = self.puttAnalysis(playedHoles);
-                if (pa.bands.some(function(b){return b.att>0;})) {
-                    h += '<div style="'+CARD+'">';
-                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Conversion by Distance</div>';
-                    h += '<table style="'+TBL+'">';
-                    h += '<thead><tr><th style="'+TH+'text-align:left;">Distance</th><th style="'+TH+'text-align:right;">Made</th><th style="'+TH+'text-align:right;">Att</th><th style="'+TH+'text-align:right;">Conv%</th><th style="'+TH+'">Bar</th></tr></thead><tbody>';
-                    pa.bands.forEach(function(b) {
-                        if (!b.att) return;
-                        var cp=Math.round(b.made/b.att*100);
-                        var col=cp>=80?'#4ade80':cp>=50?'#f59e0b':'#e64545';
-                        h += '<tr><td style="'+TDL+'font-weight:700;">'+b.label+'</td>' +
-                             '<td style="'+TD+'text-align:right;">'+b.made+'</td>' +
-                             '<td style="'+TD+'text-align:right;">'+b.att+'</td>' +
-                             '<td style="'+TD+'text-align:right;font-weight:700;color:'+col+';">'+cp+'%</td>' +
-                             '<td style="'+TD+'"><div style="background:rgba(255,255,255,0.08);border-radius:3px;height:6px;overflow:hidden;"><div style="width:'+cp+'%;height:100%;background:'+col+';border-radius:3px;"></div></div></td>' +
-                             '</tr>';
+                // Putt matrix: putts by score result
+                if (hasPar) {
+                    var matrix = {'Birdie':{1:0,2:0,3:0,total:0},'Par':{1:0,2:0,3:0,total:0},'Bogey':{1:0,2:0,3:0,total:0},'Double':{1:0,2:0,3:0,total:0},'Triple+':{1:0,2:0,3:0,total:0}};
+                    playedHoles.forEach(function(hole) {
+                        var vsp=self.vsParHole(hole); if(vsp===null) return;
+                        var key=scoreLabel(vsp); if(!matrix[key]) return;
+                        var pc=Math.min(self.puttCount(hole),3);
+                        matrix[key][pc]=(matrix[key][pc]||0)+1;
+                        matrix[key].total++;
                     });
-                    h += '</tbody></table>';
-                    if (avgFirstPutt) h += '<div style="margin-top:8px;font-size:0.75rem;color:#888;">Avg 1st putt: <span style="color:#fff;font-weight:700;">'+avgFirstPutt+'ft</span></div>';
-                    h += '</div>';
-                }
-
-                // Putt detail by hole
-                h += '<div style="'+CARD+'padding:0;overflow:hidden;">';
-                h += '<table style="'+TBL+'">';
-                h += '<thead><tr>' +
-                     '<th style="'+TH+'text-align:left;padding-left:10px;">Hole</th>' +
-                     '<th style="'+TH+'text-align:right;">Putts</th>' +
-                     '<th style="'+TH+'text-align:right;">1st Putt</th>' +
-                     '<th style="'+TH+'text-align:right;">Last Putt</th>' +
-                     '<th style="'+TH+'">Result</th>' +
-                     '</tr></thead><tbody>';
-                playedHoles.forEach(function(hole,hi) {
-                    var pc=self.puttCount(hole);
-                    var putts=hole.shots.filter(function(s){return (s.shotType||'').toLowerCase()==='putt';});
-                    var fp=putts[0]?putts[0].distance:null;
-                    var lp=putts.length>1?putts[putts.length-1].distance:null;
-                    var pcCol=pc===1?'#4ade80':pc===3?'#f87171':pc>3?'#e64545':'#fff';
-                    var rb=hi%2===0?'background:rgba(255,255,255,0.01);':'';
-                    h += '<tr style="'+rb+'">' +
-                         '<td style="'+TDL+'padding-left:10px;font-weight:700;">H'+hole.hole+'</td>' +
-                         '<td style="'+TD+'text-align:right;font-weight:900;color:'+pcCol+';">'+pc+'</td>' +
-                         '<td style="'+TD+'text-align:right;color:#aaa;">'+(fp?fp+'ft':'—')+'</td>' +
-                         '<td style="'+TD+'text-align:right;color:#888;">'+(lp?lp+'ft':'—')+'</td>' +
-                         '<td style="'+TD+'text-align:center;font-size:0.65rem;color:'+(pc===1?'#4ade80':pc===3?'#f87171':'#888')+';">'+(pc===1?'1-putt':pc===3?'3-putt':pc>3?pc+'-putt':'')+'</td>' +
-                         '</tr>';
-                });
-                h += '</tbody></table></div>';
-                h += '</div>'; // end 01
-
-                // ═══════════════════════════════════════════════════════════════
-                // 02 DRIVING
-                // ═══════════════════════════════════════════════════════════════
-                h += '<div style="'+SEC+'">';
-                h += secHead('02','Driving');
-
-                // Driver shots
-                var driverShots = [];
-                playedHoles.forEach(function(hole) {
-                    if (hole.shots.length===0) return;
-                    if (hole.par!==4&&hole.par!==5) return;
-                    var s=hole.shots[0];
-                    if (!s.club) return;
-                    driverShots.push({hole:hole.hole, club:s.club, dist:s.actualDistance||s.distance||null, fwy:hole.fwy, par:hole.par});
-                });
-
-                var driverDists = driverShots.filter(function(d){return d.dist>50;}).map(function(d){return d.dist;});
-                var avgDrive = avg(driverDists);
-
-                h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
-                h += puttKpi(fwyHit+'/'+fwyOpp,'Fairways',pct(fwyHit,fwyOpp),null);
-                h += puttKpi(avgDrive?avgDrive+'y':'—','Avg Drive','GPS total',null);
-                h += puttKpi(driverShots.length,'Tee Shots','par 4/5',null);
-                h += '</div>';
-
-                if (driverShots.length>0) {
-                    h += '<div style="'+CARD+'padding:0;overflow:hidden;">';
+                    h += '<div style="'+CARD+'">';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">1st Putt by Score Result</div>';
                     h += '<table style="'+TBL+'">';
-                    h += '<thead><tr>' +
-                         '<th style="'+TH+'text-align:left;padding-left:10px;">Hole</th>' +
-                         '<th style="'+TH+'text-align:left;">Club</th>' +
-                         '<th style="'+TH+'text-align:right;">Dist</th>' +
-                         '<th style="'+TH+'">FWY</th>' +
-                         '</tr></thead><tbody>';
-                    driverShots.forEach(function(d,di) {
-                        var rb=di%2===0?'background:rgba(255,255,255,0.01);':'';
-                        var fwyStr=d.par===3?'—':(d.fwy?'<span style="color:#4ade80;font-weight:700;">✓</span>':'<span style="color:#888;">✗</span>');
-                        h += '<tr style="'+rb+'">' +
-                             '<td style="'+TDL+'padding-left:10px;font-weight:700;">H'+d.hole+'</td>' +
-                             '<td style="'+TD+'color:#aaa;">'+Utils.escHtml(d.club||'—')+'</td>' +
-                             '<td style="'+TD+'text-align:right;font-weight:700;">'+(d.dist?d.dist+'y':'—')+'</td>' +
-                             '<td style="'+TD+'text-align:center;">'+fwyStr+'</td>' +
+                    h += '<thead><tr><th style="'+TH+'text-align:left;">Result</th><th style="'+TH+'text-align:center;">1-Putt</th><th style="'+TH+'text-align:center;">2-Putt</th><th style="'+TH+'text-align:center;">3-Putt+</th><th style="'+TH+'text-align:center;">Holes</th></tr></thead><tbody>';
+                    ['Birdie','Par','Bogey','Double','Triple+'].forEach(function(key) {
+                        var d=matrix[key]; if(!d.total) return;
+                        var col=key==='Birdie'?'#4ade80':key==='Par'?'#fff':key==='Bogey'?'#aaa':key==='Double'?'#f59e0b':'#f87171';
+                        h += '<tr>' +
+                             '<td style="'+TDL+'font-weight:700;color:'+col+';">'+key+'</td>' +
+                             '<td style="'+TDC+(d[1]?'font-weight:700;color:#4ade80;':'')+'">'+(d[1]||'—')+'</td>' +
+                             '<td style="'+TDC+'">'+(d[2]||'—')+'</td>' +
+                             '<td style="'+TDC+(d[3]?'font-weight:700;color:#f87171;':'')+'">'+(d[3]||'—')+'</td>' +
+                             '<td style="'+TDC+'color:#555;">'+d.total+'</td>' +
                              '</tr>';
                     });
                     h += '</tbody></table></div>';
                 }
 
-                // W1 Tee Shot Dispersion (preserved from original)
+                // 1st putt distance bar chart (SVG)
+                if (firstPuttDists.length > 0) {
+                    var puttChartHoles = playedHoles.filter(function(hole){
+                        var ps=hole.shots.filter(function(s){return (s.shotType||'').toLowerCase()==='putt';});
+                        return ps.length>0 && ps[0].distance>0;
+                    });
+                    var maxFP = Math.max.apply(null, firstPuttDists.concat([30]));
+                    var svW=300, svH=120, padL=28, padB=18, padT=8, padR=8;
+                    var plotW=svW-padL-padR, plotH=svH-padT-padB;
+                    var bw=plotW/puttChartHoles.length;
+                    var bars='', labels='';
+                    puttChartHoles.forEach(function(hole,i){
+                        var ps=hole.shots.filter(function(s){return (s.shotType||'').toLowerCase()==='putt';});
+                        var fp=ps[0].distance;
+                        var bh=Math.max((fp/maxFP)*plotH,2);
+                        var col=fp<=10?'#15803d':fp<=20?'#1d4ed8':fp<=30?'#d97706':'#b91c1c';
+                        var x=padL+i*bw, y=padT+plotH-bh;
+                        bars+='<rect x="'+(x+1)+'" y="'+y+'" width="'+(bw-2)+'" height="'+bh+'" fill="'+col+'" fill-opacity="0.8"/>';
+                        labels+='<text x="'+(x+bw/2)+'" y="'+(padT+plotH+12)+'" text-anchor="middle" font-size="7" fill="#555">'+hole.hole+'</text>';
+                    });
+                    var gridLines='';
+                    [10,20,30,40,50].forEach(function(v){
+                        if(v>maxFP+5) return;
+                        var y=padT+plotH-(v/maxFP)*plotH;
+                        gridLines+='<line x1="'+padL+'" y1="'+y+'" x2="'+(svW-padR)+'" y2="'+y+'" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';
+                        gridLines+='<text x="'+(padL-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="7" fill="#555">'+v+'</text>';
+                    });
+                    h += '<div style="'+CARD+'">';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">1st Putt Distance by Hole (ft)</div>';
+                    h += '<svg width="100%" viewBox="0 0 '+svW+' '+svH+'" style="display:block;">'+gridLines+bars+labels+'</svg>';
+                    h += '<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">';
+                    [['≤10ft','#15803d'],['11–20ft','#1d4ed8'],['21–30ft','#d97706'],['>30ft','#b91c1c']].forEach(function(pair){
+                        h += '<span style="font-size:0.62rem;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+pair[1]+';margin-right:3px;"></span>'+pair[0]+'</span>';
+                    });
+                    h += '</div></div>';
+                }
+
+                // Putt detail table
+                h += '<div style="'+CARDP0+'">';
+                h += '<table style="'+TBL+'">';
+                h += '<thead><tr>' +
+                     '<th style="'+TH+'text-align:left;">Hole</th>' +
+                     '<th style="'+TH+'text-align:center;">Par</th>' +
+                     '<th style="'+TH+'text-align:center;">Score</th>' +
+                     '<th style="'+TH+'text-align:center;">Putts</th>' +
+                     '<th style="'+TH+'">1st Putt</th>' +
+                     '<th style="'+TH+'">Result</th>' +
+                     '</tr></thead><tbody>';
+                playedHoles.forEach(function(hole,hi) {
+                    var pc=self.puttCount(hole);
+                    var vsp=self.vsParHole(hole);
+                    var ps=hole.shots.filter(function(s){return (s.shotType||'').toLowerCase()==='putt';});
+                    var fp=ps.length>0&&ps[0].distance>0?ps[0].distance:null;
+                    var pcCol=pc===1?'#4ade80':pc>=3?'#f87171':'#fff';
+                    var rb=hi%2===0?'background:rgba(255,255,255,0.01);':'';
+                    var puttLbl=pc===1?'1-putt ✓':pc===2?'2-putt':pc>=3?pc+'-putt ✗':'';
+                    var puttLblCol=pc===1?'#4ade80':pc>=3?'#f87171':'#888';
+                    var vspStr=vsp===null?'—':vsp===0?'E':(vsp>0?'+'+vsp:String(vsp));
+                    var vspCol=vsp===null?'#888':vsp<0?'#4ade80':vsp>0?'#888':'#fff';
+                    h += '<tr style="'+rb+'">' +
+                         '<td style="'+TDL+'font-weight:700;color:#60a5fa;">'+hole.hole+'</td>' +
+                         '<td style="'+TDC+'color:#888;">'+(hole.par||'—')+'</td>' +
+                         '<td style="'+TDC+'font-weight:700;">'+hole.shots.length+' <span style="font-size:0.7rem;color:'+vspCol+';">('+vspStr+')</span></td>' +
+                         '<td style="'+TDC+'font-weight:900;color:'+pcCol+';">'+pc+'</td>' +
+                         '<td style="'+TD+'font-weight:700;color:'+(fp?proxColor(fp):'#555')+';">'+(fp?fp+'ft':'—')+'</td>' +
+                         '<td style="'+TDL+'font-size:0.72rem;color:'+puttLblCol+';">'+puttLbl+'</td>' +
+                         '</tr>';
+                });
+                // Total row
+                h += '<tr style="background:rgba(0,0,0,0.3);font-weight:700;">' +
+                     '<td style="'+TDL+'color:#888;font-size:0.7rem;letter-spacing:0.5px;text-transform:uppercase;" colspan="3">Total</td>' +
+                     '<td style="'+TDC+'font-size:1rem;color:#fff;">'+totalPutts+'</td>' +
+                     '<td style="'+TD+'color:#888;font-size:0.7rem;">'+(avgFP?avgFP+'ft avg':'—')+'</td>' +
+                     '<td style="'+TDL+'font-size:0.7rem;color:#888;">'+puttCounts[1]+' one · '+puttCounts[2]+' two · '+(puttCounts[3]+(puttCounts.more||0))+' three+</td>' +
+                     '</tr>';
+                h += '</tbody></table></div>';
+
+                // Last putt distribution
+                if (lastPuttDists.length > 0) {
+                    var lpBuckets = [
+                        {label:'Tap-in\n(≤1ft)', test:function(d){return d<=1;}, col:'#15803d'},
+                        {label:'2ft',             test:function(d){return d===2;}, col:'#1d4ed8'},
+                        {label:'3ft',             test:function(d){return d===3;}, col:'#d97706'},
+                        {label:'4–5ft',           test:function(d){return d>=4;},  col:'#b91c1c'},
+                    ];
+                    lpBuckets.forEach(function(b){ b.count=lastPuttDists.filter(function(lp){return b.test(lp.dist);}).length; });
+                    var maxLP=Math.max.apply(null,lpBuckets.map(function(b){return b.count;}).concat([1]));
+                    var lpSvW=280, lpSvH=100, lpPadL=10, lpPadB=28, lpPadT=8, lpPadR=10;
+                    var lpPlotW=lpSvW-lpPadL-lpPadR, lpPlotH=lpSvH-lpPadT-lpPadB;
+                    var lpBw=lpPlotW/lpBuckets.length;
+                    var lpBars='';
+                    lpBuckets.forEach(function(b,i){
+                        var bh=(b.count/maxLP)*lpPlotH;
+                        var x=lpPadL+i*lpBw, y=lpPadT+lpPlotH-bh;
+                        lpBars+='<rect x="'+(x+4)+'" y="'+y+'" width="'+(lpBw-8)+'" height="'+bh+'" fill="'+b.col+'" fill-opacity="0.8"/>';
+                        if(b.count>0) lpBars+='<text x="'+(x+lpBw/2)+'" y="'+(y-3)+'" text-anchor="middle" font-size="9" fill="#aaa" font-weight="700">'+b.count+'</text>';
+                        var lines=b.label.split('\n');
+                        lines.forEach(function(ln,li){
+                            lpBars+='<text x="'+(x+lpBw/2)+'" y="'+(lpPadT+lpPlotH+12+li*10)+'" text-anchor="middle" font-size="8" fill="#555">'+ln+'</text>';
+                        });
+                    });
+                    var tapIns=lpBuckets[0].count;
+                    var longLag=lpBuckets[3].count;
+                    h += '<div style="'+CARD+'">';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Last Putt Distance Distribution</div>';
+                    h += '<svg width="100%" viewBox="0 0 '+lpSvW+' '+lpSvH+'" style="display:block;max-height:100px;">'+lpBars+'</svg>';
+                    h += '<div style="margin-top:8px;font-size:0.72rem;color:#888;">'+tapIns+' tap-in'+(tapIns!==1?'s':'')+' · '+longLag+' hole'+(longLag!==1?'s':'')+' with 4ft+ last putt</div>';
+                    // Last putt detail table
+                    h += '<table style="'+TBL+'margin-top:10px;">';
+                    h += '<thead><tr><th style="'+TH+'text-align:left;">Hole</th><th style="'+TH+'text-align:center;">Putts</th><th style="'+TH+'">1st Putt</th><th style="'+TH+'">Last Putt</th><th style="'+TH+'text-align:left;">Lag Result</th></tr></thead><tbody>';
+                    lastPuttDists.forEach(function(lp,li){
+                        var rb=li%2===0?'background:rgba(255,255,255,0.01);':'';
+                        var lagQuality=lp.dist<=1?'<span style="color:#4ade80;font-weight:700;">Tap-in ✓</span>':
+                            lp.dist<=2?'<span style="color:#60a5fa;font-weight:700;">Close ✓</span>':
+                            lp.dist<=3?'<span style="color:#f59e0b;">Makeable</span>':
+                            '<span style="color:#f87171;font-weight:700;">Long ✗</span>';
+                        var pcCol=lp.putts>=3?'#f87171':lp.putts===1?'#4ade80':'#aaa';
+                        h += '<tr style="'+rb+'">' +
+                             '<td style="'+TDL+'font-weight:700;color:#60a5fa;">H'+lp.hole+'</td>' +
+                             '<td style="'+TDC+'color:'+pcCol+';font-weight:'+(lp.putts>=3||lp.putts===1?700:400)+';">'+lp.putts+'</td>' +
+                             '<td style="'+TD+'color:'+(lp.firstPutt>0?proxColor(lp.firstPutt):'#555')+';">'+(lp.firstPutt>0?lp.firstPutt+'ft':'—')+'</td>' +
+                             '<td style="'+TD+'font-weight:700;">'+lp.dist+'ft</td>' +
+                             '<td style="'+TDL+'font-size:0.72rem;">'+lagQuality+'</td>' +
+                             '</tr>';
+                    });
+                    h += '</tbody></table></div>';
+                }
+
+                h += '</div>'; // end 01
+
+                // ══════════════════════════════════════════════════════════════
+                // 02 DRIVING
+                // ══════════════════════════════════════════════════════════════
+                h += '<div style="'+SEC+'">';
+                h += secHead('02','Driving');
+
+                // Collect tee shots (shot 0 on par 4/5)
+                var teeShots = [];
+                playedHoles.forEach(function(hole) {
+                    if (hole.shots.length===0||hole.par!==4&&hole.par!==5) return;
+                    var s=hole.shots[0];
+                    teeShots.push({hole:hole.hole,par:hole.par,yards:hole.yards||null,club:s.club||'?',dist:s.actualDistance||s.distance||null,fwy:hole.fwy,vsp:self.vsParHole(hole)});
+                });
+                var driverDists=teeShots.filter(function(d){return d.dist&&d.dist>50;}).map(function(d){return d.dist;});
+                var avgDrive=avgArr(driverDists);
+
+                // Find bag profile for tee club
+                var profileDrive = null;
+                teeShots.forEach(function(ts){ if(!profileDrive){ var bd=self.bagDist({club:ts.club,shotType:'full'}); if(bd.total) profileDrive=parseInt(bd.total); } });
+
+                h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">';
+                h += pKpi(fwyHit+'/'+fwyOpp,'Fairways',pct(fwyHit,fwyOpp),null);
+                h += pKpi(avgDrive?avgDrive+'y':'—','Avg Drive GPS','carry+rollout',null);
+                h += pKpi(teeShots.length,'Tee Shots','par 4/5',null);
+                h += '</div>';
+
+                if (teeShots.length>0) {
+                    h += '<div style="'+CARDP0+'">';
+                    h += '<table style="'+TBL+'">';
+                    h += '<thead><tr>' +
+                         '<th style="'+TH+'text-align:left;">Hole</th>' +
+                         '<th style="'+TH+'text-align:center;">Par</th>' +
+                         '<th style="'+TH+'text-align:right;">Yds</th>' +
+                         '<th style="'+TH+'text-align:left;">Club</th>' +
+                         '<th style="'+TH+'">Drive GPS</th>' +
+                         '<th style="'+TH+'">vs Profile</th>' +
+                         '<th style="'+TH+'text-align:center;">FWY</th>' +
+                         '<th style="'+TH+'text-align:center;">Score</th>' +
+                         '</tr></thead><tbody>';
+                    teeShots.forEach(function(ts,ti) {
+                        var bd=self.bagDist({club:ts.club,shotType:'full'});
+                        var profTotal=bd.total?parseInt(bd.total):null;
+                        var delta=(ts.dist&&profTotal)?ts.dist-profTotal:null;
+                        var dc=deltaColor(delta);
+                        var dStr=delta!==null?'<span style="color:'+dc+';font-weight:700;">'+(delta>0?'+':'')+delta+'y</span>':'—';
+                        var fwyStr=ts.fwy===true?'<span style="color:#4ade80;font-weight:700;">✓</span>':ts.fwy===false?'<span style="color:#888;">✗</span>':'<span style="color:#555;">—</span>';
+                        var vspCol=ts.vsp===null?'#888':ts.vsp<=0?'#4ade80':ts.vsp===1?'#888':'#f87171';
+                        var vspStr=ts.vsp===null?'—':ts.vsp===0?'E':(ts.vsp>0?'+'+ts.vsp:String(ts.vsp));
+                        var rb=ti%2===0?'background:rgba(255,255,255,0.01);':'';
+                        h += '<tr style="'+rb+'">' +
+                             '<td style="'+TDL+'font-weight:700;color:#60a5fa;">'+ts.hole+'</td>' +
+                             '<td style="'+TDC+'color:#888;">'+ts.par+'</td>' +
+                             '<td style="'+TD+'color:#555;">'+(ts.yards||'—')+'</td>' +
+                             '<td style="'+TDL+'color:#aaa;font-size:0.72rem;">'+Utils.escHtml(ts.club)+'</td>' +
+                             '<td style="'+TD+'font-weight:700;">'+(ts.dist?ts.dist+'y':'— no GPS')+'</td>' +
+                             '<td style="'+TD+'">'+dStr+'</td>' +
+                             '<td style="'+TDC+'">'+fwyStr+'</td>' +
+                             '<td style="'+TDC+'font-weight:700;color:'+vspCol+';">'+vspStr+'</td>' +
+                             '</tr>';
+                    });
+                    // totals row
+                    var avgDelta=profileDrive&&avgDrive?avgDrive-profileDrive:null;
+                    h += '<tr style="background:rgba(0,0,0,0.3);">' +
+                         '<td style="'+TDL+'color:#888;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;" colspan="4">Avg</td>' +
+                         '<td style="'+TD+'font-weight:700;">'+(avgDrive?avgDrive+'y':'—')+'</td>' +
+                         '<td style="'+TD+'font-weight:700;color:'+(avgDelta?deltaColor(avgDelta):'#888')+'">'+(avgDelta?(avgDelta>0?'+':'')+avgDelta+'y':'—')+'</td>' +
+                         '<td colspan="2"></td></tr>';
+                    h += '</tbody></table></div>';
+                }
+
+                // W1 Tee Shot Dispersion
                 (function() {
-                    var teeData = [];
+                    var teeData=[];
                     State.holes.forEach(function(hole) {
-                        if (hole.shots.length===0||hole.par!==4&&hole.par!==5) return;
-                        var w1GPS  = hole.planPath&&hole.planPath[0]&&hole.planPath[0].lat?hole.planPath[0]:null;
-                        var teeGPS = hole.tee&&hole.tee.lat?hole.tee:null;
+                        if (!hole.shots.length||hole.par!==4&&hole.par!==5) return;
+                        var w1GPS=hole.planPath&&hole.planPath[0]&&hole.planPath[0].lat?hole.planPath[0]:null;
+                        var teeGPS=hole.tee&&hole.tee.lat?hole.tee:null;
                         if (!w1GPS||!teeGPS) return;
                         var shot=hole.shots[0];
                         if (!shot.position||!shot.position.lat) return;
-                        var R=6371000, toRad=function(d){return d*Math.PI/180;};
+                        var R=6371000,toRad=function(d){return d*Math.PI/180;};
                         var midLat=toRad((teeGPS.lat+w1GPS.lat)/2);
                         var w1x=toRad(w1GPS.lon-teeGPS.lon)*R*Math.cos(midLat);
                         var w1y=toRad(w1GPS.lat-teeGPS.lat)*R;
-                        var w1len=Math.sqrt(w1x*w1x+w1y*w1y);
-                        if (!w1len) return;
-                        var rightX=w1y/w1len, rightY=-w1x/w1len;
-                        var fwdX=w1x/w1len, fwdY=w1y/w1len;
+                        var w1len=Math.sqrt(w1x*w1x+w1y*w1y); if(!w1len) return;
+                        var rightX=w1y/w1len,rightY=-w1x/w1len,fwdX=w1x/w1len,fwdY=w1y/w1len;
                         var lx=toRad(shot.position.lon-teeGPS.lon)*R*Math.cos(midLat);
                         var ly=toRad(shot.position.lat-teeGPS.lat)*R;
-                        var dx=lx-w1x, dy=ly-w1y;
+                        var dx=lx-w1x,dy=ly-w1y;
                         var lateral=(dx*rightX+dy*rightY)*1.09361;
-                        var along  =(dx*fwdX  +dy*fwdY  )*1.09361;
+                        var along=(dx*fwdX+dy*fwdY)*1.09361;
                         var totalDist=Utils.distanceYards(shot.position,w1GPS)||0;
-                        teeData.push({hole:hole.hole,club:shot.club||'',lateral:lateral,along:along,dist:totalDist,side:Math.abs(lateral)<2?'C':lateral>0?'R':'L'});
+                        teeData.push({hole:hole.hole,par:hole.par,yards:hole.yards||null,club:shot.club||'',dist:shot.actualDistance||shot.distance||null,lateral:lateral,along:along,totalDist:totalDist,side:Math.abs(lateral)<2?'C':lateral>0?'R':'L'});
                     });
                     if (!teeData.length) return;
+                    var n=teeData.length;
 
                     h += '<div style="'+CARD+'margin-top:10px;">';
-                    h += '<div style="font-size:0.65rem;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Tee Shot Dispersion vs W1</div>';
-                    h += '<div style="font-size:0.65rem;color:#888;margin-bottom:12px;">Par 4/5 · W1 = origin. X = lateral (R+/L−). Y = along-axis (past W1+/short−). Requires GPS landing mark.</div>';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Driver Landing vs W1</div>';
+                    h += '<div style="'+INSIGHT+'margin-bottom:10px;">W1 = first waypoint on planned path (ideal fairway apex/layup). <strong>Long/Short</strong> = along-fairway offset. <strong>Left/Right</strong> = cross-fairway offset. Requires GPS landing mark on shot 1.</div>';
 
-                    var SVW=280,SVH=260,PAD=32,pW=SVW-PAD*2,pH=SVH-PAD*2;
+                    // SVG scatter
+                    var svW2=300,svH2=240,pad2=32;
+                    var pW2=svW2-pad2*2,pH2=svH2-pad2*2;
                     var mX=30,mY=30;
                     teeData.forEach(function(d){if(Math.abs(d.lateral)>mX)mX=Math.abs(d.lateral);if(Math.abs(d.along)>mY)mY=Math.abs(d.along);});
                     mX=Math.ceil(mX/10)*10+10; mY=Math.ceil(mY/10)*10+10;
-                    function sx(v){return PAD+(v+mX)/(mX*2)*pW;}
-                    function sy(v){return PAD+(1-(v+mY)/(mY*2))*pH;}
-                    var cx=sx(0),cy=sy(0);
-                    var gl='';
-                    for(var gx=-mX;gx<=mX;gx+=10){var sgx=sx(gx);gl+='<line x1="'+sgx+'" y1="'+PAD+'" x2="'+sgx+'" y2="'+(SVH-PAD)+'" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';if(gx)gl+='<text x="'+sgx+'" y="'+(SVH-PAD+12)+'" text-anchor="middle" font-size="7" fill="#555">'+gx+'</text>';}
-                    for(var gy=-mY;gy<=mY;gy+=10){var sgy=sy(gy);gl+='<line x1="'+PAD+'" y1="'+sgy+'" x2="'+(SVW-PAD)+'" y2="'+sgy+'" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';if(gy)gl+='<text x="'+(PAD-4)+'" y="'+(sgy+4)+'" text-anchor="end" font-size="7" fill="#555">'+gy+'</text>';}
-                    var dots='';
-                    teeData.forEach(function(d){var px=sx(d.lateral),py=sy(d.along);var col=d.side==='C'?'#4ade80':d.side==='R'?'#f59e0b':'#60a5fa';dots+='<circle cx="'+px+'" cy="'+py+'" r="5" fill="'+col+'" fill-opacity="0.85" stroke="#000" stroke-width="0.5"/><text x="'+px+'" y="'+(py-7)+'" text-anchor="middle" font-size="7" fill="#ccc">H'+d.hole+'</text>';});
-                    var cross='<line x1="'+(cx-8)+'" y1="'+cy+'" x2="'+(cx+8)+'" y2="'+cy+'" stroke="#22d3ee" stroke-width="1.5"/><line x1="'+cx+'" y1="'+(cy-8)+'" x2="'+cx+'" y2="'+(cy+8)+'" stroke="#22d3ee" stroke-width="1.5"/><text x="'+(cx+4)+'" y="'+(cy-4)+'" font-size="7" fill="#22d3ee">W1</text>';
-                    var axl='<text x="'+(SVW/2)+'" y="'+(SVH-2)+'" text-anchor="middle" font-size="7" fill="#666">← LEFT    RIGHT →</text><text x="10" y="'+(SVH/2)+'" text-anchor="middle" font-size="7" fill="#666" transform="rotate(-90,10,'+(SVH/2)+')">SHORT ↓  PAST ↑</text>';
-
+                    function sx(v){return pad2+(v+mX)/(mX*2)*pW2;}
+                    function sy(v){return pad2+(1-(v+mY)/(mY*2))*pH2;}
+                    var cx2=sx(0),cy2=sy(0);
+                    var svgContent='';
+                    for(var gx=-mX;gx<=mX;gx+=10){var sgx=sx(gx);svgContent+='<line x1="'+sgx+'" y1="'+pad2+'" x2="'+sgx+'" y2="'+(svH2-pad2)+'" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';if(gx)svgContent+='<text x="'+sgx+'" y="'+(svH2-pad2+12)+'" text-anchor="middle" font-size="7" fill="#444">'+gx+'</text>';}
+                    for(var gy=-mY;gy<=mY;gy+=10){var sgy=sy(gy);svgContent+='<line x1="'+pad2+'" y1="'+sgy+'" x2="'+(svW2-pad2)+'" y2="'+sgy+'" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';if(gy)svgContent+='<text x="'+(pad2-4)+'" y="'+(sgy+4)+'" text-anchor="end" font-size="7" fill="#444">'+gy+'</text>';}
+                    svgContent+='<line x1="'+pad2+'" y1="'+cy2+'" x2="'+(svW2-pad2)+'" y2="'+cy2+'" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>';
+                    svgContent+='<line x1="'+cx2+'" y1="'+pad2+'" x2="'+cx2+'" y2="'+(svH2-pad2)+'" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>';
+                    svgContent+='<line x1="'+(cx2-8)+'" y1="'+cy2+'" x2="'+(cx2+8)+'" y2="'+cy2+'" stroke="#22d3ee" stroke-width="2"/>';
+                    svgContent+='<line x1="'+cx2+'" y1="'+(cy2-8)+'" x2="'+cx2+'" y2="'+(cy2+8)+'" stroke="#22d3ee" stroke-width="2"/>';
+                    svgContent+='<text x="'+(cx2+5)+'" y="'+(cy2-5)+'" font-size="7" fill="#22d3ee">W1</text>';
+                    svgContent+='<text x="'+(svW2/2)+'" y="'+(svH2-2)+'" text-anchor="middle" font-size="7" fill="#555">← LEFT    RIGHT →</text>';
+                    svgContent+='<text x="10" y="'+(svH2/2)+'" text-anchor="middle" font-size="7" fill="#555" transform="rotate(-90,10,'+(svH2/2)+')">SHORT ↓  PAST ↑</text>';
+                    teeData.forEach(function(d){
+                        var px=sx(d.lateral),py=sy(d.along);
+                        var col=d.side==='C'?'#4ade80':d.side==='R'?'#f59e0b':'#60a5fa';
+                        svgContent+='<circle cx="'+px+'" cy="'+py+'" r="5" fill="'+col+'" fill-opacity="0.85" stroke="#000" stroke-width="0.5"/>';
+                        svgContent+='<text x="'+px+'" y="'+(py-7)+'" text-anchor="middle" font-size="7" fill="#ccc">'+d.hole+'</text>';
+                    });
                     h += '<div style="display:flex;justify-content:center;margin-bottom:10px;">';
-                    h += '<svg width="'+SVW+'" height="'+SVH+'" style="border:1px solid rgba(255,255,255,0.08);border-radius:6px;background:#0a0a0a;">';
-                    h += gl+dots+cross+axl;
-                    h += '<line x1="'+PAD+'" y1="'+cy+'" x2="'+(SVW-PAD)+'" y2="'+cy+'" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>';
-                    h += '<line x1="'+cx+'" y1="'+PAD+'" x2="'+cx+'" y2="'+(SVH-PAD)+'" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>';
-                    h += '</svg></div>';
-
-                    h += '<div style="display:flex;gap:12px;justify-content:center;font-size:0.65rem;margin-bottom:12px;">';
-                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:4px;"></span>Center</span>';
-                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span>Right</span>';
-                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#60a5fa;margin-right:4px;"></span>Left</span>';
+                    h += '<svg width="100%" viewBox="0 0 '+svW2+' '+svH2+'" style="display:block;max-width:320px;background:#0a0a0a;border:1px solid rgba(255,255,255,0.08);border-radius:6px;">'+svgContent+'</svg>';
+                    h += '</div>';
+                    h += '<div style="display:flex;gap:12px;justify-content:center;font-size:0.62rem;margin-bottom:12px;">';
+                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:3px;"></span>Center</span>';
+                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:3px;"></span>Right</span>';
+                    h += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#60a5fa;margin-right:3px;"></span>Left</span>';
                     h += '</div>';
 
-                    // Per-hole table
-                    h += '<table style="'+TBL+'margin-bottom:10px;">';
-                    h += '<thead><tr><th style="'+TH+'text-align:left;">Hole</th><th style="'+TH+'text-align:left;">Club</th><th style="'+TH+'text-align:right;">Dist</th><th style="'+TH+'text-align:right;">ΔX</th><th style="'+TH+'text-align:right;">ΔY</th><th style="'+TH+'">Side</th></tr></thead><tbody>';
-                    teeData.forEach(function(d,di){
+                    // W1 per-hole table
+                    h += '<table style="'+TBL+'margin-bottom:12px;">';
+                    h += '<thead><tr>' +
+                         '<th style="'+TH+'text-align:left;">Hole</th>' +
+                         '<th style="'+TH+'text-align:left;">Club</th>' +
+                         '<th style="'+TH+'">Drive</th>' +
+                         '<th style="'+TH+'">Long/Short</th>' +
+                         '<th style="'+TH+'">Left/Right</th>' +
+                         '<th style="'+TH+'">Straight</th>' +
+                         '</tr></thead><tbody>';
+                    teeData.forEach(function(d,di) {
                         var rb=di%2===0?'background:rgba(255,255,255,0.01);':'';
-                        var sc=d.side==='C'?'#4ade80':d.side==='R'?'#f59e0b':'#60a5fa';
-                        var dc=d.dist<=20?'#4ade80':d.dist<=35?'#f59e0b':'#e64545';
+                        var straight=Math.round(Math.sqrt(d.lateral*d.lateral+d.along*d.along));
+                        var alongCol=d.along<0?'#60a5fa':'#f59e0b';
+                        var latCol=d.lateral<0?'#60a5fa':'#f59e0b';
+                        var alongStr=d.along===0?'<span style="color:#888;">On line</span>':'<span style="color:'+alongCol+';font-weight:700;">'+(d.along>0?'+':'')+d.along.toFixed(1)+'y '+(d.along<0?'short':'past')+'</span>';
+                        var latStr=Math.abs(d.lateral)<2?'<span style="color:#4ade80;">Straight</span>':'<span style="color:'+latCol+';font-weight:700;">'+(d.lateral>0?'+':'')+d.lateral.toFixed(1)+'y '+(d.lateral<0?'left':'right')+'</span>';
                         h += '<tr style="'+rb+'">' +
-                             '<td style="'+TDL+'font-weight:700;">H'+d.hole+'</td>' +
-                             '<td style="'+TD+'color:#aaa;">'+Utils.escHtml(d.club)+'</td>' +
-                             '<td style="'+TD+'text-align:right;color:'+dc+';font-weight:700;">'+d.dist.toFixed(1)+'y</td>' +
-                             '<td style="'+TD+'text-align:right;color:'+sc+';">'+(d.lateral>=0?'+':'')+d.lateral.toFixed(1)+'y</td>' +
-                             '<td style="'+TD+'text-align:right;color:#888;">'+(d.along>=0?'+':'')+d.along.toFixed(1)+'y</td>' +
-                             '<td style="'+TD+'text-align:center;font-weight:700;color:'+sc+';">'+d.side+'</td>' +
+                             '<td style="'+TDL+'font-weight:700;color:#60a5fa;">H'+d.hole+'</td>' +
+                             '<td style="'+TDL+'color:#888;font-size:0.72rem;">'+Utils.escHtml(d.club)+'</td>' +
+                             '<td style="'+TD+'font-weight:700;">'+(d.dist?d.dist+'y':'—')+'</td>' +
+                             '<td style="'+TDL+'">'+alongStr+'</td>' +
+                             '<td style="'+TDL+'">'+latStr+'</td>' +
+                             '<td style="'+TD+'color:#555;">'+straight+'y</td>' +
                              '</tr>';
                     });
+                    var avgAlong=teeData.reduce(function(s,d){return s+d.along;},0)/n;
+                    var avgLateral=teeData.reduce(function(s,d){return s+d.lateral;},0)/n;
+                    var shortN=teeData.filter(function(d){return d.along<0;}).length;
+                    var pastN=teeData.filter(function(d){return d.along>=0;}).length;
+                    var leftN=teeData.filter(function(d){return d.side==='L';}).length;
+                    var rightN=teeData.filter(function(d){return d.side==='R';}).length;
+                    h += '<tr style="background:rgba(0,0,0,0.3);">' +
+                         '<td style="'+TDL+'color:#888;font-size:0.7rem;text-transform:uppercase;" colspan="2">Avg ('+n+' holes)</td>' +
+                         '<td style="'+TD+'color:#888;"></td>' +
+                         '<td style="'+TDL+'font-weight:700;color:'+(avgAlong<0?'#60a5fa':'#f59e0b')+'">'+(avgAlong>=0?'+':'')+avgAlong.toFixed(1)+'y '+(avgAlong<0?'short':'past')+'</td>' +
+                         '<td style="'+TDL+'font-weight:700;color:'+(avgLateral<0?'#60a5fa':'#f59e0b')+'">'+(avgLateral>=0?'+':'')+avgLateral.toFixed(1)+'y '+(avgLateral<0?'left':'right')+'</td>' +
+                         '<td style="'+TD+'font-size:0.7rem;color:#555;">'+shortN+' short · '+pastN+' past</td>' +
+                         '</tr>';
                     h += '</tbody></table>';
 
-                    // Summary
-                    var n=teeData.length;
-                    var avgDist2=teeData.reduce(function(s,d){return s+d.dist;},0)/n;
-                    var avgLat=teeData.reduce(function(s,d){return s+d.lateral;},0)/n;
-                    var avgAlong=teeData.reduce(function(s,d){return s+d.along;},0)/n;
+                    // W1 summary box
+                    var avgTotalDist=teeData.reduce(function(s,d){return s+d.totalDist;},0)/n;
                     var avgAbsLat=teeData.reduce(function(s,d){return s+Math.abs(d.lateral);},0)/n;
-                    var within20=teeData.filter(function(d){return d.dist<=20;}).length;
-                    var rC=teeData.filter(function(d){return d.side==='R';}).length;
-                    var lC=teeData.filter(function(d){return d.side==='L';}).length;
-                    var tendLbl=Math.abs(avgLat)<2?'Straight':avgLat>0?'Fade/Push (R)':'Draw/Pull (L)';
-                    var tendCol=Math.abs(avgLat)<2?'#4ade80':avgLat>0?'#f59e0b':'#60a5fa';
+                    var within20=teeData.filter(function(d){return d.totalDist<=20;}).length;
+                    var tendLbl=Math.abs(avgLateral)<2?'Straight':avgLateral>0?'Fade/Push (R)':'Draw/Pull (L)';
+                    var tendCol=Math.abs(avgLateral)<2?'#4ade80':avgLateral>0?'#f59e0b':'#60a5fa';
                     h += '<div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.12);border-radius:6px;padding:10px;">';
                     h += '<div style="font-size:0.6rem;font-weight:700;color:#22d3ee;text-transform:uppercase;margin-bottom:8px;">Summary · '+n+' holes</div>';
-                    h += statLine('Avg miss (dist from W1)',avgDist2.toFixed(1)+'y');
+                    h += statLine('Avg dist from W1',avgTotalDist.toFixed(1)+'y');
                     h += statLine('Avg lateral (abs)',avgAbsLat.toFixed(1)+'y');
                     h += statLine('Avg ΔY (long/short)',(avgAlong>=0?'+':'')+avgAlong.toFixed(1)+'y');
                     h += statLine('Within 20y of W1',within20+'/'+n+' ('+Math.round(within20/n*100)+'%)');
-                    h += statLine('Right / Left',rC+'R / '+lC+'L');
+                    h += statLine('Right / Left',rightN+'R / '+leftN+'L');
                     h += statLine('Tendency','<span style="color:'+tendCol+';font-weight:700;">'+tendLbl+'</span>',true);
                     h += '</div>';
                     h += '</div>'; // end W1 card
@@ -7536,80 +7722,100 @@
 
                 h += '</div>'; // end 02
 
-                // ═══════════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════════
                 // 03 APPROACH
-                // ═══════════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════════
                 h += '<div style="'+SEC+'">';
                 h += secHead('03','Approach · Shot Before First Putt');
-                h += '<div style="font-size:0.72rem;color:#888;margin-bottom:10px;">Shot immediately preceding the first putt on each hole. Proximity = 1st putt distance (ft).</div>';
+                h += '<div style="'+INSIGHT+'">Shot immediately preceding the first putt on each hole. Proximity = first putt distance (ft). Lower = closer to flag.</div>';
 
-                var approachRows=[], approachClubs={};
+                var approachRows=[], approachByClub={};
                 playedHoles.forEach(function(hole) {
                     var shots=hole.shots;
                     if (!shots.length) return;
-                    var firstPuttIdx=shots.findIndex(function(s){return (s.shotType||'').toLowerCase()==='putt';});
-                    if (firstPuttIdx<=0) return;
-                    var apShot=shots[firstPuttIdx-1];
-                    var prox=shots[firstPuttIdx].distance||null;
+                    var fpi=shots.findIndex(function(s){return (s.shotType||'').toLowerCase()==='putt';});
+                    if (fpi<=0) return;
+                    var ap=shots[fpi-1];
+                    var prox=shots[fpi].distance||null;
                     var gir=self.calcGIR(hole);
-                    approachRows.push({hole:hole.hole,par:hole.par,club:apShot.club||'?',type:apShot.shotType||'?',dist:apShot.actualDistance||apShot.distance||null,prox:prox,gir:gir});
-                    var ck=apShot.club||'?';
-                    if (!approachClubs[ck]) approachClubs[ck]={proxies:[],count:0};
-                    approachClubs[ck].count++;
-                    if (prox) approachClubs[ck].proxies.push(prox);
+                    var vsp=self.vsParHole(hole);
+                    approachRows.push({hole:hole.hole,par:hole.par,yards:hole.yards||null,club:ap.club||'?',type:ap.shotType||'?',dist:ap.actualDistance||ap.distance||null,prox:prox,gir:gir,putts:self.puttCount(hole),vsp:vsp,score:hole.shots.length});
+                    if (prox&&prox>0) {
+                        var ck=ap.club||'?';
+                        if (!approachByClub[ck]) approachByClub[ck]={proxies:[],count:0};
+                        approachByClub[ck].count++;
+                        approachByClub[ck].proxies.push(prox);
+                    }
                 });
 
                 if (approachRows.length>0) {
-                    h += '<div style="'+CARD+'padding:0;overflow:hidden;">';
+                    h += '<div style="'+CARDP0+'">';
                     h += '<table style="'+TBL+'">';
                     h += '<thead><tr>' +
-                         '<th style="'+TH+'text-align:left;padding-left:10px;">Hole</th>' +
+                         '<th style="'+TH+'text-align:left;">Hole</th>' +
+                         '<th style="'+TH+'text-align:center;">Par</th>' +
                          '<th style="'+TH+'text-align:left;">Club</th>' +
-                         '<th style="'+TH+'text-align:right;">Dist</th>' +
-                         '<th style="'+TH+'text-align:right;">Proximity</th>' +
-                         '<th style="'+TH+'">GIR</th>' +
+                         '<th style="'+TH+'">From</th>' +
+                         '<th style="'+TH+'">Proximity</th>' +
+                         '<th style="'+TH+'text-align:center;">Putts</th>' +
+                         '<th style="'+TH+'text-align:center;">Score</th>' +
                          '</tr></thead><tbody>';
                     approachRows.forEach(function(r,ri) {
                         var rb=ri%2===0?'background:rgba(255,255,255,0.01);':'';
-                        var pc=r.prox?r.prox<=10?'#4ade80':r.prox<=20?'#f59e0b':'#aaa':'#555';
+                        var pc2=r.prox&&r.prox>0?proxColor(r.prox):'#555';
+                        var putCol=r.putts>=3?'#f87171':r.putts===1?'#4ade80':'#aaa';
+                        var vspCol=r.vsp===null?'#888':r.vsp<=0?'#4ade80':r.vsp===1?'#888':'#f87171';
+                        var vspStr=r.vsp===null?'—':r.vsp===0?'E':(r.vsp>0?'+'+r.vsp:String(r.vsp));
                         h += '<tr style="'+rb+'">' +
-                             '<td style="'+TDL+'padding-left:10px;font-weight:700;">H'+r.hole+(r.par?' <span style="color:#555;font-weight:400;font-size:0.7rem;">P'+r.par+'</span>':'')+'</td>' +
-                             '<td style="'+TD+'color:#aaa;">'+Utils.escHtml(r.club)+'</td>' +
-                             '<td style="'+TD+'text-align:right;color:#888;">'+(r.dist?r.dist+'y':'—')+'</td>' +
-                             '<td style="'+TD+'text-align:right;font-weight:700;color:'+pc+';">'+(r.prox?r.prox+'ft':'—')+'</td>' +
-                             '<td style="'+TD+'text-align:center;">'+(r.gir===null?'—':r.gir?'<span style="color:#4ade80;font-weight:700;">✓</span>':'<span style="color:#555;">✗</span>')+'</td>' +
+                             '<td style="'+TDL+'font-weight:700;color:#60a5fa;">'+r.hole+'</td>' +
+                             '<td style="'+TDC+'color:#888;">'+(r.par||'—')+'</td>' +
+                             '<td style="'+TDL+'font-size:0.72rem;font-weight:700;">'+Utils.escHtml(r.club)+'</td>' +
+                             '<td style="'+TD+'color:#888;">'+(r.dist?r.dist+'y':'—')+'</td>' +
+                             '<td style="'+TD+'font-weight:700;color:'+pc2+';">'+(r.prox&&r.prox>0?r.prox+'ft':'—')+'</td>' +
+                             '<td style="'+TDC+'color:'+putCol+';font-weight:'+(r.putts>=3?700:400)+';">'+r.putts+'</td>' +
+                             '<td style="'+TDC+'font-weight:700;color:'+vspCol+';">'+r.score+' ('+vspStr+')</td>' +
                              '</tr>';
                     });
                     h += '</tbody></table></div>';
 
-                    // By club
-                    var acks=Object.keys(approachClubs).sort(function(a,b){return approachClubs[b].count-approachClubs[a].count;});
+                    // Approach by club: avg, best, worst proximity
+                    var acks=Object.keys(approachByClub).sort(function(a,b){
+                        var aa=approachByClub[a].proxies.reduce(function(s,v){return s+v;},0)/approachByClub[a].proxies.length;
+                        var ab=approachByClub[b].proxies.reduce(function(s,v){return s+v;},0)/approachByClub[b].proxies.length;
+                        return aa-ab;
+                    });
                     if (acks.length>0) {
                         h += '<div style="'+CARD+'">';
-                        h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Avg Proximity by Club</div>';
+                        h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Approach Club → Avg Proximity</div>';
                         h += '<table style="'+TBL+'">';
-                        h += '<thead><tr><th style="'+TH+'text-align:left;">Club</th><th style="'+TH+'text-align:right;">Times Used</th><th style="'+TH+'text-align:right;">Avg Proximity</th></tr></thead><tbody>';
-                        acks.forEach(function(ck,ci){
-                            var ac=approachClubs[ck];
-                            var ap=ac.proxies.length?avgF(ac.proxies,1):null;
-                            var pc=ap?parseFloat(ap)<=10?'#4ade80':parseFloat(ap)<=20?'#f59e0b':'#aaa':'#555';
+                        h += '<thead><tr><th style="'+TH+'text-align:left;">Club</th><th style="'+TH+'text-align:center;">n</th><th style="'+TH+'">Avg Prox</th><th style="'+TH+'">Best</th><th style="'+TH+'">Worst</th></tr></thead><tbody>';
+                        acks.forEach(function(ck,ci) {
+                            var ac=approachByClub[ck];
+                            var ap=Math.round(ac.proxies.reduce(function(s,v){return s+v;},0)/ac.proxies.length);
+                            var best=Math.min.apply(null,ac.proxies);
+                            var worst=Math.max.apply(null,ac.proxies);
                             var rb=ci%2===0?'background:rgba(255,255,255,0.01);':'';
-                            h += '<tr style="'+rb+'"><td style="'+TDL+'font-weight:700;">'+Utils.escHtml(ck)+'</td><td style="'+TD+'text-align:right;color:#888;">'+ac.count+'</td><td style="'+TD+'text-align:right;font-weight:700;color:'+pc+';">'+(ap?ap+'ft':'—')+'</td></tr>';
+                            h += '<tr style="'+rb+'"><td style="'+TDL+'font-weight:700;">'+Utils.escHtml(ck)+'</td>' +
+                                 '<td style="'+TDC+'color:#888;">'+ac.count+'</td>' +
+                                 '<td style="'+TD+'font-weight:700;color:'+proxColor(ap)+';">'+ap+'ft</td>' +
+                                 '<td style="'+TD+'color:#4ade80;">'+best+'ft</td>' +
+                                 '<td style="'+TD+'color:#f87171;">'+worst+'ft</td></tr>';
                         });
                         h += '</tbody></table></div>';
                     }
                 } else {
-                    h += '<div style="'+CARD+'color:#888;font-size:0.8rem;">No approach data available — putt distances needed for proximity.</div>';
+                    h += '<div style="'+CARD+'color:#888;font-size:0.8rem;">No approach data — putt distances needed for proximity.</div>';
                 }
                 h += '</div>'; // end 03
 
-                // ═══════════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════════
                 // 04 CLUB DISTANCE vs PROFILE
-                // ═══════════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════════
                 h += '<div style="'+SEC+'">';
                 h += secHead('04','Club Distance vs Profile');
-                h += '<div style="font-size:0.72rem;color:#888;margin-bottom:10px;">GPS avg (actualDistance = carry+rollout) compared against bag profile total. Click row to expand per-hole detail.</div>';
+                h += '<div style="'+INSIGHT+'">GPS avg (actualDistance = carry+rollout) vs bag profile total. Click a row to expand per-hole detail.</div>';
 
+                // Build club map (exclude putts)
                 var clubMap={};
                 State.holes.forEach(function(hole) {
                     hole.shots.forEach(function(s) {
@@ -7621,82 +7827,124 @@
                     });
                 });
 
-                var clubKeys=Object.keys(clubMap);
-                // Sort by bag order then type
-                var bagOrder=['driver','md','3h','4h','5h','6h','7h','8h','9h','4i','5i','6i','7i','8i','9i','pw','gw','sw','lw','46','49','52','56','60'];
-                clubKeys.sort(function(a,b){
-                    var ca=clubMap[a].club.toLowerCase(), cb=clubMap[b].club.toLowerCase();
-                    var ia=bagOrder.indexOf(ca), ib=bagOrder.indexOf(cb);
-                    if (ia!==-1&&ib!==-1) return ia-ib;
-                    if (ia!==-1) return -1; if (ib!==-1) return 1;
+                var bagOrder=['driver','md','3w','5w','7w','3h','4h','5h','6h','7h','2i','3i','4i','5i','6i','7i','8i','9i','pw','gw','sw','lw','46','49','52','56','60','64'];
+                var clubKeys=Object.keys(clubMap).sort(function(a,b){
+                    var ca=clubMap[a].club.toLowerCase(),cb=clubMap[b].club.toLowerCase();
+                    var ia=bagOrder.indexOf(ca),ib=bagOrder.indexOf(cb);
+                    if(ia!==-1&&ib!==-1)return ia-ib;
+                    if(ia!==-1)return -1;if(ib!==-1)return 1;
                     return a.localeCompare(b);
                 });
 
                 if (clubKeys.length>0) {
-                    h += '<div style="'+CARD+'padding:0;overflow:hidden;" id="rpt-club-tbl">';
-                    h += '<table style="'+TBL+'" id="rpt-ctbl">';
-                    h += '<thead><tr>' +
-                         '<th style="'+TH+'text-align:left;padding-left:10px;">Club · Type</th>' +
-                         '<th style="'+TH+'text-align:right;">n</th>' +
-                         '<th style="'+TH+'text-align:right;">GPS Avg</th>' +
-                         '<th style="'+TH+'text-align:right;">Bag Total</th>' +
-                         '<th style="'+TH+'text-align:right;">Delta</th>' +
-                         '</tr></thead><tbody id="rpt-ctbody"></tbody>';
-                    h += '</table></div>';
-
-                    // Build club rows via script tag (executed after render)
-                    h += '<script>(function(){';
-                    h += 'var body=document.getElementById("rpt-ctbody");if(!body)return;';
-                    h += 'var clubData='+JSON.stringify(clubKeys.map(function(key){
+                    // Build data
+                    var clubData=clubKeys.map(function(key){
                         var c=clubMap[key];
                         var bd=self.bagDist({club:c.club,shotType:c.type});
                         var dists=c.shots.filter(function(s){return s.dist&&s.dist>0;}).map(function(s){return s.dist;});
                         var gavg=dists.length?Math.round(dists.reduce(function(a,b){return a+b;},0)/dists.length):null;
-                        var delta=(gavg!==null&&bd.total)?gavg-parseInt(bd.total):null;
-                        return {key:key,club:c.club,type:c.type,shots:c.shots,dists:dists,gavg:gavg,carry:bd.carry||null,total:bd.total||null,delta:delta};
-                    }))+';';
-                    h += 'var TDL="padding:6px 6px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:left;";';
-                    h += 'var TD="padding:6px 6px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right;";';
+                        var profTotal=bd.total?parseInt(bd.total):null;
+                        var profCarry=bd.carry?parseInt(bd.carry):null;
+                        var delta=gavg!==null&&profTotal?gavg-profTotal:null;
+                        return {key:key,club:c.club,type:c.type,shots:c.shots,dists:dists,gavg:gavg,profCarry:profCarry,profTotal:profTotal,delta:delta};
+                    });
+
+                    // Delta bar chart (SVG)
+                    var chartData=clubData.filter(function(c){return c.gavg!==null&&c.profTotal!==null;});
+                    if (chartData.length>0) {
+                        var allDeltas=chartData.map(function(c){return c.delta;});
+                        var maxD=Math.max.apply(null,allDeltas.map(Math.abs).concat([10]))+5;
+                        var cdW=300,cdH=160,cdPL=32,cdPB=40,cdPT=20,cdPR=8;
+                        var cdPW=cdW-cdPL-cdPR,cdPH=cdH-cdPT-cdPB;
+                        var cdBw=cdPW/chartData.length;
+                        var zY=cdPT+cdPH/2;
+                        var cdSvg='';
+                        // zero line
+                        cdSvg+='<line x1="'+cdPL+'" y1="'+zY+'" x2="'+(cdW-cdPR)+'" y2="'+zY+'" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>';
+                        // grid
+                        [-20,-10,10,20].forEach(function(v){
+                            if(Math.abs(v)>maxD)return;
+                            var y=zY-(v/maxD)*(cdPH/2);
+                            cdSvg+='<line x1="'+cdPL+'" y1="'+y+'" x2="'+(cdW-cdPR)+'" y2="'+y+'" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>';
+                            cdSvg+='<text x="'+(cdPL-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="7" fill="#444">'+(v>0?'+':'')+v+'</text>';
+                        });
+                        chartData.forEach(function(c,i){
+                            var bh=Math.abs(c.delta)/maxD*(cdPH/2);
+                            var x=cdPL+i*cdBw;
+                            var y=c.delta>=0?zY-bh:zY;
+                            var col=Math.abs(c.delta)<=5?'#15803d':Math.abs(c.delta)<=15?'#d97706':'#b91c1c';
+                            cdSvg+='<rect x="'+(x+1)+'" y="'+y+'" width="'+(cdBw-2)+'" height="'+bh+'" fill="'+col+'" fill-opacity="0.8"/>';
+                            cdSvg+='<text x="'+(x+cdBw/2)+'" y="'+(c.delta>=0?y-3:y+bh+9)+'" text-anchor="middle" font-size="7" fill="#aaa" font-weight="700">'+(c.delta>0?'+':'')+c.delta+'</text>';
+                            // rotated label
+                            cdSvg+='<text x="'+(x+cdBw/2)+'" y="'+(cdH-cdPB+12)+'" text-anchor="end" font-size="7" fill="#555" transform="rotate(-45,'+(x+cdBw/2)+','+(cdH-cdPB+12)+')">'+c.club+'·'+c.type.substring(0,4)+'</text>';
+                        });
+                        h += '<div style="'+CARD+'">';
+                        h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">GPS Avg vs Profile Total — Delta by Club</div>';
+                        h += '<svg width="100%" viewBox="0 0 '+cdW+' '+cdH+'" style="display:block;">'+cdSvg+'</svg>';
+                        h += '<div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;">';
+                        [['✓ ≤5y','#15803d'],['~ ≤15y','#d97706'],['✗ >15y','#b91c1c']].forEach(function(p){
+                            h += '<span style="font-size:0.62rem;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:'+p[1]+';margin-right:3px;"></span>'+p[0]+'</span>';
+                        });
+                        h += '</div></div>';
+                    }
+
+                    // Club summary table with expandable rows
+                    h += '<div style="'+CARDP0+'" id="rpt-club-wrap">';
+                    h += '<table style="'+TBL+'" id="rpt-ctbl">';
+                    h += '<thead><tr>' +
+                         '<th style="'+TH+'text-align:left;">Club · Type</th>' +
+                         '<th style="'+TH+'text-align:center;">n</th>' +
+                         '<th style="'+TH+'text-align:center;">Clean</th>' +
+                         '<th style="'+TH+'">Prof Carry</th>' +
+                         '<th style="'+TH+'">Prof Total</th>' +
+                         '<th style="'+TH+'">GPS Avg</th>' +
+                         '<th style="'+TH+'">Delta</th>' +
+                         '<th style="'+TH+'text-align:left;">Status</th>' +
+                         '</tr></thead><tbody id="rpt-ctbody"></tbody></table></div>';
+
+                    h += '<script>(function(){';
+                    h += 'var b=document.getElementById("rpt-ctbody");if(!b)return;';
+                    h += 'var TDL="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:left;";';
+                    h += 'var TD="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right;";';
+                    h += 'var TDC="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;";';
                     h += 'function dc(d){return d===null?"#888":Math.abs(d)<=5?"#4ade80":Math.abs(d)<=15?"#f59e0b":"#e64545";}';
-                    h += 'clubData.forEach(function(c,ci){';
+                    h += 'var cd='+JSON.stringify(clubData)+';';
+                    h += 'cd.forEach(function(c,ci){';
                     h += '  var tr=document.createElement("tr");tr.style.cursor="pointer";';
-                    h += '  var rb=ci%2===0?"background:rgba(255,255,255,0.01);":"";tr.style.cssText=rb;';
+                    h += '  var rb=ci%2===0?"rgba(255,255,255,0.01)":"transparent";tr.style.background=rb;';
                     h += '  var ds=c.delta!==null?(c.delta>0?"+":"")+c.delta+"y":"—";';
-                    h += '  var dcol=dc(c.delta);';
-                    h += '  tr.innerHTML=\'<td style="\'+TDL+\'padding-left:10px;font-weight:700;"><span class="tri">▶</span> \'+c.club+\'<span style="color:#666;font-size:0.65rem;margin-left:4px;">·\'+c.type+\'</span></td>\'+';
-                    h += '    \'<td style="\'+TD+\'color:#aaa;">\'+c.shots.length+\'</td>\'+';
+                    h += '  var status=c.delta===null?"<span style=\'color:#888\'>no GPS</span>":Math.abs(c.delta)<=5?"<span style=\'color:#4ade80\'>✓ On profile</span>":Math.abs(c.delta)<=15?"<span style=\'color:#f59e0b\'>~ Marginal</span>":"<span style=\'color:#e64545\'>✗ Off profile</span>";';
+                    h += '  tr.innerHTML=\'<td style="\'+TDL+\'"><span class="rpt-tri">▶</span> \'+c.club+\' <span style="color:#555;font-size:0.7rem;">·\'+c.type+\'</span></td>\'+';
+                    h += '    \'<td style="\'+TDC+\'">\'+c.shots.length+\'</td>\'+';
+                    h += '    \'<td style="\'+TDC+\'">\'+c.dists.length+\'</td>\'+';
+                    h += '    \'<td style="\'+TD+\'color:#888;">\'+( c.profCarry?c.profCarry+"y":"—")+\'</td>\'+';
+                    h += '    \'<td style="\'+TD+\'color:#666;">\'+( c.profTotal?c.profTotal+"y":"—")+\'</td>\'+';
                     h += '    \'<td style="\'+TD+\'font-weight:700;">\'+( c.gavg?c.gavg+"y":"—")+\'</td>\'+';
-                    h += '    \'<td style="\'+TD+\'color:#888;">\'+( c.total?c.total+"y":"—")+\'</td>\'+';
-                    h += '    \'<td style="\'+TD+\'font-weight:700;color:\'+dcol+\';font-size:0.85rem;">\'+ds+\'</td>\';';
-                    h += '  var detRows=c.shots.map(function(s){';
-                    h += '    var dr=document.createElement("tr");dr.className="det-"+ci;dr.style.display="none";dr.style.background="rgba(0,0,0,0.2)";';
-                    h += '    var sd=s.dist&&c.total?s.dist-parseInt(c.total):null;';
-                    h += '    var sdc=dc(sd);';
-                    h += '    dr.innerHTML=\'<td style="padding:4px 4px 4px 28px;font-size:0.72rem;color:#666;">H\'+String(s.hole).padStart(2,"0")+\'</td>\'+';
-                    h += '      \'<td style="font-size:0.75rem;color:#aaa;text-align:right;padding:4px;">\'+( s.dist?s.dist+"y":"— no GPS")+\'</td>\'+';
-                    h += '      \'<td colspan="2"></td>\'+';
-                    h += '      \'<td style="font-size:0.75rem;text-align:right;padding:4px;color:\'+sdc+\';font-weight:700;">\'+( sd!==null?(sd>0?"+":"")+sd+"y":"—")+\'</td>\';';
+                    h += '    \'<td style="\'+TD+\'font-weight:700;color:\'+dc(c.delta)+\';font-size:0.85rem;">\'+ds+\'</td>\'+';
+                    h += '    \'<td style="\'+TDL+\'font-size:0.7rem;">\'+status+\'</td>\';';
+                    h += '  var drs=c.shots.map(function(s){';
+                    h += '    var dr=document.createElement("tr");dr.style.display="none";dr.style.background="rgba(0,0,0,0.15)";';
+                    h += '    var sd=s.dist&&c.profTotal?s.dist-c.profTotal:null;';
+                    h += '    dr.innerHTML=\'<td style="padding:4px 8px 4px 24px;font-size:0.72rem;color:#555;">H\'+String(s.hole).padStart(2,"0")+\'</td>\'+';
+                    h += '      \'<td colspan="4" style="font-size:0.75rem;color:#aaa;text-align:right;padding:4px 8px;">\'+( s.dist?s.dist+"y":"— no GPS")+\'</td>\'+';
+                    h += '      \'<td colspan="2" style="font-size:0.75rem;text-align:right;padding:4px 8px;color:\'+dc(sd)+\';font-weight:700;">\'+( sd!==null?(sd>0?"+":"")+sd+"y":"—")+\'</td><td></td>\';';
                     h += '    return dr;';
                     h += '  });';
-                    h += '  tr.addEventListener("click",function(){';
-                    h += '    var open=detRows[0].style.display!=="none";';
-                    h += '    detRows.forEach(function(r){r.style.display=open?"none":"table-row";});';
-                    h += '    tr.querySelector(".tri").textContent=open?"▶":"▼";';
-                    h += '  });';
-                    h += '  body.appendChild(tr);detRows.forEach(function(r){body.appendChild(r);});';
+                    h += '  tr.addEventListener("click",function(){var open=drs[0].style.display!=="none";drs.forEach(function(r){r.style.display=open?"none":"table-row";});tr.querySelector(".rpt-tri").textContent=open?"▶":"▼";});';
+                    h += '  b.appendChild(tr);drs.forEach(function(r){b.appendChild(r);});';
                     h += '});})();<\/script>';
                 } else {
-                    h += '<div style="'+CARD+'color:#888;font-size:0.8rem;">No non-putt shot data available.</div>';
+                    h += '<div style="'+CARD+'color:#888;font-size:0.8rem;">No shot data available.</div>';
                 }
                 h += '</div>'; // end 04
 
-                // ═══════════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════════
                 // 05 ROUND ANALYSIS
-                // ═══════════════════════════════════════════════════════════════
+                // ══════════════════════════════════════════════════════════════
                 h += '<div style="'+SEC+'">';
                 h += secHead('05','Round Analysis');
 
-                // Target / Aimpoint accuracy (deviation tables)
+                // Target accuracy deviation tables
                 function buildDeviationData(filterFn) {
                     var map={};
                     State.holes.forEach(function(hole) {
@@ -7720,36 +7968,36 @@
                     return map;
                 }
                 function buildDeviationTable(map,inclDist) {
-                    var clubs=Object.keys(map);if(!clubs.length)return '';
+                    var clubs=Object.keys(map); if(!clubs.length) return '';
                     clubs.sort(function(a,b){return map[b].devs.length-map[a].devs.length;});
                     var rows='';
                     clubs.forEach(function(club,ci){
-                        var d=map[club],n=d.devs.length;
-                        var avgDev=d.devs.reduce(function(s,v){return s+v;},0)/n;
-                        var avgLat=Math.round(d.laterals.reduce(function(s,v){return s+v;},0)/n);
+                        var d=map[club],n2=d.devs.length;
+                        var avgDev=d.devs.reduce(function(s,v){return s+v;},0)/n2;
+                        var avgLat=Math.round(d.laterals.reduce(function(s,v){return s+v;},0)/n2);
                         var tend=Math.abs(avgDev)<2?'Straight':avgDev>0?'Fade/Push':'Draw/Pull';
                         var tc=Math.abs(avgDev)<2?'#4ade80':avgDev>0?'#f59e0b':'#60a5fa';
                         var dc=avgDev>0?'#f59e0b':avgDev<0?'#60a5fa':'#4ade80';
                         var rb=ci%2===0?'background:rgba(255,255,255,0.01);':'';
                         rows+='<tr style="'+rb+'border-bottom:1px solid rgba(255,255,255,0.04);">' +
-                              '<td style="padding:5px 6px;font-weight:700;color:#fff;">'+Utils.escHtml(club)+'</td>' +
-                              '<td style="padding:5px 6px;text-align:right;color:#aaa;">'+n+'</td>' +
-                              '<td style="padding:5px 6px;text-align:right;color:'+dc+';">'+(avgDev>=0?'+':'')+avgDev.toFixed(1)+'°</td>' +
-                              '<td style="padding:5px 6px;text-align:right;color:#aaa;">'+avgLat+'y</td>';
+                              '<td style="padding:5px 8px;font-weight:700;text-align:left;">'+Utils.escHtml(club)+'</td>' +
+                              '<td style="padding:5px 8px;text-align:right;color:#888;">'+n2+'</td>' +
+                              '<td style="padding:5px 8px;text-align:right;color:'+dc+';">'+(avgDev>=0?'+':'')+avgDev.toFixed(1)+'°</td>' +
+                              '<td style="padding:5px 8px;text-align:right;color:#888;">'+avgLat+'y</td>';
                         if (inclDist) {
                             var vt=d.targetDists.filter(function(v){return v>0;});
                             var at=vt.length?Math.round(vt.reduce(function(s,v){return s+v;},0)/vt.length):null;
-                            var aa=Math.round(d.dists.reduce(function(s,v){return s+v;},0)/n);
+                            var aa=Math.round(d.dists.reduce(function(s,v){return s+v;},0)/n2);
                             var df=at!==null?aa-at:null;
-                            var dfc=df===null?'#aaa':Math.abs(df)<=5?'#4ade80':df>0?'#f59e0b':'#60a5fa';
-                            rows+='<td style="padding:5px 6px;text-align:right;color:#aaa;">'+(at!==null?at+'y':'—')+'</td>' +
-                                  '<td style="padding:5px 6px;text-align:right;color:#aaa;">'+aa+'y</td>' +
-                                  '<td style="padding:5px 6px;text-align:right;color:'+dfc+';">'+(df!==null?(df>0?'+':'')+df+'y':'—')+'</td>';
+                            var dfc=df===null?'#888':Math.abs(df)<=5?'#4ade80':df>0?'#f59e0b':'#60a5fa';
+                            rows+='<td style="padding:5px 8px;text-align:right;color:#888;">'+(at!==null?at+'y':'—')+'</td>' +
+                                  '<td style="padding:5px 8px;text-align:right;color:#aaa;">'+aa+'y</td>' +
+                                  '<td style="padding:5px 8px;text-align:right;color:'+dfc+';">'+(df!==null?(df>0?'+':'')+df+'y':'—')+'</td>';
                         }
-                        rows+='<td style="padding:5px 6px;text-align:right;font-weight:700;color:'+tc+';">'+tend+'</td></tr>';
+                        rows+='<td style="padding:5px 8px;text-align:right;font-weight:700;color:'+tc+';">'+tend+'</td></tr>';
                     });
-                    var HDR='<th style="'+TH+'text-align:left;">Club</th><th style="'+TH+'text-align:right;">n</th><th style="'+TH+'text-align:right;">Avg dev</th><th style="'+TH+'text-align:right;">Lateral</th>';
-                    if (inclDist) HDR+='<th style="'+TH+'text-align:right;">Target</th><th style="'+TH+'text-align:right;">Actual</th><th style="'+TH+'text-align:right;">Diff</th>';
+                    var HDR='<th style="'+TH+'text-align:left;">Club</th><th style="'+TH+'">n</th><th style="'+TH+'">Avg dev</th><th style="'+TH+'">Lateral</th>';
+                    if (inclDist) HDR+='<th style="'+TH+'">Target</th><th style="'+TH+'">Actual</th><th style="'+TH+'">Diff</th>';
                     HDR+='<th style="'+TH+'text-align:right;">Tendency</th>';
                     return '<table style="'+TBL+'"><thead><tr>'+HDR+'</tr></thead><tbody>'+rows+'</tbody></table>';
                 }
@@ -7757,30 +8005,30 @@
                 var tgtMap=buildDeviationData(function(s){return s.targetCategory!=='aimpoint';});
                 if (Object.keys(tgtMap).length>0) {
                     h += '<div style="'+CARD+'">';
-                    h += '<div style="font-size:0.65rem;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Target Accuracy by Club</div>';
-                    h += '<div style="font-size:0.65rem;color:#888;margin-bottom:8px;">Shots to mapped targets. Deviation = direction off target line. +° right, −° left.</div>';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#6ee7b7;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Target Accuracy by Club</div>';
+                    h += '<div style="font-size:0.65rem;color:#888;margin-bottom:8px;">Shots to mapped targets. Deviation = direction off target line. +° = right, −° = left.</div>';
                     h += buildDeviationTable(tgtMap,true);
                     h += '</div>';
                 }
-
                 var aimMap=buildDeviationData(function(s){return s.targetCategory==='aimpoint';});
                 if (Object.keys(aimMap).length>0) {
                     h += '<div style="'+CARD+'">';
-                    h += '<div style="font-size:0.65rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Aim Point Accuracy by Club</div>';
-                    h += '<div style="font-size:0.65rem;color:#888;margin-bottom:8px;">Directional accuracy only. +° right of aim line, −° left.</div>';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#f97316;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Aim Point Accuracy by Club</div>';
+                    h += '<div style="font-size:0.65rem;color:#888;margin-bottom:8px;">Directional accuracy only. +° = right of aim line, −° = left.</div>';
                     h += buildDeviationTable(aimMap,false);
                     h += '</div>';
                 }
 
-                // Scorecard
+                // Score impact table
                 if (hasPar) {
-                    h += '<div style="'+CARD+'">';
-                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Score Impact — Best to Worst</div>';
+                    h += '<div style="'+CARDP0+'">';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;padding:10px 8px 8px;">Score Impact — Best to Worst</div>';
                     h += '<table style="'+TBL+'">';
                     h += '<thead><tr>' +
                          '<th style="'+TH+'text-align:left;">Hole</th>' +
                          '<th style="'+TH+'text-align:center;">Par</th>' +
-                         '<th style="'+TH+'text-align:center;">Yds</th>' +
+                         '<th style="'+TH+'text-align:right;">Yds</th>' +
+                         '<th style="'+TH+'text-align:center;">HCP</th>' +
                          '<th style="'+TH+'text-align:center;">Score</th>' +
                          '<th style="'+TH+'text-align:center;">vs Par</th>' +
                          '<th style="'+TH+'text-align:center;">FWY</th>' +
@@ -7789,7 +8037,7 @@
                          '</tr></thead><tbody>';
                     var sorted=playedHoles.filter(function(h2){return h2.par>0;}).slice();
                     sorted.sort(function(a,b){return self.vsParHole(a)-self.vsParHole(b);});
-                    sorted.forEach(function(hole,hi){
+                    sorted.forEach(function(hole,hi) {
                         var vsp=self.vsParHole(hole);
                         var ds=vsp===0?'E':(vsp>0?'+'+vsp:String(vsp));
                         var dc=vsp<0?'#4ade80':vsp>0?'#888':'#fff';
@@ -7797,14 +8045,15 @@
                         var pc=self.puttCount(hole);
                         var rb=hi%2===0?'background:rgba(255,255,255,0.01);':'';
                         h += '<tr style="'+rb+'">' +
-                             '<td style="'+TDL+'font-weight:700;">H'+hole.hole+'</td>' +
-                             '<td style="'+TD+'text-align:center;color:#888;">'+( hole.par||'—')+'</td>' +
-                             '<td style="'+TD+'text-align:center;color:#888;">'+( hole.yards||'—')+'</td>' +
-                             '<td style="'+TD+'text-align:center;font-weight:700;">'+hole.shots.length+'</td>' +
-                             '<td style="'+TD+'text-align:center;font-weight:900;color:'+dc+';">'+ds+'</td>' +
-                             '<td style="'+TD+'text-align:center;">'+(hole.par===4||hole.par===5?(hole.fwy?'<span style="color:#4ade80;font-weight:700;">✓</span>':'<span style="color:#555;">✗</span>'):'—')+'</td>' +
-                             '<td style="'+TD+'text-align:center;">'+(gir===null?'—':gir?'<span style="color:#4ade80;font-weight:700;">✓</span>':'<span style="color:#555;">✗</span>')+'</td>' +
-                             '<td style="'+TD+'text-align:center;color:'+(pc>=3?'#f87171':'#aaa')+';">'+pc+'</td>' +
+                             '<td style="'+TDL+'font-weight:700;color:#60a5fa;">H'+hole.hole+'</td>' +
+                             '<td style="'+TDC+'color:#888;">'+(hole.par||'—')+'</td>' +
+                             '<td style="'+TD+'color:#555;">'+(hole.yards||'—')+'</td>' +
+                             '<td style="'+TDC+'color:#555;">'+(hole.hcp||'—')+'</td>' +
+                             '<td style="'+TDC+'font-weight:700;">'+hole.shots.length+'</td>' +
+                             '<td style="'+TDC+'font-weight:900;color:'+dc+';">'+ds+'</td>' +
+                             '<td style="'+TDC+'">'+(hole.par===4||hole.par===5?(hole.fwy?'<span style="color:#4ade80;font-weight:700;">✓</span>':'<span style="color:#555;">✗</span>'):'—')+'</td>' +
+                             '<td style="'+TDC+'">'+(gir===null?'—':gir?'<span style="color:#4ade80;font-weight:700;">✓</span>':'<span style="color:#555;">✗</span>')+'</td>' +
+                             '<td style="'+TDC+'color:'+(pc>=3?'#f87171':'#aaa')+';">'+pc+'</td>' +
                              '</tr>';
                     });
                     h += '</tbody></table></div>';
@@ -7813,34 +8062,36 @@
                 // Hole-by-hole detail
                 h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:16px 0 8px;">Hole-by-Hole Detail</div>';
                 playedHoles.forEach(function(hole) {
-                    var gir=self.calcGIR(hole), vsp=self.vsParHole(hole), pc=self.puttCount(hole);
+                    var gir=self.calcGIR(hole),vsp=self.vsParHole(hole),pc=self.puttCount(hole);
                     var vspStr=vsp===null?'':vsp===0?'E':(vsp>0?'+'+vsp:String(vsp));
                     var vspCol=vsp===null?'#fff':vsp<0?'#4ade80':vsp>0?'#888':'#fff';
                     h += '<div style="'+CARD+'">';
                     h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-                    h += '<div><span style="font-weight:900;font-size:0.9rem;color:#fff;">Hole '+hole.hole+'</span>';
+                    h += '<div><span style="font-weight:900;font-size:0.9rem;">H'+hole.hole+'</span>';
                     if (hole.par) h += ' <span style="color:#555;font-size:0.72rem;">Par '+hole.par+'</span>';
                     if (hole.yards) h += ' <span style="color:#555;font-size:0.72rem;">'+hole.yards+'y</span>';
+                    if (hole.hcp) h += ' <span style="color:#444;font-size:0.68rem;">HCP '+hole.hcp+'</span>';
                     h += '</div>';
-                    h += '<div style="font-size:1.2rem;font-weight:900;color:'+vspCol+';">'+hole.shots.length+(vspStr?' <span style="font-size:0.75rem;">('+vspStr+')</span>':'')+'</div>';
+                    h += '<div style="font-size:1.1rem;font-weight:900;color:'+vspCol+';">'+hole.shots.length+(vspStr?' <span style="font-size:0.72rem;color:'+vspCol+';">('+vspStr+')</span>':'')+'</div>';
                     h += '</div>';
-                    h += '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">';
-                    function badge(lbl,val,col){return '<span style="font-size:0.62rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:'+(col||'#aaa')+';">'+lbl+': '+val+'</span>';}
+                    h += '<div style="display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap;">';
+                    function badge(lbl,val,col){return '<span style="font-size:0.6rem;font-weight:700;padding:2px 5px;border-radius:3px;background:rgba(255,255,255,0.06);color:'+(col||'#888')+';">'+lbl+': '+val+'</span>';}
                     if (hole.par===4||hole.par===5) h += badge('FWY',hole.fwy?'✓':'✗',hole.fwy?'#4ade80':'#555');
                     h += badge('GIR',gir===null?'?':(gir?'✓':'✗'),gir?'#4ade80':'#555');
-                    h += badge('Putts',pc,pc>=3?'#f87171':'#aaa');
+                    h += badge('Putts',pc,pc>=3?'#f87171':'#888');
                     if (self.holedOut(hole)) h += badge('HOLED OUT','⭐','#fbbf24');
                     h += '</div>';
-                    h += '<table style="'+TBL+'font-size:0.75rem;">';
+                    h += '<table style="'+TBL+'font-size:0.74rem;">';
                     hole.shots.forEach(function(s,idx){
                         var bd=self.bagDist(s);
                         var isPutt=(s.shotType||'').toLowerCase()==='putt';
-                        h += '<tr><td style="color:#555;padding:2px 4px 2px 0;width:18px;">'+(idx+1)+'.</td>' +
-                             '<td style="font-weight:700;padding:2px 4px;color:#fff;">'+Utils.escHtml(s.club||'?')+'</td>' +
-                             '<td style="color:#888;padding:2px 4px;">'+Utils.escHtml(s.shotType||'?')+'</td>' +
+                        h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.03);">' +
+                             '<td style="color:#444;padding:2px 4px 2px 0;width:16px;">'+(idx+1)+'.</td>' +
+                             '<td style="font-weight:700;padding:2px 4px;color:#fff;white-space:nowrap;">'+Utils.escHtml(s.club||'?')+'</td>' +
+                             '<td style="color:#666;padding:2px 4px;font-size:0.7rem;">'+Utils.escHtml(s.shotType||'?')+'</td>' +
                              '<td style="font-weight:700;padding:2px 4px;">'+(s.distance?s.distance+(isPutt?'ft':'y'):'—')+'</td>' +
-                             '<td style="color:#555;font-size:0.68rem;padding:2px 4px;">'+(bd.carry?'('+bd.carry+'y)':'')+'</td>' +
-                             '<td style="color:#e64545;font-size:0.68rem;padding:2px 4px;">'+(s.penalty?'PEN':'')+'</td>' +
+                             '<td style="color:#444;font-size:0.68rem;padding:2px 4px;">'+(bd.carry?'('+bd.carry+'y)':'')+'</td>' +
+                             (s.penalty?'<td style="color:#e64545;font-size:0.68rem;padding:2px 4px;">PEN</td>':'<td></td>') +
                              '</tr>';
                     });
                     h += '</table></div>';
