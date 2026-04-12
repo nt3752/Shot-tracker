@@ -6604,14 +6604,17 @@
             },
 
             // Comprehensive putting analysis across all played holes
-            // Returns bands (made/attempted from distance ranges), up&downs, holedOut count
+            // Putt conversion analysis
+            // A "meaningful make" = the last putt on a hole with distance > 1ft
+            // (1ft tap-ins are excluded — not useful for conversion analysis)
+            // Bands: ≤3ft, 4–6ft, 7–12ft, >12ft
             puttAnalysis(playedHoles) {
                 var self = this;
-                // Distance bands for putts — each putt is attempted; last putt on hole = made
                 var bands = [
-                    { label: '\u22643ft',  made: 0, att: 0, test: function(d){ return d <= 3; } },
-                    { label: '4\u20136ft', made: 0, att: 0, test: function(d){ return d >= 4 && d <= 6; } },
-                    { label: '>6ft',       made: 0, att: 0, test: function(d){ return d >= 7; } }
+                    { label: '\u22643ft',   made: 0, att: 0, test: function(d){ return d <= 3; } },
+                    { label: '4\u20136ft',  made: 0, att: 0, test: function(d){ return d >= 4 && d <= 6; } },
+                    { label: '7\u201312ft', made: 0, att: 0, test: function(d){ return d >= 7 && d <= 12; } },
+                    { label: '>12ft',       made: 0, att: 0, test: function(d){ return d > 12; } }
                 ];
                 var upDownMade = 0, upDownOpp = 0;
                 var holedOutCount = 0;
@@ -6620,29 +6623,31 @@
                     var pc = self.puttCount(hole);
                     var gir = self.calcGIR(hole);
 
-                    // Holed out from off green (0 putts)
                     if (hole.shots.length > 0 && pc === 0) holedOutCount++;
 
-                    // Up & down: missed GIR, exactly 1 putt
                     if (gir === false) {
                         upDownOpp++;
                         if (pc === 1) upDownMade++;
                     }
 
-                    // Band analysis: each putt with a logged distance is an attempt;
-                    // only the last putt on the hole is counted as made.
                     var puttShots = hole.shots.filter(function(s) {
-                        return (s.shotType || '').toLowerCase() === 'putt';
+                        return (s.shotType || '').toLowerCase() === 'putt' && s.distance > 0;
                     });
 
+                    if (puttShots.length === 0) return;
+
+                    // Every putt with distance logged = an attempt in its band
+                    // Only the last putt = made (it went in)
+                    // Exclude tap-ins (≤1ft) from the last putt — not meaningful
                     puttShots.forEach(function(s, idx) {
-                        if (!s.distance || s.distance <= 0) return;
                         var dist = s.distance;
-                        var made = (idx === puttShots.length - 1);
+                        var isLast = (idx === puttShots.length - 1);
+                        // Skip 1ft tap-ins from the last-putt analysis — they skew conversion to 100%
+                        if (isLast && dist <= 1) return;
                         bands.forEach(function(band) {
                             if (band.test(dist)) {
                                 band.att++;
-                                if (made) band.made++;
+                                if (isLast) band.made++;
                             }
                         });
                     });
@@ -7468,6 +7473,41 @@
                      '<td style="'+TDL+'font-size:0.7rem;color:#888;">'+puttCounts[1]+' one · '+puttCounts[2]+' two · '+(puttCounts[3]+(puttCounts.more||0))+' three+</td>' +
                      '</tr>';
                 h += '</tbody></table></div>';
+
+                // Putt conversion by distance
+                var pa = self.puttAnalysis(playedHoles);
+                var hasConvData = pa.bands.some(function(b){ return b.att > 0; });
+                if (hasConvData) {
+                    h += '<div style="'+CARD+'">';
+                    h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Putt Conversion by Distance</div>';
+                    h += '<div style="font-size:0.65rem;color:#888;margin-bottom:10px;">Last putt &gt;1ft per hole = made. Excludes 1ft tap-ins. Shows how often you close out from each range.</div>';
+                    h += '<table style="'+TBL+'">';
+                    h += '<thead><tr>' +
+                         '<th style="'+TH+'text-align:left;">Distance</th>' +
+                         '<th style="'+TH+'text-align:right;">Made</th>' +
+                         '<th style="'+TH+'text-align:right;">Att</th>' +
+                         '<th style="'+TH+'text-align:right;">Conv%</th>' +
+                         '<th style="'+TH+'">Bar</th>' +
+                         '</tr></thead><tbody>';
+                    pa.bands.forEach(function(b) {
+                        if (!b.att) return;
+                        var cp = Math.round(b.made/b.att*100);
+                        var col = cp>=80?'#4ade80':cp>=50?'#f59e0b':'#e64545';
+                        h += '<tr>' +
+                             '<td style="'+TDL+'font-weight:700;">'+b.label+'</td>' +
+                             '<td style="'+TD+'">'+b.made+'</td>' +
+                             '<td style="'+TD+'">'+b.att+'</td>' +
+                             '<td style="'+TD+'font-weight:700;color:'+col+';">'+cp+'%</td>' +
+                             '<td style="'+TD+'"><div style="background:rgba(255,255,255,0.08);border-radius:3px;height:6px;width:80px;overflow:hidden;display:inline-block;vertical-align:middle;"><div style="width:'+cp+'%;height:100%;background:'+col+';border-radius:3px;"></div></div></td>' +
+                             '</tr>';
+                    });
+                    h += '</tbody></table>';
+                    h += '<div style="display:flex;gap:16px;margin-top:10px;font-size:0.75rem;">';
+                    h += '<span style="color:#aaa;">Up &amp; Down: <strong style="color:#fff;">'+pa.upDownMade+'/'+pa.upDownOpp+' ('+pct(pa.upDownMade,pa.upDownOpp)+')</strong></span>';
+                    h += '<span style="color:#aaa;">Holed Out: <strong style="color:#fff;">'+pa.holedOutCount+'</strong></span>';
+                    h += '</div>';
+                    h += '</div>';
+                }
 
                 // Last putt distribution
                 if (lastPuttDists.length > 0) {
