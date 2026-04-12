@@ -7663,25 +7663,25 @@
                     h += '<div style="font-size:0.65rem;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Driver Landing vs W1</div>';
                     h += '<div style="'+INSIGHT+'margin-bottom:10px;">W1 = first waypoint on planned path (ideal fairway apex/layup). <strong>Long/Short</strong> = along-fairway offset. <strong>Left/Right</strong> = cross-fairway offset. Requires GPS landing mark on shot 1.</div>';
 
-                    // SVG scatter
-                    var svW2=300,svH2=240,pad2=32;
-                    var pW2=svW2-pad2*2,pH2=svH2-pad2*2;
+                    // SVG scatter — asymmetric padding so Y labels have room on left
+                    var svW2=320,svH2=260,padL2=40,padR2=12,padT2=14,padB2=22;
+                    var pW2=svW2-padL2-padR2,pH2=svH2-padT2-padB2;
                     var mX=30,mY=30;
                     teeData.forEach(function(d){if(Math.abs(d.lateral)>mX)mX=Math.abs(d.lateral);if(Math.abs(d.along)>mY)mY=Math.abs(d.along);});
                     mX=Math.ceil(mX/10)*10+10; mY=Math.ceil(mY/10)*10+10;
-                    function sx(v){return pad2+(v+mX)/(mX*2)*pW2;}
-                    function sy(v){return pad2+(1-(v+mY)/(mY*2))*pH2;}
+                    function sx(v){return padL2+(v+mX)/(mX*2)*pW2;}
+                    function sy(v){return padT2+(1-(v+mY)/(mY*2))*pH2;}
                     var cx2=sx(0),cy2=sy(0);
                     var svgContent='';
-                    for(var gx=-mX;gx<=mX;gx+=10){var sgx=sx(gx);svgContent+='<line x1="'+sgx+'" y1="'+pad2+'" x2="'+sgx+'" y2="'+(svH2-pad2)+'" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';if(gx)svgContent+='<text x="'+sgx+'" y="'+(svH2-pad2+12)+'" text-anchor="middle" font-size="7" fill="#444">'+gx+'</text>';}
-                    for(var gy=-mY;gy<=mY;gy+=10){var sgy=sy(gy);svgContent+='<line x1="'+pad2+'" y1="'+sgy+'" x2="'+(svW2-pad2)+'" y2="'+sgy+'" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';if(gy)svgContent+='<text x="'+(pad2-4)+'" y="'+(sgy+4)+'" text-anchor="end" font-size="7" fill="#444">'+gy+'</text>';}
-                    svgContent+='<line x1="'+pad2+'" y1="'+cy2+'" x2="'+(svW2-pad2)+'" y2="'+cy2+'" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>';
-                    svgContent+='<line x1="'+cx2+'" y1="'+pad2+'" x2="'+cx2+'" y2="'+(svH2-pad2)+'" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>';
+                    for(var gx=-mX;gx<=mX;gx+=10){var sgx=sx(gx);svgContent+='<line x1="'+sgx+'" y1="'+padT2+'" x2="'+sgx+'" y2="'+(svH2-padB2)+'" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>';if(gx)svgContent+='<text x="'+sgx+'" y="'+(svH2-padB2+13)+'" text-anchor="middle" font-size="9" fill="#ccc">'+gx+'</text>';}
+                    for(var gy=-mY;gy<=mY;gy+=10){var sgy=sy(gy);svgContent+='<line x1="'+padL2+'" y1="'+sgy+'" x2="'+(svW2-padR2)+'" y2="'+sgy+'" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>';if(gy)svgContent+='<text x="'+(padL2-4)+'" y="'+(sgy+3)+'" text-anchor="end" font-size="9" fill="#ccc">'+gy+'</text>';}
+                    svgContent+='<line x1="'+padL2+'" y1="'+cy2+'" x2="'+(svW2-padR2)+'" y2="'+cy2+'" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>';
+                    svgContent+='<line x1="'+cx2+'" y1="'+padT2+'" x2="'+cx2+'" y2="'+(svH2-padB2)+'" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>';
                     svgContent+='<line x1="'+(cx2-8)+'" y1="'+cy2+'" x2="'+(cx2+8)+'" y2="'+cy2+'" stroke="#22d3ee" stroke-width="2"/>';
                     svgContent+='<line x1="'+cx2+'" y1="'+(cy2-8)+'" x2="'+cx2+'" y2="'+(cy2+8)+'" stroke="#22d3ee" stroke-width="2"/>';
-                    svgContent+='<text x="'+(cx2+5)+'" y="'+(cy2-5)+'" font-size="7" fill="#22d3ee">W1</text>';
-                    svgContent+='<text x="'+(svW2/2)+'" y="'+(svH2-2)+'" text-anchor="middle" font-size="7" fill="#555">← LEFT    RIGHT →</text>';
-                    svgContent+='<text x="10" y="'+(svH2/2)+'" text-anchor="middle" font-size="7" fill="#555" transform="rotate(-90,10,'+(svH2/2)+')">SHORT ↓  PAST ↑</text>';
+                    svgContent+='<text x="'+(cx2+5)+'" y="'+(cy2-5)+'" font-size="8" fill="#22d3ee">W1</text>';
+                    svgContent+='<text x="'+(svW2/2)+'" y="'+(svH2-3)+'" text-anchor="middle" font-size="8" fill="#ccc">← LEFT    RIGHT →</text>';
+                    svgContent+='<text x="11" y="'+(svH2/2)+'" text-anchor="middle" font-size="8" fill="#ccc" transform="rotate(-90,11,'+(svH2/2)+')">SHORT ↓  PAST ↑</text>';
                     teeData.forEach(function(d){
                         var px=sx(d.lateral),py=sy(d.along);
                         var col=d.side==='C'?'#4ade80':d.side==='R'?'#f59e0b':'#60a5fa';
