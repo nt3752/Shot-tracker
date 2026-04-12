@@ -7249,16 +7249,16 @@
                 var SECH = 'display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #111;';
                 var SECN = 'font-size:0.6rem;color:#555;letter-spacing:1px;font-family:monospace;flex-shrink:0;';
                 var SECT = 'font-size:0.85rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:#111;';
-                var CARD = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:14px;margin-bottom:10px;';
-                var CARDP0 = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;overflow:hidden;margin-bottom:10px;';
-                var INSIGHT = 'font-size:0.72rem;color:#93c5fd;background:rgba(59,130,246,0.08);border-left:3px solid #3b82f6;border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:10px;line-height:1.6;';
-                var STATROW  = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.82rem;';
+                var CARD = 'background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:10px;';
+                var CARDP0 = 'background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:10px;';
+                var INSIGHT = 'font-size:0.72rem;color:#1e40af;background:#eff6ff;border-left:3px solid #3b82f6;border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:10px;line-height:1.6;';
+                var STATROW  = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f3f4f6;font-size:0.82rem;';
                 var STATLAST = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:0.82rem;';
                 var TBL = 'width:100%;border-collapse:collapse;font-size:0.78rem;';
-                var TH  = 'padding:5px 8px;font-size:0.6rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(255,255,255,0.1);white-space:nowrap;';
-                var TD  = 'padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right;';
-                var TDL = 'padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:left;';
-                var TDC = 'padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;';
+                var TH  = 'padding:5px 8px;font-size:0.6rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid #e5e7eb;white-space:nowrap;';
+                var TD  = 'padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right;color:#111;';
+                var TDL = 'padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:left;color:#111;';
+                var TDC = 'padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:center;color:#111;';
 
                 function secHead(num, title) {
                     return '<div style="'+SECH+'"><span style="'+SECN+'">'+num+'</span><span style="'+SECT+'">'+title+'</span></div>';
@@ -7358,13 +7358,13 @@
                 function pKpi(val,lbl,sub,col) {
                     return '<div style="'+CARD+'padding:10px;text-align:center;margin-bottom:0;">' +
                            '<div style="font-size:1.4rem;font-weight:900;color:'+(col||'#fff')+';">'+val+'</div>' +
-                           '<div style="font-size:0.6rem;color:#888;text-transform:uppercase;margin-top:2px;">'+lbl+'</div>' +
-                           (sub?'<div style="font-size:0.6rem;color:#555;margin-top:2px;">'+sub+'</div>':'') +
+                           '<div style="font-size:0.6rem;color:#6b7280;text-transform:uppercase;margin-top:2px;">'+lbl+'</div>' +
+                           (sub?'<div style="font-size:0.6rem;color:#374151;margin-top:2px;">'+sub+'</div>':'') +
                            '</div>';
                 }
                 h += pKpi(totalPutts,'Total Putts',playedHoles.length?(totalPutts/playedHoles.length).toFixed(1)+'/hole':null,totalPutts>36?'#f87171':'#fff');
                 h += pKpi(puttCounts[1],'1-Putt',pct(puttCounts[1],playedHoles.length),'#4ade80');
-                h += pKpi(puttCounts[2],'2-Putt',pct(puttCounts[2],playedHoles.length),'#fff');
+                h += pKpi(puttCounts[2],'2-Putt',pct(puttCounts[2],playedHoles.length),'#1d4ed8');
                 h += pKpi(threePuttHoles,'3-Putt+',threePuttList||pct(threePuttHoles,playedHoles.length),threePuttHoles>0?'#f87171':'#888');
                 h += pKpi(avgFP?avgFP+'ft':'—','Avg 1st Putt','feet','#f59e0b');
                 h += '</div>';
@@ -7385,7 +7385,7 @@
                     h += '<thead><tr><th style="'+TH+'text-align:left;">Result</th><th style="'+TH+'text-align:center;">1-Putt</th><th style="'+TH+'text-align:center;">2-Putt</th><th style="'+TH+'text-align:center;">3-Putt+</th><th style="'+TH+'text-align:center;">Holes</th></tr></thead><tbody>';
                     ['Birdie','Par','Bogey','Double','Triple+'].forEach(function(key) {
                         var d=matrix[key]; if(!d.total) return;
-                        var col=key==='Birdie'?'#4ade80':key==='Par'?'#fff':key==='Bogey'?'#aaa':key==='Double'?'#f59e0b':'#f87171';
+                        var col=key==='Birdie'?'#15803d':key==='Par'?'#1d4ed8':key==='Bogey'?'#374151':key==='Double'?'#b45309':'#b91c1c';
                         h += '<tr>' +
                              '<td style="'+TDL+'font-weight:700;color:'+col+';">'+key+'</td>' +
                              '<td style="'+TDC+(d[1]?'font-weight:700;color:#4ade80;':'')+'">'+(d[1]||'—')+'</td>' +
@@ -7451,7 +7451,7 @@
                     var ps=hole.shots.filter(function(s){return (s.shotType||'').toLowerCase()==='putt';});
                     var fp=ps.length>0&&ps[0].distance>0?ps[0].distance:null;
                     var pcCol=pc===1?'#4ade80':pc>=3?'#f87171':'#fff';
-                    var rb=hi%2===0?'background:rgba(255,255,255,0.01);':'';
+                    var rb=hi%2===0?'background:#fafafa;':'';
                     var puttLbl=pc===1?'1-putt ✓':pc===2?'2-putt':pc>=3?pc+'-putt ✗':'';
                     var puttLblCol=pc===1?'#4ade80':pc>=3?'#f87171':'#888';
                     var vspStr=vsp===null?'—':vsp===0?'E':(vsp>0?'+'+vsp:String(vsp));
@@ -7545,7 +7545,7 @@
                     lastPuttDists.forEach(function(lp,li){
                         var rb=li%2===0?'background:rgba(255,255,255,0.01);':'';
                         var lagQuality=lp.dist<=1?'<span style="color:#4ade80;font-weight:700;">Tap-in ✓</span>':
-                            lp.dist<=2?'<span style="color:#60a5fa;font-weight:700;">Close ✓</span>':
+                            lp.dist<=2?'<span style="color:#1d4ed8;font-weight:700;">Close ✓</span>':
                             lp.dist<=3?'<span style="color:#f59e0b;">Makeable</span>':
                             '<span style="color:#f87171;font-weight:700;">Long ✗</span>';
                         var pcCol=lp.putts>=3?'#f87171':lp.putts===1?'#4ade80':'#aaa';
@@ -7799,7 +7799,7 @@
                          '<th style="'+TH+'text-align:center;">Score</th>' +
                          '</tr></thead><tbody>';
                     approachRows.forEach(function(r,ri) {
-                        var rb=ri%2===0?'background:rgba(255,255,255,0.01);':'';
+                        var rb=ri%2===0?'background:#fafafa;':'';
                         var pc2=r.prox&&r.prox>0?proxColor(r.prox):'#555';
                         var putCol=r.putts>=3?'#f87171':r.putts===1?'#4ade80':'#aaa';
                         var vspCol=r.vsp===null?'#888':r.vsp<=0?'#4ade80':r.vsp===1?'#888':'#f87171';
@@ -7929,7 +7929,7 @@
                     }
 
                     // Club summary table with expandable rows — built directly, no inline script
-                    h += '<div style="'+CARDP0+'" id="rpt-club-wrap">';
+                    h += '<div style="'+CARDP0+'overflow-x:auto;" id="rpt-club-wrap">';
                     h += '<table style="'+TBL+'">';
                     h += '<thead><tr>' +
                          '<th style="'+TH+'text-align:left;">Club / Type</th>' +
@@ -7944,7 +7944,7 @@
                          '</tr></thead><tbody>';
 
                     clubData.forEach(function(c, ci) {
-                        var rb = ci%2===0 ? 'background:rgba(255,255,255,0.03);' : '';
+                        var rb = ci%2===0 ? 'background:#fafafa;' : '';
                         var ds = c.delta!==null ? (c.delta>0?'+':'')+c.delta+'y' : '—';
                         var dc2 = deltaColor(c.delta);
                         var flagCell = c.flagN>0 ? '<span style="color:#f59e0b;font-weight:700;">'+c.flagN+'</span>' : '∅';
@@ -7977,8 +7977,8 @@
                             var noGPS = !s.dist || s.dist <= 0;
                             var sd = s.dist && c.profTotal ? s.dist - c.profTotal : null;
                             var sdc = deltaColor(sd);
-                            var holeCol = noGPS ? 'color:#f59e0b;' : 'color:#555;';
-                            h += '<tr class="'+rowId+'" style="display:none;background:rgba(0,0,0,0.12);">';
+                            var holeCol = noGPS ? 'color:#b45309;' : 'color:#374151;';
+                            h += '<tr class="'+rowId+'" style="display:none;background:#f3f4f6;">';
                             h += '<td style="padding:4px 8px 4px 28px;font-size:0.72rem;'+holeCol+'font-family:monospace;">H'+String(s.hole).padStart(2,'0')+(noGPS?' ⚠':'')+'</td>';
                             h += '<td colspan="5" style="font-size:0.75rem;color:'+(noGPS?'#f59e0b':'#aaa')+';text-align:right;padding:4px 8px;">'+(s.dist&&s.dist>0?s.dist+'y':'— no GPS')+'</td>';
                             h += '<td colspan="2" style="font-size:0.75rem;text-align:right;padding:4px 8px;color:'+sdc+';font-weight:700;">'+(sd!==null?(sd>0?'+':'')+sd+'y':'—')+'</td>';
@@ -8098,7 +8098,7 @@
                         var dc=vsp<0?'#4ade80':vsp>0?'#888':'#fff';
                         var gir=self.calcGIR(hole);
                         var pc=self.puttCount(hole);
-                        var rb=hi%2===0?'background:rgba(255,255,255,0.01);':'';
+                        var rb=hi%2===0?'background:#fafafa;':'';
                         h += '<tr style="'+rb+'">' +
                              '<td style="'+TDL+'font-weight:700;color:#60a5fa;">H'+hole.hole+'</td>' +
                              '<td style="'+TDC+'color:#888;">'+(hole.par||'—')+'</td>' +
@@ -8122,10 +8122,10 @@
                     var vspCol=vsp===null?'#fff':vsp<0?'#4ade80':vsp>0?'#888':'#fff';
                     h += '<div style="'+CARD+'">';
                     h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
-                    h += '<div><span style="font-weight:900;font-size:0.9rem;">H'+hole.hole+'</span>';
-                    if (hole.par) h += ' <span style="color:#555;font-size:0.72rem;">Par '+hole.par+'</span>';
-                    if (hole.yards) h += ' <span style="color:#555;font-size:0.72rem;">'+hole.yards+'y</span>';
-                    if (hole.hcp) h += ' <span style="color:#444;font-size:0.68rem;">HCP '+hole.hcp+'</span>';
+                    h += '<div><span style="font-weight:900;font-size:0.9rem;color:#111;">H'+hole.hole+'</span>';
+                    if (hole.par) h += ' <span style="color:#6b7280;font-size:0.72rem;">Par '+hole.par+'</span>';
+                    if (hole.yards) h += ' <span style="color:#6b7280;font-size:0.72rem;">'+hole.yards+'y</span>';
+                    if (hole.hcp) h += ' <span style="color:#9ca3af;font-size:0.68rem;">HCP '+hole.hcp+'</span>';
                     h += '</div>';
                     h += '<div style="font-size:1.1rem;font-weight:900;color:'+vspCol+';">'+hole.shots.length+(vspStr?' <span style="font-size:0.72rem;color:'+vspCol+';">('+vspStr+')</span>':'')+'</div>';
                     h += '</div>';
@@ -8141,11 +8141,11 @@
                         var bd=self.bagDist(s);
                         var isPutt=(s.shotType||'').toLowerCase()==='putt';
                         h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.03);">' +
-                             '<td style="color:#444;padding:2px 4px 2px 0;width:16px;">'+(idx+1)+'.</td>' +
+                             '<td style="color:#9ca3af;padding:2px 4px 2px 0;width:16px;">'+(idx+1)+'.</td>' +
                              '<td style="font-weight:700;padding:2px 4px;color:#fff;white-space:nowrap;">'+Utils.escHtml(s.club||'?')+'</td>' +
-                             '<td style="color:#666;padding:2px 4px;font-size:0.7rem;">'+Utils.escHtml(s.shotType||'?')+'</td>' +
+                             '<td style="color:#6b7280;padding:2px 4px;font-size:0.7rem;">'+Utils.escHtml(s.shotType||'?')+'</td>' +
                              '<td style="font-weight:700;padding:2px 4px;">'+(s.distance?s.distance+(isPutt?'ft':'y'):'—')+'</td>' +
-                             '<td style="color:#444;font-size:0.68rem;padding:2px 4px;">'+(bd.carry?'('+bd.carry+'y)':'')+'</td>' +
+                             '<td style="color:#9ca3af;font-size:0.68rem;padding:2px 4px;">'+(bd.carry?'('+bd.carry+'y)':'')+'</td>' +
                              (s.penalty?'<td style="color:#e64545;font-size:0.68rem;padding:2px 4px;">PEN</td>':'<td></td>') +
                              '</tr>';
                     });
@@ -8479,7 +8479,7 @@
                 h += '<div style="display:flex;gap:4px;padding:6px 8px;background:rgba(0,0,0,0.2);flex-wrap:wrap;">';
                 function badge(label, val, color) {
                     return '<span style="font-size:0.6rem;font-weight:700;padding:2px 5px;border-radius:3px;' +
-                           'background:rgba(255,255,255,0.06);color:' + (color||'#aaa') + ';">' + label + ': ' + val + '</span>';
+                           'background:#f3f4f6;color:' + (color||'#aaa') + ';">' + label + ': ' + val + '</span>';
                 }
                 if (hole.par === 4 || hole.par === 5) h += badge('FWY', hole.fwy ? '✓' : '✗', hole.fwy ? '#4ade80' : '#666');
                 h += badge('GIR', gir === null ? '?' : (gir ? '✓' : '✗'), gir ? '#4ade80' : '#888');
