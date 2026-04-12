@@ -7771,7 +7771,7 @@
                         h += '<tr style="'+rb+'">' +
                              '<td style="'+TDL+'font-weight:700;color:#60a5fa;">'+r.hole+'</td>' +
                              '<td style="'+TDC+'color:#888;">'+(r.par||'—')+'</td>' +
-                             '<td style="'+TDL+'font-size:0.72rem;font-weight:700;">'+Utils.escHtml(r.club)+'</td>' +
+                             '<td style="'+TDL+'font-size:0.72rem;font-weight:700;">'+Utils.escHtml(r.club+(r.type&&r.type!=='?'?'/'+r.type:''))+'</td>' +
                              '<td style="'+TD+'color:#888;">'+(r.dist?r.dist+'y':'—')+'</td>' +
                              '<td style="'+TD+'font-weight:700;color:'+pc2+';">'+(r.prox&&r.prox>0?r.prox+'ft':'—')+'</td>' +
                              '<td style="'+TDC+'color:'+putCol+';font-weight:'+(r.putts>=3?700:400)+';">'+r.putts+'</td>' +
@@ -7849,7 +7849,8 @@
                         var profTotal=bd.total?parseInt(bd.total):null;
                         var profCarry=bd.carry?parseInt(bd.carry):null;
                         var delta=gavg!==null&&profTotal?gavg-profTotal:null;
-                        return {key:key,club:c.club,type:c.type,shots:c.shots,dists:dists,gavg:gavg,profCarry:profCarry,profTotal:profTotal,delta:delta};
+                        var flagN=c.shots.filter(function(s){return !s.dist||s.dist<=0;}).length;
+                        return {key:key,club:c.club,type:c.type,shots:c.shots,dists:dists,flagN:flagN,gavg:gavg,profCarry:profCarry,profTotal:profTotal,delta:delta};
                     });
 
                     // Delta bar chart (SVG)
@@ -7895,9 +7896,10 @@
                     h += '<div style="'+CARDP0+'" id="rpt-club-wrap">';
                     h += '<table style="'+TBL+'" id="rpt-ctbl">';
                     h += '<thead><tr>' +
-                         '<th style="'+TH+'text-align:left;">Club · Type</th>' +
+                         '<th style="'+TH+'text-align:left;">Club / Type</th>' +
                          '<th style="'+TH+'text-align:center;">n</th>' +
                          '<th style="'+TH+'text-align:center;">Clean</th>' +
+                         '<th style="'+TH+'text-align:center;">Flag</th>' +
                          '<th style="'+TH+'">Prof Carry</th>' +
                          '<th style="'+TH+'">Prof Total</th>' +
                          '<th style="'+TH+'">GPS Avg</th>' +
@@ -7917,9 +7919,10 @@
                     h += '  var rb=ci%2===0?"rgba(255,255,255,0.01)":"transparent";tr.style.background=rb;';
                     h += '  var ds=c.delta!==null?(c.delta>0?"+":"")+c.delta+"y":"—";';
                     h += '  var status=c.delta===null?"<span style=\'color:#888\'>no GPS</span>":Math.abs(c.delta)<=5?"<span style=\'color:#4ade80\'>✓ On profile</span>":Math.abs(c.delta)<=15?"<span style=\'color:#f59e0b\'>~ Marginal</span>":"<span style=\'color:#e64545\'>✗ Off profile</span>";';
-                    h += '  tr.innerHTML=\'<td style="\'+TDL+\'"><span class="rpt-tri">▶</span> \'+c.club+\' <span style="color:#555;font-size:0.7rem;">·\'+c.type+\'</span></td>\'+';
+                    h += '  tr.innerHTML=\'<td style="\'+TDL+\'font-weight:700;"><span class="rpt-tri" style="color:#555;font-size:0.8rem;">▶ </span>\'+c.club+\'/\'+c.type+\'</td>\'+';
                     h += '    \'<td style="\'+TDC+\'">\'+c.shots.length+\'</td>\'+';
                     h += '    \'<td style="\'+TDC+\'">\'+c.dists.length+\'</td>\'+';
+                    h += '    \'<td style="\'+TDC+\'">\'+( c.flagN>0?"<span style=\'color:#f59e0b;font-weight:700;\'>"+c.flagN+"</span>":"∅")+\'</td>\'+';
                     h += '    \'<td style="\'+TD+\'color:#888;">\'+( c.profCarry?c.profCarry+"y":"—")+\'</td>\'+';
                     h += '    \'<td style="\'+TD+\'color:#666;">\'+( c.profTotal?c.profTotal+"y":"—")+\'</td>\'+';
                     h += '    \'<td style="\'+TD+\'font-weight:700;">\'+( c.gavg?c.gavg+"y":"—")+\'</td>\'+';
@@ -7929,7 +7932,7 @@
                     h += '    var dr=document.createElement("tr");dr.style.display="none";dr.style.background="rgba(0,0,0,0.15)";';
                     h += '    var sd=s.dist&&c.profTotal?s.dist-c.profTotal:null;';
                     h += '    dr.innerHTML=\'<td style="padding:4px 8px 4px 24px;font-size:0.72rem;color:#555;">H\'+String(s.hole).padStart(2,"0")+\'</td>\'+';
-                    h += '      \'<td colspan="4" style="font-size:0.75rem;color:#aaa;text-align:right;padding:4px 8px;">\'+( s.dist?s.dist+"y":"— no GPS")+\'</td>\'+';
+                    h += '      \'<td colspan="5" style="font-size:0.75rem;color:#aaa;text-align:right;padding:4px 8px;">\'+( s.dist?s.dist+"y":"— no GPS")+\'</td>\'+';
                     h += '      \'<td colspan="2" style="font-size:0.75rem;text-align:right;padding:4px 8px;color:\'+dc(sd)+\';font-weight:700;">\'+( sd!==null?(sd>0?"+":"")+sd+"y":"—")+\'</td><td></td>\';';
                     h += '    return dr;';
                     h += '  });';
