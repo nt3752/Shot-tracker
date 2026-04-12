@@ -5772,7 +5772,7 @@
                 // Dot product: position relative to horizontal line through C.
                 // (C->Q) . (C->frontG): negative = same side as front = Front, positive = Back.
                 var dot = axDx * qDx + axDy * qDy;
-                var isFront = dot < 0;
+                var isFront = dot > 0;
 
                 // Cross product: position relative to vertical line through C.
                 // (C->frontG) x (C->Q): positive = Right of vertical, negative = Left.
