@@ -7245,9 +7245,9 @@
 
                 // ── Shared style strings ───────────────────────────────────────
                 var SEC  = 'margin-bottom:28px;';
-                var SECH = 'display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.12);';
-                var SECN = 'font-size:0.6rem;color:#6ee7b7;letter-spacing:1px;font-family:monospace;flex-shrink:0;';
-                var SECT = 'font-size:0.85rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:#fff;';
+                var SECH = 'display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #111;';
+                var SECN = 'font-size:0.6rem;color:#555;letter-spacing:1px;font-family:monospace;flex-shrink:0;';
+                var SECT = 'font-size:0.85rem;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:#111;';
                 var CARD = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:14px;margin-bottom:10px;';
                 var CARDP0 = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;overflow:hidden;margin-bottom:10px;';
                 var INSIGHT = 'font-size:0.72rem;color:#93c5fd;background:rgba(59,130,246,0.08);border-left:3px solid #3b82f6;border-radius:0 6px 6px 0;padding:10px 12px;margin-bottom:10px;line-height:1.6;';
@@ -7892,9 +7892,9 @@
                         h += '</div></div>';
                     }
 
-                    // Club summary table with expandable rows
+                    // Club summary table with expandable rows — built directly, no inline script
                     h += '<div style="'+CARDP0+'" id="rpt-club-wrap">';
-                    h += '<table style="'+TBL+'" id="rpt-ctbl">';
+                    h += '<table style="'+TBL+'">';
                     h += '<thead><tr>' +
                          '<th style="'+TH+'text-align:left;">Club / Type</th>' +
                          '<th style="'+TH+'text-align:center;">n</th>' +
@@ -7905,40 +7905,53 @@
                          '<th style="'+TH+'">GPS Avg</th>' +
                          '<th style="'+TH+'">Delta</th>' +
                          '<th style="'+TH+'text-align:left;">Status</th>' +
-                         '</tr></thead><tbody id="rpt-ctbody"></tbody></table></div>';
+                         '</tr></thead><tbody>';
 
-                    h += '<script>(function(){';
-                    h += 'var b=document.getElementById("rpt-ctbody");if(!b)return;';
-                    h += 'var TDL="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:left;";';
-                    h += 'var TD="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:right;";';
-                    h += 'var TDC="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;";';
-                    h += 'function dc(d){return d===null?"#888":Math.abs(d)<=5?"#4ade80":Math.abs(d)<=15?"#f59e0b":"#e64545";}';
-                    h += 'var cd='+JSON.stringify(clubData)+';';
-                    h += 'cd.forEach(function(c,ci){';
-                    h += '  var tr=document.createElement("tr");tr.style.cursor="pointer";';
-                    h += '  var rb=ci%2===0?"rgba(255,255,255,0.01)":"transparent";tr.style.background=rb;';
-                    h += '  var ds=c.delta!==null?(c.delta>0?"+":"")+c.delta+"y":"—";';
-                    h += '  var status=c.delta===null?"<span style=\'color:#888\'>no GPS</span>":Math.abs(c.delta)<=5?"<span style=\'color:#4ade80\'>✓ On profile</span>":Math.abs(c.delta)<=15?"<span style=\'color:#f59e0b\'>~ Marginal</span>":"<span style=\'color:#e64545\'>✗ Off profile</span>";';
-                    h += '  tr.innerHTML=\'<td style="\'+TDL+\'font-weight:700;"><span class="rpt-tri" style="color:#555;font-size:0.8rem;">▶ </span>\'+c.club+\'/\'+c.type+\'</td>\'+';
-                    h += '    \'<td style="\'+TDC+\'">\'+c.shots.length+\'</td>\'+';
-                    h += '    \'<td style="\'+TDC+\'">\'+c.dists.length+\'</td>\'+';
-                    h += '    \'<td style="\'+TDC+\'">\'+( c.flagN>0?"<span style=\'color:#f59e0b;font-weight:700;\'>"+c.flagN+"</span>":"∅")+\'</td>\'+';
-                    h += '    \'<td style="\'+TD+\'color:#888;">\'+( c.profCarry?c.profCarry+"y":"—")+\'</td>\'+';
-                    h += '    \'<td style="\'+TD+\'color:#666;">\'+( c.profTotal?c.profTotal+"y":"—")+\'</td>\'+';
-                    h += '    \'<td style="\'+TD+\'font-weight:700;">\'+( c.gavg?c.gavg+"y":"—")+\'</td>\'+';
-                    h += '    \'<td style="\'+TD+\'font-weight:700;color:\'+dc(c.delta)+\';font-size:0.85rem;">\'+ds+\'</td>\'+';
-                    h += '    \'<td style="\'+TDL+\'font-size:0.7rem;">\'+status+\'</td>\';';
-                    h += '  var drs=c.shots.map(function(s){';
-                    h += '    var dr=document.createElement("tr");dr.style.display="none";dr.style.background="rgba(0,0,0,0.15)";';
-                    h += '    var sd=s.dist&&c.profTotal?s.dist-c.profTotal:null;';
-                    h += '    dr.innerHTML=\'<td style="padding:4px 8px 4px 24px;font-size:0.72rem;color:#555;">H\'+String(s.hole).padStart(2,"0")+\'</td>\'+';
-                    h += '      \'<td colspan="5" style="font-size:0.75rem;color:#aaa;text-align:right;padding:4px 8px;">\'+( s.dist?s.dist+"y":"— no GPS")+\'</td>\'+';
-                    h += '      \'<td colspan="2" style="font-size:0.75rem;text-align:right;padding:4px 8px;color:\'+dc(sd)+\';font-weight:700;">\'+( sd!==null?(sd>0?"+":"")+sd+"y":"—")+\'</td><td></td>\';';
-                    h += '    return dr;';
-                    h += '  });';
-                    h += '  tr.addEventListener("click",function(){var open=drs[0].style.display!=="none";drs.forEach(function(r){r.style.display=open?"none":"table-row";});tr.querySelector(".rpt-tri").textContent=open?"▶":"▼";});';
-                    h += '  b.appendChild(tr);drs.forEach(function(r){b.appendChild(r);});';
-                    h += '});})();<\/script>';
+                    clubData.forEach(function(c, ci) {
+                        var rb = ci%2===0 ? 'background:rgba(255,255,255,0.03);' : '';
+                        var ds = c.delta!==null ? (c.delta>0?'+':'')+c.delta+'y' : '—';
+                        var dc2 = deltaColor(c.delta);
+                        var flagCell = c.flagN>0 ? '<span style="color:#f59e0b;font-weight:700;">'+c.flagN+'</span>' : '∅';
+                        var status = c.delta===null ? '<span style="color:#888">no GPS</span>' :
+                            Math.abs(c.delta)<=5  ? '<span style="color:#4ade80">✓ On profile</span>' :
+                            Math.abs(c.delta)<=15 ? '<span style="color:#f59e0b">~ Marginal</span>' :
+                                                    '<span style="color:#e64545">✗ Off profile</span>';
+                        var rowId = 'cdr-'+ci;
+
+                        // Parent row
+                        h += '<tr style="'+rb+'cursor:pointer;" onclick="(function(el){'+
+                             'var drs=document.querySelectorAll(\'.\'+\''+rowId+'\');'+
+                             'var open=drs.length&&drs[0].style.display!==\'none\';'+
+                             'drs.forEach(function(r){r.style.display=open?\'none\':\'table-row\';});'+
+                             'el.querySelector(\'.cdt\').textContent=open?\'▶ \':\'▼ \';'+
+                             '})(this)">';
+                        h += '<td style="'+TDL+'font-weight:700;"><span class="cdt" style="color:#555;font-size:0.8rem;">▶ </span>'+Utils.escHtml(c.club)+'/'+Utils.escHtml(c.type)+'</td>';
+                        h += '<td style="'+TDC+'">'+c.shots.length+'</td>';
+                        h += '<td style="'+TDC+'">'+c.dists.length+'</td>';
+                        h += '<td style="'+TDC+'">'+flagCell+'</td>';
+                        h += '<td style="'+TD+'color:#888;">'+(c.profCarry?c.profCarry+'y':'—')+'</td>';
+                        h += '<td style="'+TD+'color:#555;">'+(c.profTotal?c.profTotal+'y':'—')+'</td>';
+                        h += '<td style="'+TD+'font-weight:700;">'+(c.gavg?c.gavg+'y':'—')+'</td>';
+                        h += '<td style="'+TD+'font-weight:700;color:'+dc2+';">'+ds+'</td>';
+                        h += '<td style="'+TDL+'font-size:0.72rem;">'+status+'</td>';
+                        h += '</tr>';
+
+                        // Detail rows — one per shot, hidden by default
+                        c.shots.forEach(function(s) {
+                            var noGPS = !s.dist || s.dist <= 0;
+                            var sd = s.dist && c.profTotal ? s.dist - c.profTotal : null;
+                            var sdc = deltaColor(sd);
+                            var holeCol = noGPS ? 'color:#f59e0b;' : 'color:#555;';
+                            h += '<tr class="'+rowId+'" style="display:none;background:rgba(0,0,0,0.12);">';
+                            h += '<td style="padding:4px 8px 4px 28px;font-size:0.72rem;'+holeCol+'font-family:monospace;">H'+String(s.hole).padStart(2,'0')+(noGPS?' ⚠':'')+'</td>';
+                            h += '<td colspan="5" style="font-size:0.75rem;color:'+(noGPS?'#f59e0b':'#aaa')+';text-align:right;padding:4px 8px;">'+(s.dist&&s.dist>0?s.dist+'y':'— no GPS')+'</td>';
+                            h += '<td colspan="2" style="font-size:0.75rem;text-align:right;padding:4px 8px;color:'+sdc+';font-weight:700;">'+(sd!==null?(sd>0?'+':'')+sd+'y':'—')+'</td>';
+                            h += '<td></td>';
+                            h += '</tr>';
+                        });
+                    });
+
+                    h += '</tbody></table></div>';
                 } else {
                     h += '<div style="'+CARD+'color:#888;font-size:0.8rem;">No shot data available.</div>';
                 }
