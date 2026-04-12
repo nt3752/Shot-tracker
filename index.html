@@ -5572,11 +5572,12 @@
                             var gdC = pos ? Utils.distanceYards(pos, gcPt) : null;
                             greenRows.push({ abbrev: tgt.abbrev, label: tgt.label, pointName: 'C', pointLabel: 'Ctr', dist: gdC, gps: gcPt, tgtId: tgt.id });
                         }
-                        // Q points with positional labels
+                        // Q points with positional labels — classified purely by geometry (frontGPS defines the axis)
+                        var gFrontGPS = (gFrontKey && pts[gFrontKey]) ? pts[gFrontKey] : null;
                         ['Q1','Q2','Q3','Q4'].forEach(function(qk) {
                             var p = pts[qk];
                             if (!p || !p.lat) return;
-                            var lbl = (pos && flag) ? self.qPositionalLabel(qk, p, flag, pos) : qk;
+                            var lbl = (gcPt && gFrontGPS) ? self.qPositionalLabel(qk, p, gcPt, gFrontGPS) : qk;
                             var d = pos ? Utils.distanceYards(pos, p) : null;
                             greenRows.push({ abbrev: tgt.abbrev, label: tgt.label, pointName: qk, pointLabel: lbl, dist: d, gps: p, tgtId: tgt.id });
                         });
@@ -5753,24 +5754,28 @@
             // bearing: pos → flag (0=N, 90=E etc)
             // Each Q point is classified as front/back and left/right
             // relative to the approach direction (pos → flag bearing)
-            qPositionalLabel(qKey, qGPS, flag, pos) {
-                if (!pos || !flag || !qGPS) return qKey;
+            // Q-point label is purely geometric — based on the two axes through C.
+            // Vertical axis: C -> frontG (front/back line). Left/right of this = Left/Right.
+            // Horizontal axis: perpendicular through C. Above/below this = Front/Back.
+            // frontGPS is the front G-point GPS (closest clock position to player).
+            qPositionalLabel(qKey, qGPS, cGPS, frontGPS) {
+                if (!cGPS || !frontGPS || !qGPS) return qKey;
 
-                // Approach vector: pos → C (flag center)
-                var axDx = flag.lon - pos.lon;
-                var axDy = flag.lat - pos.lat;
+                // Axis vector: C -> frontG (defines the vertical line)
+                var axDx = frontGPS.lon - cGPS.lon;
+                var axDy = frontGPS.lat - cGPS.lat;
 
                 // Vector from C to Q-point
-                var qDx = qGPS.lon - flag.lon;
-                var qDy = qGPS.lat - flag.lat;
+                var qDx = qGPS.lon - cGPS.lon;
+                var qDy = qGPS.lat - cGPS.lat;
 
-                // Dot product of (C→Q) onto approach axis (pos→C).
-                // Positive = Q is on the far side of C (Back), negative = near side (Front).
+                // Dot product: position relative to horizontal line through C.
+                // (C->Q) . (C->frontG): negative = same side as front = Front, positive = Back.
                 var dot = axDx * qDx + axDy * qDy;
                 var isFront = dot < 0;
 
-                // Cross product of approach axis × (C→Q).
-                // Positive = Q is to the right as you face C, negative = left.
+                // Cross product: position relative to vertical line through C.
+                // (C->frontG) x (C->Q): positive = Right of vertical, negative = Left.
                 var cross = axDx * qDy - axDy * qDx;
                 var isRight = cross > 0;
 
@@ -5827,12 +5832,13 @@
                         var dC = pos ? Utils.distanceYards(pos, cPt) : null;
                         rows.push({ pointName: 'C', pointLabel: 'Ctr', dist: dC, gps: cPt });
                     }
-                    // Q points only in APPR/GRN phases
+                    // Q points only in APPR/GRN phases — classified purely by geometry (frontGPS defines the axis)
                     if (showQuadrants) {
+                        var qFrontGPS = (frontKey && pts[frontKey]) ? pts[frontKey] : null;
                         ['Q1','Q2','Q3','Q4'].forEach(function(qk) {
                             var p = pts[qk];
                             if (!p || !p.lat) return;
-                            var lbl = (pos && flag) ? self.qPositionalLabel(qk, p, flag, pos) : qk;
+                            var lbl = (cPt && qFrontGPS) ? self.qPositionalLabel(qk, p, cPt, qFrontGPS) : qk;
                             var d = pos ? Utils.distanceYards(pos, p) : null;
                             rows.push({ pointName: qk, pointLabel: lbl, dist: d, gps: p });
                         });
