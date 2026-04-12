@@ -7708,14 +7708,16 @@
                     var within20=teeData.filter(function(d){return d.totalDist<=20;}).length;
                     var tendLbl=Math.abs(avgLateral)<2?'Straight':avgLateral>0?'Fade/Push (R)':'Draw/Pull (L)';
                     var tendCol=Math.abs(avgLateral)<2?'#4ade80':avgLateral>0?'#f59e0b':'#60a5fa';
+                    var W1SB = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(34,211,238,0.1);font-size:0.82rem;';
+                    var W1SL = 'display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:0.82rem;';
                     h += '<div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.12);border-radius:6px;padding:10px;">';
                     h += '<div style="font-size:0.6rem;font-weight:700;color:#22d3ee;text-transform:uppercase;margin-bottom:8px;">Summary · '+n+' holes</div>';
-                    h += statLine('Avg dist from W1',avgTotalDist.toFixed(1)+'y');
-                    h += statLine('Avg lateral (abs)',avgAbsLat.toFixed(1)+'y');
-                    h += statLine('Avg ΔY (long/short)',(avgAlong>=0?'+':'')+avgAlong.toFixed(1)+'y');
-                    h += statLine('Within 20y of W1',within20+'/'+n+' ('+Math.round(within20/n*100)+'%)');
-                    h += statLine('Right / Left',rightN+'R / '+leftN+'L');
-                    h += statLine('Tendency','<span style="color:'+tendCol+';font-weight:700;">'+tendLbl+'</span>',true);
+                    h += '<div style="'+W1SB+'"><span style="color:#1e3a3a;">Avg dist from W1</span><span style="font-weight:700;color:#111;">'+avgTotalDist.toFixed(1)+'y</span></div>';
+                    h += '<div style="'+W1SB+'"><span style="color:#1e3a3a;">Avg lateral (abs)</span><span style="font-weight:700;color:#111;">'+avgAbsLat.toFixed(1)+'y</span></div>';
+                    h += '<div style="'+W1SB+'"><span style="color:#1e3a3a;">Avg ΔY (long/short)</span><span style="font-weight:700;color:#111;">'+(avgAlong>=0?'+':'')+avgAlong.toFixed(1)+'y</span></div>';
+                    h += '<div style="'+W1SB+'"><span style="color:#1e3a3a;">Within 20y of W1</span><span style="font-weight:700;color:#111;">'+within20+'/'+n+' ('+Math.round(within20/n*100)+'%)</span></div>';
+                    h += '<div style="'+W1SB+'"><span style="color:#1e3a3a;">Right / Left</span><span style="font-weight:700;color:#111;">'+rightN+'R / '+leftN+'L</span></div>';
+                    h += '<div style="'+W1SL+'"><span style="color:#1e3a3a;">Tendency</span><span style="font-weight:700;color:'+tendCol+';">'+tendLbl+'</span></div>';
                     h += '</div>';
                     h += '</div>'; // end W1 card
                 })();
@@ -7741,8 +7743,8 @@
                     var vsp=self.vsParHole(hole);
                     approachRows.push({hole:hole.hole,par:hole.par,yards:hole.yards||null,club:ap.club||'?',type:ap.shotType||'?',dist:ap.actualDistance||ap.distance||null,prox:prox,gir:gir,putts:self.puttCount(hole),vsp:vsp,score:hole.shots.length});
                     if (prox&&prox>0) {
-                        var ck=ap.club||'?';
-                        if (!approachByClub[ck]) approachByClub[ck]={proxies:[],count:0};
+                        var ck=(ap.club||'?')+'·'+(ap.shotType||'?');
+                        if (!approachByClub[ck]) approachByClub[ck]={club:ap.club||'?',type:ap.shotType||'?',proxies:[],count:0};
                         approachByClub[ck].count++;
                         approachByClub[ck].proxies.push(prox);
                     }
@@ -7788,14 +7790,15 @@
                         h += '<div style="'+CARD+'">';
                         h += '<div style="font-size:0.65rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Approach Club → Avg Proximity</div>';
                         h += '<table style="'+TBL+'">';
-                        h += '<thead><tr><th style="'+TH+'text-align:left;">Club</th><th style="'+TH+'text-align:center;">n</th><th style="'+TH+'">Avg Prox</th><th style="'+TH+'">Best</th><th style="'+TH+'">Worst</th></tr></thead><tbody>';
+                        h += '<thead><tr><th style="'+TH+'text-align:left;">Club</th><th style="'+TH+'text-align:left;">Type</th><th style="'+TH+'text-align:center;">n</th><th style="'+TH+'">Avg Prox</th><th style="'+TH+'">Best</th><th style="'+TH+'">Worst</th></tr></thead><tbody>';
                         acks.forEach(function(ck,ci) {
                             var ac=approachByClub[ck];
                             var ap=Math.round(ac.proxies.reduce(function(s,v){return s+v;},0)/ac.proxies.length);
                             var best=Math.min.apply(null,ac.proxies);
                             var worst=Math.max.apply(null,ac.proxies);
                             var rb=ci%2===0?'background:rgba(255,255,255,0.01);':'';
-                            h += '<tr style="'+rb+'"><td style="'+TDL+'font-weight:700;">'+Utils.escHtml(ck)+'</td>' +
+                            h += '<tr style="'+rb+'"><td style="'+TDL+'font-weight:700;">'+Utils.escHtml(ac.club||ck)+'</td>' +
+                                 '<td style="'+TDL+'color:#888;font-size:0.72rem;">'+Utils.escHtml(ac.type||'')+'</td>' +
                                  '<td style="'+TDC+'color:#888;">'+ac.count+'</td>' +
                                  '<td style="'+TD+'font-weight:700;color:'+proxColor(ap)+';">'+ap+'ft</td>' +
                                  '<td style="'+TD+'color:#4ade80;">'+best+'ft</td>' +
