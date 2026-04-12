@@ -5756,19 +5756,22 @@
             qPositionalLabel(qKey, qGPS, flag, pos) {
                 if (!pos || !flag || !qGPS) return qKey;
 
-                // Front/Back — Q-point closer to player than flag center = Front, farther = Back.
-                var distToQ    = Utils.distanceYards(pos, qGPS);
-                var distToFlag = Utils.distanceYards(pos, flag);
-                var isFront = (distToQ !== null && distToFlag !== null) ? distToQ < distToFlag : false;
+                // Approach vector: pos → C (flag center)
+                var axDx = flag.lon - pos.lon;
+                var axDy = flag.lat - pos.lat;
 
-                // Left/Right — cross product of approach vector (pos→flag) × side vector (flag→Q).
-                // Positive = Q is to the right as you face the flag.
-                // Uses .lon consistently (matching all other GPS usage in this codebase).
-                var apprDx = flag.lon - pos.lon;
-                var apprDy = flag.lat - pos.lat;
+                // Vector from C to Q-point
                 var qDx = qGPS.lon - flag.lon;
                 var qDy = qGPS.lat - flag.lat;
-                var cross = apprDx * qDy - apprDy * qDx;
+
+                // Dot product of (C→Q) onto approach axis (pos→C).
+                // Positive = Q is on the far side of C (Back), negative = near side (Front).
+                var dot = axDx * qDx + axDy * qDy;
+                var isFront = dot < 0;
+
+                // Cross product of approach axis × (C→Q).
+                // Positive = Q is to the right as you face C, negative = left.
+                var cross = axDx * qDy - axDy * qDx;
                 var isRight = cross > 0;
 
                 return (isFront ? 'Front' : 'Back') + ' ' + (isRight ? 'Right' : 'Left');
