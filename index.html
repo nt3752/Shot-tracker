@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v48.0</title>
+    <title>Shot Tracker v50.0</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -5737,12 +5737,15 @@
                 // Bearing from flag to Q point
                 var flagToQ = Utils.bearing(flag, qGPS);
                 // Angle of Q point relative to approach direction
-                // 0° = straight ahead (back of green from approach), 180° = front
+                // 0° = directly behind flag (back of green), 180° = front of green
+                // Quadrants (clean 90° splits):
+                //   0–90:   Back Right
+                //   90–180: Front Right
+                //   180–270: Front Left
+                //   270–360: Back Left
                 var relAngle = ((flagToQ - apprBearing) + 360) % 360;
-                // Front/Back: relAngle 135-225 = front side, else back side
-                // Left/Right: relAngle 0-180 = right (when facing flag), 180-360 = left
-                var isFront = relAngle >= 135 && relAngle <= 225;
-                var isRight = relAngle >= 0 && relAngle < 180;
+                var isFront = relAngle >= 90 && relAngle < 270;
+                var isRight = relAngle < 180;
                 var fb = isFront ? 'Front' : 'Back';
                 var lr = isRight ? 'Right' : 'Left';
                 return fb + ' ' + lr;
