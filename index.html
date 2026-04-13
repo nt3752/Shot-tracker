@@ -367,7 +367,7 @@
             margin-top: var(--space-2);
             font-size: 0.75rem;
             font-weight: 600;
-            color: var(--text-secondary);
+            color: rgba(255,255,255,0.75);
             text-align: center;
         }
         
@@ -7326,7 +7326,7 @@
                 h += '<div style="background:#111;border-radius:10px;padding:16px;margin-bottom:20px;">';
                 h += '<div style="font-size:0.6rem;color:#6ee7b7;letter-spacing:2px;text-transform:uppercase;font-family:monospace;margin-bottom:4px;">Round Report · Shot Tracker v51</div>';
                 h += '<div style="font-size:1.4rem;font-weight:900;color:#fff;line-height:1.1;margin-bottom:2px;">'+date.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>';
-                h += '<div style="font-size:0.72rem;color:#666;margin-bottom:14px;">'+(State.courseName||'Unknown Course')+' · '+((State.bag&&State.bag.name)||'Unknown Bag')+'</div>';
+                h += '<div style="font-size:0.72rem;color:rgba(255,255,255,0.6);margin-bottom:14px;">'+(State.courseName||'Unknown Course')+' · '+((State.bag&&State.bag.name)||'Unknown Bag')+'</div>';
                 h += '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">';
                 var relTotal=hasPar?totalShots-totalPar:null;
                 var relStr=relTotal===null?'—':relTotal===0?'E':(relTotal>0?'+'+relTotal:String(relTotal));
