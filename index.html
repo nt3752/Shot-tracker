@@ -7332,12 +7332,12 @@
                 var relStr=relTotal===null?'—':relTotal===0?'E':(relTotal>0?'+'+relTotal:String(relTotal));
                 var relCol=relTotal===null?'#888':relTotal<0?'#4ade80':relTotal>0?'#f87171':'#fff';
                 function kpi(val,lbl,col) {
-                    return '<div><div style="font-size:1.6rem;font-weight:900;line-height:1;color:'+(col||'#fff')+';">'+val+'</div><div style="font-size:0.58rem;color:#555;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">'+lbl+'</div></div>';
+                    return '<div><div style="font-size:1.6rem;font-weight:900;line-height:1;color:'+(col||'#fff')+';">'+val+'</div><div style="font-size:0.58rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">'+lbl+'</div></div>';
                 }
                 function kd() { return '<div style="width:1px;background:rgba(255,255,255,0.08);align-self:stretch;"></div>'; }
                 h += kpi(totalShots,'Strokes',relTotal&&relTotal>10?'#f87171':'#fff');
                 h += kd()+kpi(relStr,'vs Par',relCol);
-                h += kd()+kpi(totalPutts,'Putts',totalPutts>36?'#f87171':'#fff');
+                h += kd()+kpi(totalPutts,'Putts',totalPutts>36?'#dc2626':'#111');
                 h += kd()+kpi(birdies,'Birdies',birdies>0?'#4ade80':'#888');
                 h += kd()+kpi(girHit+'/'+girOpp,'GIR','#fff');
                 h += kd()+kpi(fwyHit+'/'+fwyOpp,'FWY','#fff');
@@ -7357,15 +7357,15 @@
                 h += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;">';
                 function pKpi(val,lbl,sub,col) {
                     return '<div style="'+CARD+'padding:10px;text-align:center;margin-bottom:0;">' +
-                           '<div style="font-size:1.4rem;font-weight:900;color:'+(col||'#fff')+';">'+val+'</div>' +
+                           '<div style="font-size:1.4rem;font-weight:900;color:'+(col||'#111')+';">'+val+'</div>' +
                            '<div style="font-size:0.6rem;color:#6b7280;text-transform:uppercase;margin-top:2px;">'+lbl+'</div>' +
                            (sub?'<div style="font-size:0.6rem;color:#374151;margin-top:2px;">'+sub+'</div>':'') +
                            '</div>';
                 }
-                h += pKpi(totalPutts,'Total Putts',playedHoles.length?(totalPutts/playedHoles.length).toFixed(1)+'/hole':null,totalPutts>36?'#f87171':'#fff');
+                h += pKpi(totalPutts,'Total Putts',playedHoles.length?(totalPutts/playedHoles.length).toFixed(1)+'/hole':null,totalPutts>36?'#dc2626':'#111');
                 h += pKpi(puttCounts[1],'1-Putt',pct(puttCounts[1],playedHoles.length),'#4ade80');
                 h += pKpi(puttCounts[2],'2-Putt',pct(puttCounts[2],playedHoles.length),'#1d4ed8');
-                h += pKpi(threePuttHoles,'3-Putt+',threePuttList||pct(threePuttHoles,playedHoles.length),threePuttHoles>0?'#f87171':'#888');
+                h += pKpi(threePuttHoles,'3-Putt+',threePuttList||pct(threePuttHoles,playedHoles.length),threePuttHoles>0?'#dc2626':'#6b7280');
                 h += pKpi(avgFP?avgFP+'ft':'—','Avg 1st Putt','feet','#f59e0b');
                 h += '</div>';
 
