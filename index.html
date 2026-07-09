@@ -10506,7 +10506,7 @@
                 ${isDriver && !isPenalty ? `
                 <div class="sd-row">
                     <span class="sd-label">🌿 Fairway</span>
-                    <button type="button" class="sd-toggle ${shot.fwy ? 'on' : ''}" id="sdFwyToggle" onclick="ShotDetailUI._toggle('fwy')"></button>
+                    <button type="button" class="sd-toggle ${hole.fwy ? 'on' : ''}" id="sdFwyToggle" onclick="ShotDetailUI._toggle('fwy')"></button>
                 </div>` : ''}
 
                 <div class="sd-row">
@@ -10523,6 +10523,16 @@
                 const hole = State.currentHole();
                 const shot = hole && hole.shots[this._idx];
                 if (!shot) return;
+                if (field === 'fwy') {
+                    // Fairway is a hole-level stat (par 4/5 tee shot result), so the
+                    // driver-shot toggle writes straight to hole.fwy — the same field
+                    // every report/export already reads for "Fairways Hit" counts.
+                    hole.fwy = !hole.fwy;
+                    State.save();
+                    this._render();
+                    UI.render();
+                    return;
+                }
                 shot[field] = !shot[field];
                 State.save();
                 this._render();
