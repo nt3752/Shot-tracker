@@ -3547,15 +3547,15 @@
             renderButtons() {
                 const hole = State.currentHole();
                 
-                // Tee button - green when set
+                // Tee button - green only once marked/updated in-round (not just pre-loaded from course data)
                 if (this.els.btnTee) {
-                    this.els.btnTee.classList.toggle('lit', !!hole.tee);
+                    this.els.btnTee.classList.toggle('lit', !!hole.teeMarkedThisRound);
                     this.els.btnTee.classList.remove('btn-pending');
                 }
-                
-                // Flag button - green when set
+
+                // Flag button - green only once marked/updated in-round (not just pre-loaded from course data)
                 if (this.els.btnFlag) {
-                    this.els.btnFlag.classList.toggle('lit', !!hole.flag);
+                    this.els.btnFlag.classList.toggle('lit', !!hole.flagMarkedThisRound);
                     this.els.btnFlag.classList.remove('btn-pending');
                 }
                 
@@ -3866,6 +3866,7 @@
 
                 hole.tee = gps;
                 hole.teePending = false;
+                hole.teeMarkedThisRound = true;
                 State.saveTeeToLibrary(State.holeIndex, gps);
                 State.save();
                 UI.render();
@@ -3895,6 +3896,7 @@
 
                 hole.flag = gps;
                 hole.flagPending = false;
+                hole.flagMarkedThisRound = true;
                 State.saveFlagToLibrary(State.holeIndex, gps);
                 State.save();
                 UI.render();
