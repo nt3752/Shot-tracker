@@ -5776,12 +5776,19 @@
             qPositionalLabel(qKey, qGPS, cGPS, frontGPS) {
                 if (!cGPS || !frontGPS || !qGPS) return qKey;
 
+                // Longitude degrees cover less ground distance than latitude degrees
+                // away from the equator (by a factor of cos(latitude)). Scale the
+                // longitude deltas so axDx/axDy and qDx/qDy are true local east/north
+                // distances — otherwise dot/cross can misclassify points near the
+                // front/back or left/right boundary (duplicate/missing quadrant labels).
+                var coslat = Math.cos(cGPS.lat * Math.PI / 180);
+
                 // Axis vector: C -> frontG (defines the vertical line)
-                var axDx = frontGPS.lon - cGPS.lon;
+                var axDx = (frontGPS.lon - cGPS.lon) * coslat;
                 var axDy = frontGPS.lat - cGPS.lat;
 
                 // Vector from C to Q-point
-                var qDx = qGPS.lon - cGPS.lon;
+                var qDx = (qGPS.lon - cGPS.lon) * coslat;
                 var qDy = qGPS.lat - cGPS.lat;
 
                 // Dot product: position relative to horizontal line through C.
