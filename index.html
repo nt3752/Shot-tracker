@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Shot Tracker v83</title>
+    <title>Shot Tracker v84</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -731,6 +731,43 @@
         }
         
         /* ===============================================
+           CADDY BAR CHART (v84) — carry → total bars
+           =============================================== */
+        .cb-chart { position: relative; padding-top: 22px; }
+        .cb-row {
+            display: grid; grid-template-columns: 84px 1fr 46px; column-gap: 8px;
+            align-items: center; min-height: 52px;
+            border-bottom: 1px solid var(--border); cursor: pointer;
+            -webkit-tap-highlight-color: rgba(39,160,111,0.15);
+        }
+        .cb-row:active { background: rgba(39,160,111,0.10); }
+        .cb-club { font-size: 1.15rem; font-weight: 900; font-family: var(--font-mono); line-height: 1.1; color: var(--text-primary); }
+        .cb-type { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+        .cb-track { position: relative; height: 22px; background: var(--bg-card-light); border-radius: 6px; }
+        .cb-bar { position: absolute; top: 0; bottom: 0; background: #9aaab8; border-radius: 6px; }
+        .cb-row .cb-bar { opacity: 0.4; }
+        .cb-row.cb-in .cb-bar, .cb-row.cb-best .cb-bar { opacity: 1; }
+        .cb-row.cb-best .cb-bar { box-shadow: 0 0 0 3px #b8720a; }
+        .cb-diff { font-family: var(--font-mono); font-weight: 900; font-size: 1rem; text-align: right; color: var(--text-secondary); }
+        .cb-row.cb-in .cb-diff { color: var(--text-primary); }
+        .cb-target { position: absolute; top: 18px; bottom: 22px; border-left: 2px dashed #b8720a; pointer-events: none; z-index: 1; }
+        .cb-target-lbl { position: absolute; top: 0; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.85rem; font-weight: 900; color: #b8720a; white-space: nowrap; }
+        .cb-axis { position: relative; height: 22px; margin-left: 92px; margin-right: 54px; }
+        .cb-tick { position: absolute; top: 4px; transform: translateX(-50%); font-size: 0.65rem; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
+        .cb-legend { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+        .cb-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--space-3); }
+        .cb-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            min-height: 40px; padding: 6px 14px; border-radius: 20px;
+            border: 2px solid var(--cb-col, #475569); background: #ffffff;
+            color: var(--text-primary); font-size: 0.85rem; font-weight: 900; white-space: nowrap;
+        }
+        .cb-chip-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cb-col, #475569); flex-shrink: 0; }
+        .cb-chip.on { background: var(--cb-col, #475569); color: #ffffff; }
+        .cb-chip.on .cb-chip-dot { background: #ffffff; }
+        .cb-chip:active { transform: scale(0.95); }
+
+                /* ===============================================
            CADDY SUGGESTIONS
            =============================================== */
         
@@ -1678,7 +1715,7 @@
             <div class="header-top">
                 <div class="brand">
                     Shot Tracker
-                    <span class="brand-version">v83</span>
+                    <span class="brand-version">v84</span>
                 </div>
                 <div style="display: flex; gap: var(--space-2);">
                     <button class="header-icon-btn" id="btnScorecard" type="button" aria-label="Scorecard"><img src="data:image/png;base64,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" style="width:28px;height:28px;display:block;" alt="Scorecard"></button>
@@ -1785,6 +1822,7 @@
                 <span class="input-label">Target</span>
                 <input type="text" class="input-field compact" id="caddyTarget" inputmode="numeric" enterkeyhint="done" maxlength="3" pattern="[0-9]*" onfocus="this.select()">
             </div>
+            <div id="caddyTypeChips" class="cb-chips"></div>
             <div class="suggestion-list" id="suggestionList"></div>
         </div>
         <button id="btnCloseCaddy" type="button" style="
@@ -2943,6 +2981,7 @@
             },
             ui: {
                 caddyMode: 'carry',
+                caddyOff: [],       // v84: caddy shot types switched off (empty = all shown)
                 showAll: false,
                 targetPhase: 'auto',
 
@@ -3305,7 +3344,7 @@
                     'shotsList',
                     'caddyBackdrop', 'caddySheet', 'btnCloseCaddy',
                     'btnCaddyMode', 'btnShowAll', 'caddyTarget',
-                    'suggestionList', 'btnBagEditor',
+                    'suggestionList', 'btnBagEditor', 'caddyTypeChips',
                     'holeBackdrop', 'holeSheet', 'btnCloseHole', 'btnAutoHole', 'holeGrid',
                     'bagBackdrop', 'bagSheet', 'bagSheetBody', 'btnCloseBag', 'bagClub', 'bagShotType',
                     'bagCarry', 'bagTotal', 'btnSaveBag', 'bagMatrix', 'btnManageClubs', 'bagNameDisplay',
@@ -4084,8 +4123,8 @@
                 }
                 
                 // Set button text based on current state (show current, not toggle)
+                this.renderChips();   // v84
 
-                
                 this.show();
                 // Delay render until after slide-up transition (300ms) so iOS
                 // calculates touch targets against the final settled position
@@ -4123,84 +4162,242 @@
                 }
             },
             
+            // v84: shot types present in the bag, in bag order (excludes putt/penalty)
+            caddyTypes() {
+                const data = (State.bag && State.bag.data) || {};
+                const order = ((State.bag && State.bag.shotTypes) || []).slice();
+                const present = {};
+                Object.keys(data).forEach(function(c) {
+                    Object.keys(data[c] || {}).forEach(function(t) { present[t] = true; });
+                });
+                Object.keys(present).forEach(function(t) { if (order.indexOf(t) === -1) order.push(t); });
+                return order.filter(function(t) {
+                    return present[t] && t !== 'putt' && t !== 'penalty' && t !== 'Type?';
+                });
+            },
+
+            // v84: bar/chip colour per shot type — full is always green,
+            // others take a distinct colour in bag order (stable for a given bag)
+            typeColor(t) {
+                if (t === 'full') return '#21875f';
+                const pal = ['#2563eb', '#9333ea', '#ea580c', '#db2777', '#0891b2', '#dc2626', '#4f46e5', '#475569'];
+                const others = this.caddyTypes().filter(function(x) { return x !== 'full'; });
+                const i = others.indexOf(t);
+                return pal[(i < 0 ? 0 : i) % pal.length];
+            },
+
+            // v84: selected (shown) types. Stored as the list switched OFF, so
+            // new shot types added to the bag later show up by default.
+            selectedTypes() {
+                const avail = this.caddyTypes();
+                const off = (State.ui.caddyOff || []).filter(function(t) { return avail.indexOf(t) !== -1; });
+                State.ui.caddyOff = off;
+                return avail.filter(function(t) { return off.indexOf(t) === -1; });
+            },
+
+            // v84: multi-select chip row — All/None toggle + one chip per shot type
+            renderChips() {
+                const wrap = UI.els.caddyTypeChips;
+                if (!wrap) return;
+                const self = this;
+                const avail = this.caddyTypes();
+                const sel = this.selectedTypes();
+                const allOn = sel.length === avail.length;
+                wrap.innerHTML = '';
+                const mk = function(label, col, on, onTap) {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'cb-chip' + (on ? ' on' : '');
+                    b.style.setProperty('--cb-col', col);
+                    if (col !== '#0f172a') {
+                        const dot = document.createElement('span');
+                        dot.className = 'cb-chip-dot';
+                        b.appendChild(dot);
+                    }
+                    b.appendChild(document.createTextNode(label));
+                    b.addEventListener('click', onTap);
+                    wrap.appendChild(b);
+                };
+                // All selected → tap clears to None; otherwise tap selects All
+                mk(sel.length === 0 ? 'None' : 'All', '#0f172a', allOn, function() {
+                    State.ui.caddyOff = allOn ? avail.slice() : [];
+                    State.save(); self.renderChips(); self.render();
+                });
+                avail.forEach(function(t) {
+                    mk(t, self.typeColor(t), sel.indexOf(t) !== -1, function() { self.toggleType(t); });
+                });
+            },
+
+            toggleType(t) {
+                const off = (State.ui.caddyOff || []).slice();
+                const i = off.indexOf(t);
+                if (i === -1) off.push(t); else off.splice(i, 1);
+                State.ui.caddyOff = off;
+                State.save();
+                this.renderChips();
+                this.render();
+            },
+
+            // Select a club/type — add a shot, or update the shot being edited
+            select(sug) {
+                var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
+                if (State.ui) State.ui._updateShotIdx = null;
+                if (updateIdx !== null) {
+                    // UPDATE MODE — update existing shot's club/shotType
+                    var hole2 = State.currentHole();
+                    if (hole2.shots[updateIdx]) {
+                        hole2.shots[updateIdx].club = sug.club;
+                        hole2.shots[updateIdx].shotType = sug.shotType;
+                        State.save();
+                        UI.render();
+                        Utils.toast(sug.club + ' • ' + sug.shotType + ' selected');
+                    }
+                } else {
+                    Actions.addShot({ club: sug.club, shotType: sug.shotType });
+                }
+                this.close();
+            },
+
+            // v84: carry → total bar chart. Bar starts at carry, ends at total.
+            // Green = target falls inside the window. Gold outline = closest by Carry/Total mode.
             render() {
-                if (!UI.els.suggestionList) return;
-                
+                const list = UI.els.suggestionList;
+                if (!list) return;
+
                 const targetVal = UI.els.caddyTarget ? UI.els.caddyTarget.value.trim() : '';
                 const target = targetVal ? Utils.saneYards(targetVal) : 0;
-                
-                // If showAll is true, show all clubs regardless of target
-                // If showAll is false and no target, prompt for target
+
                 if (!State.ui.showAll && !target) {
-                    UI.els.suggestionList.innerHTML = '<div class="shot-list-empty">Enter a target distance</div>';
+                    list.innerHTML = '<div class="shot-list-empty">Enter a target distance</div>';
                     return;
                 }
-                
-                const suggestions = Caddy.getSuggestions(
-                    target || 999, // If showAll with no target, use high number to show everything
-                    State.ui.caddyMode,
-                    State.ui.showAll
-                );
-                
-                UI.els.suggestionList.innerHTML = '';
-                
-                if (!suggestions.length) {
-                    const empty = document.createElement('div');
-                    empty.className = 'shot-list-empty';
-                    empty.textContent = 'No clubs match';
-                    UI.els.suggestionList.appendChild(empty);
+
+                // Shot-type filter (multi-select)
+                const selTypes = this.selectedTypes();
+                if (!selTypes.length) {
+                    list.innerHTML = '<div class="shot-list-empty">No shot types selected — tap a type or All</div>';
                     return;
                 }
-                
-                suggestions.forEach(sug => {
-                    const item = document.createElement('div');
-                    item.className = 'suggestion-item';
 
-                    const info = document.createElement('div');
-                    info.className = 'suggestion-info';
-
-                    const clubName = document.createElement('div');
-                    clubName.className = 'suggestion-club';
-                    clubName.textContent = `${sug.club} • ${sug.shotType}`;
-
-                    const meta = document.createElement('div');
-                    meta.className = 'suggestion-meta';
-
-                    // Show diff as +/- to indicate over/under target
-                    const diffText = target ? (sug.distance > target ? `+${sug.diff}y` : (sug.distance < target ? `-${sug.diff}y` : '0y')) : '';
-                    meta.textContent = `${sug.carry}y C • ${sug.total}y Tot${diffText ? ' • ' + diffText : ''}`;
-
-                    info.appendChild(meta);
-                    info.appendChild(clubName);
-
-                    const btn = document.createElement('div');
-                    btn.className = 'suggestion-btn';
-                    btn.textContent = 'Select';
-
-                    // Entire row is the tap target
-                    item.addEventListener('click', () => {
-                        var updateIdx = (State.ui && State.ui._updateShotIdx != null) ? State.ui._updateShotIdx : null;
-                        if (State.ui) State.ui._updateShotIdx = null;
-                        if (updateIdx !== null) {
-                            // UPDATE MODE — update existing shot's club/shotType
-                            var hole2 = State.currentHole();
-                            if (hole2.shots[updateIdx]) {
-                                hole2.shots[updateIdx].club = sug.club;
-                                hole2.shots[updateIdx].shotType = sug.shotType;
-                                State.save();
-                                UI.render();
-                                Utils.toast(sug.club + ' • ' + sug.shotType + ' selected');
-                            }
-                        } else {
-                            Actions.addShot({ club: sug.club, shotType: sug.shotType });
-                        }
-                        this.close();
-                    });
-
-                    item.appendChild(info);
-                    item.appendChild(btn);
-                    UI.els.suggestionList.appendChild(item);
+                let sugs = Caddy.getSuggestions(target || 999, State.ui.caddyMode, State.ui.showAll);
+                sugs = sugs.filter(function(sg) {
+                    if (sg.shotType === 'putt' || sg.shotType === 'penalty') return false;
+                    return selTypes.indexOf(sg.shotType) !== -1;
                 });
+
+                list.innerHTML = '';
+                if (!sugs.length) {
+                    list.innerHTML = '<div class="shot-list-empty">No clubs match' +
+                        (selTypes.length < this.caddyTypes().length ? ' for ' + Utils.escHtml(selTypes.join(', ')) : '') + '</div>';
+                    return;
+                }
+
+                // Bar window per option
+                sugs.forEach(function(sg) {
+                    sg.lo = sg.carry || sg.total || 0;
+                    sg.hi = Math.max(sg.total || 0, sg.lo);
+                });
+                // Longest at top, like a gapping chart
+                sugs.sort(function(a, b) { return (b.lo - a.lo) || (b.hi - a.hi); });
+
+                // Closest option (by Carry/Total mode) — only meaningful with a target
+                let best = null;
+                if (target) {
+                    sugs.forEach(function(sg) { if (!best || sg.diff < best.diff) best = sg; });
+                }
+
+                // Scale
+                let mn = Infinity, mx = -Infinity;
+                sugs.forEach(function(sg) { mn = Math.min(mn, sg.lo); mx = Math.max(mx, sg.hi); });
+                if (target) { mn = Math.min(mn, target); mx = Math.max(mx, target); }
+                const span = mx - mn;
+                const step = span > 120 ? 25 : span > 50 ? 10 : 5;
+                mn = Math.floor((mn - 3) / step) * step;
+                mx = Math.ceil((mx + 3) / step) * step;
+                if (mx - mn < step * 2) mx = mn + step * 2;
+                const pct = function(v) { return (v - mn) / (mx - mn) * 100; };
+                // Track column: starts after 84px label + 8px gap, ends before 8px gap + 46px diff
+                const trackPos = function(v) { return 'calc(92px + (100% - 146px) * ' + (pct(v) / 100).toFixed(4) + ')'; };
+
+                const chart = document.createElement('div');
+                chart.className = 'cb-chart';
+
+                if (target) {
+                    const line = document.createElement('div');
+                    line.className = 'cb-target';
+                    line.style.left = trackPos(target);
+                    chart.appendChild(line);
+                    const lbl = document.createElement('div');
+                    lbl.className = 'cb-target-lbl';
+                    lbl.style.left = trackPos(target);
+                    lbl.textContent = target + 'y';
+                    chart.appendChild(lbl);
+                }
+
+                const self = this;
+                sugs.forEach(function(sg) {
+                    const inWin = !!target && target >= sg.lo && target <= sg.hi;
+                    const row = document.createElement('div');
+                    row.className = 'cb-row' + (inWin ? ' cb-in' : '') + (sg === best ? ' cb-best' : '');
+
+                    const lblEl = document.createElement('div');
+                    lblEl.className = 'cb-lbl';
+                    const clubEl = document.createElement('div');
+                    clubEl.className = 'cb-club';
+                    clubEl.textContent = sg.club;
+                    const typeEl = document.createElement('div');
+                    typeEl.className = 'cb-type';
+                    typeEl.textContent = sg.shotType + ' · ' + sg.lo + (sg.hi !== sg.lo ? '–' + sg.hi : '');
+                    lblEl.appendChild(clubEl);
+                    lblEl.appendChild(typeEl);
+
+                    const track = document.createElement('div');
+                    track.className = 'cb-track';
+                    const bar = document.createElement('div');
+                    bar.className = 'cb-bar';
+                    bar.style.background = self.typeColor(sg.shotType);
+                    const left = pct(sg.lo);
+                    bar.style.left = left + '%';
+                    bar.style.width = Math.max(pct(sg.hi) - left, 1.5) + '%';
+                    track.appendChild(bar);
+
+                    const diffEl = document.createElement('div');
+                    diffEl.className = 'cb-diff';
+                    if (target) {
+                        const d = sg.distance - target;
+                        diffEl.textContent = d > 0 ? '+' + d : String(d);
+                    }
+
+                    row.appendChild(lblEl);
+                    row.appendChild(track);
+                    row.appendChild(diffEl);
+                    row.addEventListener('click', function() { self.select(sg); });
+                    chart.appendChild(row);
+                });
+
+                // Axis ticks under the track column
+                const axis = document.createElement('div');
+                axis.className = 'cb-axis';
+                const nTicks = (mx - mn) / step;
+                const tickStep = step * Math.max(1, Math.ceil(nTicks / 6));
+                for (let v = mn; v <= mx; v += tickStep) {
+                    const tk = document.createElement('span');
+                    tk.className = 'cb-tick';
+                    tk.style.left = pct(v) + '%';
+                    tk.textContent = v;
+                    axis.appendChild(tk);
+                }
+                chart.appendChild(axis);
+                list.appendChild(chart);
+
+                const legend = document.createElement('div');
+                legend.className = 'cb-legend';
+                legend.textContent = target
+                    ? 'Bar = carry → total, coloured by shot type. Solid = ' + target + 'y inside the window, faded = outside. Gold outline = closest ' +
+                      (State.ui.caddyMode === 'carry' ? 'carry' : 'total') + '. Right number = ' +
+                      (State.ui.caddyMode === 'carry' ? 'carry' : 'total') + ' vs target. Tap a row to select.'
+                    : 'Bar = carry → total, coloured by shot type. Tap a row to select.';
+                list.appendChild(legend);
             }
         };
         
@@ -7316,7 +7513,7 @@
 
                 // ── KPI Header ────────────────────────────────────────────────
                 h += '<div style="background:#111;border-radius:10px;padding:16px;margin-bottom:20px;">';
-                h += '<div style="font-size:0.6rem;color:#6ee7b7;letter-spacing:2px;text-transform:uppercase;font-family:monospace;margin-bottom:4px;">Round Report · Shot Tracker v83</div>';
+                h += '<div style="font-size:0.6rem;color:#6ee7b7;letter-spacing:2px;text-transform:uppercase;font-family:monospace;margin-bottom:4px;">Round Report · Shot Tracker v84</div>';
                 h += '<div style="font-size:1.4rem;font-weight:900;color:#fff;line-height:1.1;margin-bottom:2px;">'+date.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+'</div>';
                 h += '<div style="font-size:0.72rem;color:rgba(255,255,255,0.6);margin-bottom:14px;">'+(State.courseName||'Unknown Course')+' · '+((State.bag&&State.bag.name)||'Unknown Bag')+'</div>';
                 h += '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">';
